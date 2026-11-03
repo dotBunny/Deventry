@@ -237,10 +237,35 @@ public class ConversationBuilderTests
         Assert.Equal("Explore", agent.AgentType);
         Assert.Equal("Find tests", agent.Summary);
         Assert.True(agent.IsComplete);
-        var grep = Assert.Single(Assert.IsType<ToolGroupItem>(agent.Items[0]).Calls);
+        var group = Assert.IsType<ToolGroupItem>(agent.Items[0]);
+        var grep = Assert.Single(group.Calls);
         Assert.Equal("3 files", grep.ResultSummary);
         var nested = Assert.IsType<SubagentItem>(agent.Items[1]);
         Assert.Equal("nested reply", Assert.IsType<AssistantTextItem>(Assert.Single(nested.Items)).Text);
+        // A subagent's calls start folded, whatever the tab's setting: its work is read at a glance.
+        Assert.False(_builder.CollapseToolCalls);
+        Assert.True(group.IsCollapsed);
+    }
+
+    [Fact]
+    public void A_subagents_tool_calls_start_collapsed_until_the_tab_expands_them_all()
+    {
+        Apply("""{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t0","name":"Grep","input":{"pattern":"x"}}]}}""");
+        Apply("""{"type":"assistant","message":{"content":[{"type":"tool_use","id":"a1","name":"Agent","input":{"description":"Find tests","prompt":"Look","subagent_type":"Explore"}}]}}""");
+        Apply("""{"type":"assistant","parent_tool_use_id":"a1","message":{"content":[{"type":"tool_use","id":"t1","name":"Grep","input":{"pattern":"Fact"}}]}}""");
+        var agent = Assert.IsType<SubagentItem>(_items[1]);
+        Assert.False(Assert.IsType<ToolGroupItem>(_items[0]).IsCollapsed);
+        Assert.True(Assert.IsType<ToolGroupItem>(agent.Items[0]).IsCollapsed);
+
+        _builder.CollapseAllToolCalls(false);
+        Assert.False(Assert.IsType<ToolGroupItem>(agent.Items[0]).IsCollapsed);
+        Apply("""{"type":"user","parent_tool_use_id":"a1","message":{"role":"user","content":[{"type":"text","text":"go on"}]}}""");
+        Apply("""{"type":"assistant","parent_tool_use_id":"a1","message":{"content":[{"type":"tool_use","id":"t2","name":"Read","input":{"file_path":"a.cs"}}]}}""");
+        Assert.False(Assert.IsType<ToolGroupItem>(agent.Items[^1]).IsCollapsed);
+
+        _builder.CollapseAllToolCalls(true);
+        Assert.True(Assert.IsType<ToolGroupItem>(_items[0]).IsCollapsed);
+        Assert.True(Assert.IsType<ToolGroupItem>(agent.Items[^1]).IsCollapsed);
     }
 
     [Fact]

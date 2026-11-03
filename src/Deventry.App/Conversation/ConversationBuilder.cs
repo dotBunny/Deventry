@@ -91,15 +91,19 @@ public sealed class ConversationBuilder
 
     /// <summary>
     /// Start new Tool calls cards collapsed to their header line (Settings → Conversation, or the tab's own choice from a
-    /// card's menu). A subagent's builder asks the builder that made it, so a group already running follows a change.
+    /// card's menu). A subagent's builder asks the builder that made it, so a group already running follows a change;
+    /// its cards start collapsed whatever the setting, as a subagent's work is read at a glance (DESIGN.md §5,
+    /// "Subagents"), until <b>Expand all tool calls</b> opens the tab's.
     /// </summary>
     public bool CollapseToolCalls
     {
-        get => _parent?.CollapseToolCalls ?? _collapseToolCalls;
+        get => _parent is { } parent ? parent.CollapseToolCalls || parent._collapseSubagentToolCalls : _collapseToolCalls;
         set => _collapseToolCalls = value;
     }
 
     private bool _collapseToolCalls;
+
+    private bool _collapseSubagentToolCalls = true;
 
     /// <summary>
     /// Fold each run of steps into one line (Settings → Conversation → Fold each chain of steps). A subagent's builder
@@ -134,6 +138,7 @@ public sealed class ConversationBuilder
     public void CollapseAllToolCalls(bool collapsed)
     {
         CollapseToolCalls = collapsed;
+        _collapseSubagentToolCalls = collapsed;
         foreach (var group in Items.Descendants().OfType<ToolGroupItem>())
         {
             group.IsCollapsed = collapsed;
