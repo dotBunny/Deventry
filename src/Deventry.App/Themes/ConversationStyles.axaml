@@ -5,6 +5,7 @@
         xmlns:ae="using:AvaloniaEdit"
         xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         xmlns:controls="using:Deventry.App.Controls"
+        xmlns:views="using:Deventry.App.Views"
         xmlns:vm="using:Deventry.App.ViewModels">
   <!-- "Jump to latest" (DESIGN.md §5): an accent pill lifted off the conversation. A plain button's fill is see-through
        in the dark theme, so the text under it showed through and it was hard to find. -->
@@ -720,6 +721,70 @@
     <Setter Property="Width" Value="11" />
     <Setter Property="Height" Value="11" />
     <Setter Property="Fill" Value="{DynamicResource GameJouleneBrush}" />
+  </Style>
+  <!-- Pipeline: a board of eight squares by eight, which fits the right side at its narrowest. The squares touch, each
+       drawing its slot, so pipes side by side join; one under the pointer lights its slot and shows the next piece. The
+       pipes are the user's blue; the flow and her tap are hers, as her mines are. -->
+  <Style Selector="Border.pipeboard">
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Padding" Value="2" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Background" Value="{DynamicResource SubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.pipeboard">
+    <Setter Property="CornerRadius" Value="12" />
+  </Style>
+  <Style Selector="Button.pipesquare">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Button.pipesquare /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.pipesquare:pointerover views|PipeTile, Button.pipesquare:focus-visible views|PipeTile">
+    <Setter Property="IsHot" Value="True" />
+  </Style>
+  <Style Selector="views|PipeTile.pipe">
+    <Setter Property="SlotBrush" Value="{DynamicResource DividerBrush}" />
+    <Setter Property="PipeBrush" Value="{DynamicResource GameYouBrush}" />
+    <Setter Property="FlowBrush" Value="{DynamicResource GameJouleneBrush}" />
+    <Setter Property="RockBrush" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+  <!-- The pieces to come, the next larger and ringed in the accent -->
+  <Style Selector="Border.pipepiece">
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="20" />
+    <Setter Property="Padding" Value="1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource SubtleBrush}" />
+  </Style>
+  <Style Selector="Border.pipepiece.next">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="Padding" Value="2" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="1.5" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentStatusBrush}" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.pipepiece">
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.pipepiece.next">
+    <Setter Property="CornerRadius" Value="9" />
   </Style>
   <!-- A code block's Add to scratch pad: in a tab, not in the agent map's own window, which has no pad -->
   <Style Selector="md|CodeBlock /template/ Button#AddToScratchPadButton">

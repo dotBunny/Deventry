@@ -20,6 +20,8 @@ public partial class MainWindow : Window
         Activated += (_, _) =>
         {
             _viewModel?.Services.Notifications.SetAppActive(true);
+            // A game that runs by the clock waits while Deventry is in the back (DESIGN.md §18, "Games with Joulene").
+            _viewModel?.Services.Games.SetAppActive(true);
             // Back from the OS's settings, perhaps with Reduce motion changed (DESIGN.md §3, "Accessibility").
             _ = _viewModel?.Services.ReadMotionPreferencesAsync(onlyIfStale: true);
             // Back from an editor, perhaps with deventry.json changed: the actions and links follow (DESIGN.md §18).
@@ -37,7 +39,11 @@ public partial class MainWindow : Window
             // Back from another editor, perhaps, with an open file changed there (DESIGN.md §18, "Project files").
             _viewModel?.Shell?.OnAppActivated();
         };
-        Deactivated += (_, _) => _viewModel?.Services.Notifications.SetAppActive(false);
+        Deactivated += (_, _) =>
+        {
+            _viewModel?.Services.Notifications.SetAppActive(false);
+            _viewModel?.Services.Games.SetAppActive(false);
+        };
         // A narrow window leaves the busiest tabs, then the weekly chart, out of the detailed header (DESIGN.md §6).
         SizeChanged += (_, e) => _viewModel?.Usage?.SetDetailsWidth(e.NewSize.Width / _zoom);
         LayoutUpdated += (_, _) =>

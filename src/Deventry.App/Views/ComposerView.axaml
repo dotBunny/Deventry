@@ -69,6 +69,7 @@
                 <MenuItem Header="Connect Four" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.ConnectFour}" />
                 <MenuItem Header="Hangman" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.Hangman}" />
                 <MenuItem Header="Minesweeper" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.Minesweeper}" />
+                <MenuItem Header="Pipeline" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.Pipeline}" />
               </MenuFlyout>
             </Button.Flyout>
           </Button>

@@ -62,6 +62,8 @@
                                 Command="{Binding SwitchCommand}" CommandParameter="{x:Static games:GameKind.Hangman}" />
                       <MenuItem Header="Minesweeper" ToggleType="Radio" IsChecked="{Binding IsMinesweeper, Mode=OneWay}"
                                 Command="{Binding SwitchCommand}" CommandParameter="{x:Static games:GameKind.Minesweeper}" />
+                      <MenuItem Header="Pipeline" ToggleType="Radio" IsChecked="{Binding IsPipeline, Mode=OneWay}"
+                                Command="{Binding SwitchCommand}" CommandParameter="{x:Static games:GameKind.Pipeline}" />
                     </MenuFlyout>
                   </Button.Flyout>
                 </Button>

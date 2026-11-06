@@ -12,3 +12,6 @@
 [button] Play Minesweeper
   "Minesweeper"
   "Open every square without one of Joulene's mines."
+[button] Play Pipeline
+  "Pipeline"
+  "Lay pipe from Joulene's tap, ahead of her flow."

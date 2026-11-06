@@ -610,8 +610,8 @@ public sealed class AppearanceSettings
     public bool JouleneTips { get; set; } = true;
 
     /// <summary>
-    /// Tic-tac-toe, Connect Four, hangman and Minesweeper against Joulene, in the Games tool window (DESIGN.md §18, "Games
-    /// with Joulene"). On by default.
+    /// Tic-tac-toe, Connect Four, hangman, Minesweeper and Pipeline against Joulene, in the Games tool window (DESIGN.md
+    /// §18, "Games with Joulene"). On by default.
     /// </summary>
     public bool GamesWithJoulene { get; set; } = true;
 

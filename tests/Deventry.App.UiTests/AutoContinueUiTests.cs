@@ -66,7 +66,7 @@ public class AutoContinueUiTests
         var offer = Bar(window, tab).GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Play a game while you wait").FindAncestorOfType<Button>()!;
         Assert.True(offer.IsEffectivelyVisible);
         var flyout = Assert.IsType<MenuFlyout>(offer.Flyout);
-        Assert.Equal(["Tic-tac-toe", "Connect Four", "Hangman", "Minesweeper"], flyout.Items.OfType<MenuItem>().Select(i => i.Header as string));
+        Assert.Equal(["Tic-tac-toe", "Connect Four", "Hangman", "Minesweeper", "Pipeline"], flyout.Items.OfType<MenuItem>().Select(i => i.Header as string));
         // The bar's buttons sit in the middle of its height, beside the text and the game's link under it.
         var bar = Bar(window, tab);
         var dontContinue = bar.GetVisualDescendants().OfType<Button>().Single(b => b.Content as string == "Don't continue");

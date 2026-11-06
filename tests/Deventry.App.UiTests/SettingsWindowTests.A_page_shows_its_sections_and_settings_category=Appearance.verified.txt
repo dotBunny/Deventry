@@ -69,7 +69,7 @@
 "Now and then she holds up a tip, such as a shortcut you might not know.  "
 [toggle on] Shares tips
 "Games with Joulene"
-"Tic-tac-toe, Connect Four, hangman or Minesweeper against her while Claude works.  "
+"Tic-tac-toe, Connect Four, hangman, Minesweeper or Pipeline against her while Claude works.  "
 [toggle on] Games with Joulene
 [button] Line up
 [button] Page up

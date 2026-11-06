@@ -1,10 +1,12 @@
 using Deventry.App.Services;
+using Deventry.App.ViewModels.ToolWindows;
 
 namespace Deventry.App.ViewModels;
 
 /// <summary>
 /// Games with Joulene (DESIGN.md §18): the Games tool window, its icon on the strip while games are on, follows the one
-/// game that's open or lists them, and the line over the board says when Claude needs the user.
+/// game that's open or lists them, and the line over the board says when Claude needs the user. A game that runs by the
+/// clock hears whether its window shows.
 /// </summary>
 public sealed partial class ShellViewModel
 {
@@ -18,6 +20,9 @@ public sealed partial class ShellViewModel
                 OnGamesEnabledChanged();
             }
         };
+        var window = ToolWindows.For(ToolWindowKinds.Games);
+        ToolWindows.ShowingChanged += () => _services.Games.SetWindowShowing(window.IsShowing);
+        _services.Games.SetWindowShowing(window.IsShowing);
     }
 
     /// <summary>

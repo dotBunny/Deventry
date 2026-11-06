@@ -180,7 +180,7 @@ public sealed class MascotLayer : Control
             foreach (var (header, kind) in new[]
             {
                 ("Play tic-tac-toe", GameKind.TicTacToe), ("Play Connect Four", GameKind.ConnectFour), ("Play hangman", GameKind.Hangman),
-                ("Play Minesweeper", GameKind.Minesweeper),
+                ("Play Minesweeper", GameKind.Minesweeper), ("Play Pipeline", GameKind.Pipeline),
             })
             {
                 var play = new MenuItem { Header = header, CommandParameter = kind };

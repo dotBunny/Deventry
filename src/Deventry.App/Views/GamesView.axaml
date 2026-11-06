@@ -6,6 +6,7 @@
              xmlns:vm="using:Deventry.App.ViewModels"
              xmlns:services="using:Deventry.App.Services"
              xmlns:games="using:Deventry.App.Games"
+             xmlns:views="using:Deventry.App.Views"
              x:Class="Deventry.App.Views.GamesView"
              x:DataType="services:GameService"
              Focusable="True">
@@ -177,6 +178,52 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
+              </StackPanel>
+            </DataTemplate>
+
+            <!-- Pipeline: the pieces to come and the hurry over eight by eight under her tap; a click lays the next piece.
+                 Tab goes into the board once, and the arrow keys move between its squares. -->
+            <DataTemplate DataType="vm:PipelineViewModel">
+              <StackPanel Classes="gameboard">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                  <ItemsControl ItemsSource="{Binding Next}" VerticalAlignment="Center" AutomationProperties.Name="{Binding NextName}"
+                                ToolTip.Tip="The pieces to come: a click lays the first">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="3" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:PipePiece">
+                        <Border Classes="pipepiece" Classes.next="{Binding IsNext}">
+                          <views:PipeTile Classes="pipe" ShowsSlot="False" Piece="{Binding Piece}" />
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Grid.Column="2" Content="{Binding HurryText}" Command="{Binding HurryCommand}" IsVisible="{Binding CanHurry}"
+                          ToolTip.Tip="{Binding HurryTip}" VerticalAlignment="Center" />
+                </Grid>
+                <!-- The squares touch, so pipes side by side join; under the pointer, one shows the piece a click would lay -->
+                <Border Classes="pipeboard">
+                  <ItemsControl ItemsSource="{Binding Squares}" AutomationProperties.Name="Pipeline"
+                                XYFocus.NavigationModes="Keyboard" KeyboardNavigation.TabNavigation="Once">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <UniformGrid Columns="{x:Static games:Pipeline.Columns}" Rows="{x:Static games:Pipeline.Rows}" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:PipeSquare">
+                        <Button Classes="pipesquare" Command="{Binding LayCommand}" AutomationProperties.Name="{Binding Name}">
+                          <views:PipeTile Classes="pipe" Piece="{Binding Piece}" Opening="{Binding Opening}" Flows="{Binding Flows}" Spill="{Binding Spill}"
+                                          Countdown="{Binding Countdown}"
+                                          Ghost="{Binding $parent[ItemsControl].((vm:PipelineViewModel)DataContext).Next[0].Piece, FallbackValue={x:Static games:PipeKind.Empty}}" />
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
               </StackPanel>
             </DataTemplate>
           </ContentControl.DataTemplates>

@@ -1,0 +1,69 @@
+﻿"The flow is through 0 of 14 pipes."
+[choice] "Normal"
+[button] Faster
+[button] Row 1, column 1, crossing
+[button] Row 1, column 2, empty
+[button] Row 1, column 3, empty
+[button] Row 1, column 4, empty
+[button] Row 1, column 5, empty
+[button] Row 1, column 6, empty
+[button] Row 1, column 7, empty
+[button] Row 1, column 8, empty
+[button] Row 2, column 1, empty
+[button] Row 2, column 2, straight, left to right
+[button] Row 2, column 3, empty
+[button] Row 2, column 4, empty
+[button] Row 2, column 5, empty
+[button] Row 2, column 6, empty
+[button] Row 2, column 7, empty
+[button] Row 2, column 8, empty
+[button] Row 3, column 1, empty
+[button] Row 3, column 2, empty
+[button] Row 3, column 3, empty
+[button] Row 3, column 4, empty
+[button] Row 3, column 5, empty
+[button] Row 3, column 6, empty
+[button] Row 3, column 7, empty
+[button] Row 3, column 8, empty
+[button] Row 4, column 1, empty
+[button] Row 4, column 2, empty
+[button] Row 4, column 3, Joulene's tap, facing right, filling
+[button] Row 4, column 4, empty
+[button] Row 4, column 5, empty
+[button] Row 4, column 6, empty
+[button] Row 4, column 7, empty
+[button] Row 4, column 8, empty
+[button] Row 5, column 1, a rock
+[button] Row 5, column 2, empty
+[button] Row 5, column 3, empty
+[button] Row 5, column 4, empty
+[button] Row 5, column 5, empty
+[button] Row 5, column 6, empty
+[button] Row 5, column 7, empty
+[button] Row 5, column 8, empty
+[button] Row 6, column 1, empty
+[button] Row 6, column 2, empty
+[button] Row 6, column 3, empty
+[button] Row 6, column 4, a rock
+[button] Row 6, column 5, empty
+[button] Row 6, column 6, empty
+[button] Row 6, column 7, empty
+[button] Row 6, column 8, empty
+[button] Row 7, column 1, empty
+[button] Row 7, column 2, empty
+[button] Row 7, column 3, empty
+[button] Row 7, column 4, empty
+[button] Row 7, column 5, empty
+[button] Row 7, column 6, empty
+[button] Row 7, column 7, empty
+[button] Row 7, column 8, empty
+[button] Row 8, column 1, empty
+[button] Row 8, column 2, empty
+[button] Row 8, column 3, empty
+[button] Row 8, column 4, empty
+[button] Row 8, column 5, empty
+[button] Row 8, column 6, empty
+[button] Row 8, column 7, empty
+[button] Row 8, column 8, empty
+[button] New game
+[button] Done playing
