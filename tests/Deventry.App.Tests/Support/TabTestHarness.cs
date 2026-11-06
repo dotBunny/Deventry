@@ -760,6 +760,12 @@ internal sealed class TabTestHarness : IAsyncDisposable
         InlineDispatcher.Run(action);
     }
 
+    /// <summary>
+    /// Starts a restored tab as its first message would, since selecting it only reads its conversation (DESIGN.md §9,
+    /// "Starting fast"). Not awaited: a start can wait on what the test does next.
+    /// </summary>
+    public void Start(TabViewModel? tab = null) => _ = InlineDispatcher.RunAsync((tab ?? Shell.SelectedTab!).EnsureStartedAsync);
+
     public async Task<TabViewModel> OpenTabAsync()
     {
         await Shell.OpenFolderAsync(WorkFolder);

@@ -348,6 +348,7 @@ public class GameServiceTests
         h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true, UserName = "auth refactor" }, new TabState { Folder = h.WorkFolder, UserName = "docs" },
             new TabState { Folder = h.WorkFolder, UserName = "tests" }];
         h.Shell.Restore(null);
+        h.Start();
         var (a, b, c) = (h.Shell.AllTabs.ElementAt(0), h.Shell.AllTabs.ElementAt(1), h.Shell.AllTabs.ElementAt(2));
         await TabTestHarness.Eventually(() => a.Status == TabStatus.Idle && a.IsSettled, "the selected tab to start");
         var games = h.Services.Games;
@@ -363,9 +364,7 @@ public class GameServiceTests
         games.AnswerCallCommand.Execute(null);
         Assert.Same(b, h.Shell.SelectedTab);
         Assert.Equal("Claude needs you in tests", games.Call);
-        // Selected, the restored tab starts, which sets its status; it waits again once started.
-        await TabTestHarness.Eventually(() => b.Status == TabStatus.Idle && b.IsSettled, "the tab gone to to start");
-        b.Status = TabStatus.NeedsInput;
+        // Selected, the restored tab only reads its conversation (DESIGN.md §9, "Starting fast"), so it still waits.
 
         // The tab in front waiting: nowhere to go.
         c.Status = TabStatus.Idle;

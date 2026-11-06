@@ -30,7 +30,10 @@ public sealed class OtherAccountTests
         h.Services.RemoteControl.UseAccount(Signed("me@work.com", "Work"));
         h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true, SessionId = "s1", AccountId = accountId }];
         h.Shell.Restore(null);
-        return h.Shell.AllTabs.Single();
+        var tab = h.Shell.AllTabs.Single();
+        // Started as its first message would start it (DESIGN.md §9, "Starting fast").
+        h.Start(tab);
+        return tab;
     }
 
     [Fact]

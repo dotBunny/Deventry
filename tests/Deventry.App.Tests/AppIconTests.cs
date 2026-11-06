@@ -249,6 +249,7 @@ public class AppIconTests
         ];
 
         h.Shell.Restore(null);
+        h.Start();
 
         Assert.Same(AppIconAnimations.Hourglass.Frames[0].Png, h.Notifier.Frame);
     }

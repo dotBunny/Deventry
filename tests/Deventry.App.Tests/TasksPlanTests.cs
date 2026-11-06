@@ -296,6 +296,7 @@ public class TasksPlanTests
             },
         ];
         h.Shell.Restore(null);
+        h.Start();
         var tab = h.Shell.AllTabs.Single();
 
         await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.Items.OfType<AssistantTextItem>().Any(), "the restored conversation");

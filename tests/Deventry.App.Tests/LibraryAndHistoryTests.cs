@@ -57,6 +57,7 @@ public class LibraryAndHistoryTests
 
         Assert.False(h.Shell.IsHistoryOpen);
         var tab = h.Shell.SelectedTab!;
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("old-1", h.Factory.Launches[0].Resume);
         // It only ever lived on this machine, so it stays here.
@@ -311,6 +312,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(entry);
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         var resume = h.Factory.Launches[0].Resume!;
         Assert.StartsWith(h.Services.Paths.LocalSessionsDirectory, resume, StringComparison.Ordinal);
@@ -340,6 +342,7 @@ public class LibraryAndHistoryTests
 
         await confirmation.SecondaryCommand.ExecuteAsync(null);
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.True(h.Factory.Launches[0].ForkSession);
         // A copy of a library session syncs too, under its own id once it has one.
@@ -415,6 +418,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.IsType<LeaseStatus.Mine>(h.Services.Library.CheckLease("lib-3"));
     }
@@ -431,6 +435,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         var record = h.Services.Library.Library.List().Single().Record;
         Assert.Equal(h.Time.GetUtcNow(), record.LastOpened);
@@ -494,6 +499,7 @@ public class LibraryAndHistoryTests
         await confirmation.ConfirmCommand.ExecuteAsync(null);
 
         // Taken over: resumed from this machine's own transcript, with the lease now held here.
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("both-1", h.Factory.Launches[0].Resume);
         Assert.IsType<LeaseStatus.Mine>(h.Services.Library.CheckLease("both-1"));
@@ -514,6 +520,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(entry);
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.StartsWith(h.Services.Paths.LocalSessionsDirectory, h.Factory.Launches[0].Resume!, StringComparison.Ordinal);
         Assert.True(h.Shell.SelectedTab!.SyncToLibrary);
@@ -749,6 +756,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("claude-sonnet-5-5", h.Factory.Launches[0].Model);
         Assert.Equal("plan", h.Factory.Launches[0].PermissionMode);
@@ -785,6 +793,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal([(Path.Combine(h.WorkFolder, "src", "auth.cs"), "e1")], h.Shell.SelectedTab!.State.ReviewedFiles.Select(m => (m.Path, m.Change)));
     }
@@ -954,6 +963,7 @@ public class LibraryAndHistoryTests
         await history.OpenCommand.ExecuteAsync(entry);
 
         // Resumed from this machine's own transcript, and syncing, so it takes the lease as it starts.
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("both-3", h.Factory.Launches[0].Resume);
         Assert.True(h.Shell.SelectedTab!.SyncToLibrary);
@@ -1279,6 +1289,7 @@ public class LibraryAndHistoryTests
         await TabTestHarness.Eventually(() => !history.IsLoading, "History to load");
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
+        h.Start();
 
         // Before any turn: read with its lease as the tab starts.
         var tab = h.Shell.SelectedTab!;

@@ -524,7 +524,15 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
             }
             RefreshMessageTimes();
             // Its conversation, but not its claude: that starts with the first message (DESIGN.md §9, "Starting fast").
-            ReadEarlierConversation();
+            // A tab connected to the Claude app starts, so the app can reach it again (DESIGN.md §18, "Remote Control").
+            if (State.RemoteControl)
+            {
+                _ = EnsureStartedAsync();
+            }
+            else
+            {
+                ReadEarlierConversation();
+            }
             // Its deventry.json may have changed while another tab was showing (DESIGN.md §18).
             _ = ProjectTools.RefreshFileAsync();
             RefreshBranch();
