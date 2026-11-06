@@ -283,10 +283,6 @@
       <Setter Property="Border.CornerRadius" Value="{Binding $parent[Button].CornerRadius}" />
       <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
-    <!-- A subagent's row: the wash starts at its icon, under its tab's name, rather than out in the row's padding -->
-    <Style Selector="controls|WorkBar.agentglow, Border.agentglow">
-      <Setter Property="Margin" Value="{Binding $parent[Button].Padding, Converter={x:Static vm:Converters.OutsetFromIcon}}" />
-    </Style>
     <Style Selector=":is(Window).reducemotion controls|WorkBar">
       <Setter Property="IsStill" Value="True" />
     </Style>

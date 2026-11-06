@@ -948,10 +948,10 @@
                                             ToolTip.Tip="{Binding Tip}" ToolTip.Placement="Right" AutomationProperties.Name="{Binding Node.Title}">
                                       <Panel>
                                       <!-- With Tab activity's colored rows, the tab row's washes for the subagent (DESIGN.md §4, "Sidebar") -->
-                                      <controls:WorkBar Classes="rowglow agentglow" IsVisible="{Binding ShowsWorkBar}" BarBrush="{DynamicResource AccentStatusBrush}" />
-                                      <Border Classes="rowglow agentglow waitglow" IsVisible="{Binding ShowsWaitBlink}" />
-                                      <Border Classes="rowglow agentglow doneglow" IsVisible="{Binding ShowsDoneBar}" />
-                                      <Border Classes="rowglow agentglow errorglow" IsVisible="{Binding ShowsErrorBar}" />
+                                      <controls:WorkBar Classes="rowglow" IsVisible="{Binding ShowsWorkBar}" BarBrush="{DynamicResource AccentStatusBrush}" />
+                                      <Border Classes="rowglow waitglow" IsVisible="{Binding ShowsWaitBlink}" />
+                                      <Border Classes="rowglow doneglow" IsVisible="{Binding ShowsDoneBar}" />
+                                      <Border Classes="rowglow errorglow" IsVisible="{Binding ShowsErrorBar}" />
                                       <Grid ColumnSpacing="{Binding GlyphSpacing}">
                                         <Grid.ColumnDefinitions>
                                           <ColumnDefinition Width="{Binding GlyphWidth}" />
