@@ -46,6 +46,7 @@ Reduced, these stop moving:
 - The busy dots on a tab stop pulsing.
 - The working line's glyph holds still. Its words still change.
 - The taskbar or Dock icon shows the first frame of its animation instead of moving, so it still says what your tabs are doing.
+- A tab found with [Find a tab](../tabs/the-command-palette.md#finding-a-tab) is highlighted without pulsing, and the highlight fades.
 - Joulene on the composer stands still, in the first pose of what she'd be doing. She doesn't react to clicks, events or the pointer, and can't be carried.
 
 ## Settings

@@ -32,6 +32,7 @@
       <!-- A darker orange for text, readable on ivory and white. -->
       <SolidColorBrush x:Key="AccentStatusBrush" Color="#B5573A" />
       <SolidColorBrush x:Key="SelectedRowBrush" Color="#D97757" Opacity="0.14" />
+      <SolidColorBrush x:Key="AttentionGlowBrush" Color="#D97757" Opacity="0.26" />
       <SolidColorBrush x:Key="FindHighlightBrush" Color="#E8A93B" Opacity="0.45" />
       <SolidColorBrush x:Key="MeterTrackBrush" Color="#1A1F1E1D" />
       <SolidColorBrush x:Key="MeterBrush" Color="#D97757" />
@@ -99,6 +100,7 @@
       <!-- A lighter orange for text, readable on the dark greys. -->
       <SolidColorBrush x:Key="AccentStatusBrush" Color="#E9A48D" />
       <SolidColorBrush x:Key="SelectedRowBrush" Color="#D97757" Opacity="0.22" />
+      <SolidColorBrush x:Key="AttentionGlowBrush" Color="#D97757" Opacity="0.34" />
       <SolidColorBrush x:Key="FindHighlightBrush" Color="#F0B95A" Opacity="0.4" />
       <SolidColorBrush x:Key="MeterTrackBrush" Color="#26FAF9F5" />
       <SolidColorBrush x:Key="MeterBrush" Color="#D97757" />

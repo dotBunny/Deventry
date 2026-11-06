@@ -22,6 +22,7 @@ On Windows and Linux, `Ctrl` is the command key. On macOS the command key is `Cm
 | Go to tab 1–9 | `Ctrl+1` to `Ctrl+9` | `Cmd+1` to `Cmd+9` | |
 | Go to the next tab waiting for you | `Ctrl+J` | `Cmd+J` | [The command palette](../tabs/the-command-palette.md) |
 | Command palette | `Ctrl+Shift+P` | `Cmd+Shift+P` | [The command palette](../tabs/the-command-palette.md) |
+| Find a tab | `Ctrl+K` | `Cmd+K` | [Finding a tab](../tabs/the-command-palette.md#finding-a-tab) |
 | Collapse or expand the sidebar | `Ctrl+B` | `Cmd+B` | [The sidebar](../tabs/the-sidebar.md) |
 | Open from History | `Ctrl+Shift+H` | `Cmd+Shift+H` | [History](../history/history.md) |
 | Settings | `Ctrl+,` | `Cmd+,` | [The Settings window](../settings/the-settings-window.md) |

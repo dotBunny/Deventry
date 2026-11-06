@@ -307,6 +307,35 @@
         </Animation>
       </Style.Animations>
     </Style>
+    <!-- A row just found with Find a tab (DESIGN.md §4, "Find a tab"): three soft pulses of the accent over two seconds,
+         or with motion reduced a still highlight that fades once it's over. -->
+    <Style Selector="Border.attentionglow">
+      <Setter Property="Background" Value="{DynamicResource AttentionGlowBrush}" />
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector=":is(Window).reducemotion Border.attentionglow">
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.6" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector=":is(Window).reducemotion Border.attentionglow.attention">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector=":is(Window):not(.reducemotion) Border.attentionglow.attention">
+      <Style.Animations>
+        <Animation Duration="0:0:2" FillMode="Forward" Easing="SineEaseInOut">
+          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0" /></KeyFrame>
+          <KeyFrame Cue="15%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+          <KeyFrame Cue="32%"><Setter Property="Opacity" Value="0.25" /></KeyFrame>
+          <KeyFrame Cue="49%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+          <KeyFrame Cue="66%"><Setter Property="Opacity" Value="0.25" /></KeyFrame>
+          <KeyFrame Cue="83%"><Setter Property="Opacity" Value="1" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
     <Style Selector="TextBlock.tabname.starting">
       <Setter Property="Opacity" Value="0.5" />
     </Style>
@@ -827,6 +856,8 @@
           <SolidColorBrush x:Key="EditorCurrentLineBrush" Color="#0A000000" />
           <SolidColorBrush x:Key="EditorSelectionBrush" Color="#3574F0" Opacity="0.25" />
           <SolidColorBrush x:Key="SelectedRowBrush" Color="#D5E1FF" />
+          <!-- A row just found with Find a tab (DESIGN.md §4, "Find a tab"), pulsing behind its text. -->
+          <SolidColorBrush x:Key="AttentionGlowBrush" Color="#3574F0" Opacity="0.22" />
           <!-- Find's text in the card it brought into view (Controls/FindHighlights), drawn over the text: see-through. -->
           <SolidColorBrush x:Key="FindHighlightBrush" Color="#F2C200" Opacity="0.45" />
           <SolidColorBrush x:Key="BypassBorderBrush" Color="#C42B1C" />
@@ -955,6 +986,7 @@
           <SolidColorBrush x:Key="EditorCurrentLineBrush" Color="#0FFFFFFF" />
           <SolidColorBrush x:Key="EditorSelectionBrush" Color="#3574F0" Opacity="0.35" />
           <SolidColorBrush x:Key="SelectedRowBrush" Color="#2A4371" />
+          <SolidColorBrush x:Key="AttentionGlowBrush" Color="#548AF7" Opacity="0.3" />
           <SolidColorBrush x:Key="FindHighlightBrush" Color="#F2B233" Opacity="0.4" />
           <SolidColorBrush x:Key="BypassBorderBrush" Color="#E0605A" />
           <SolidColorBrush x:Key="MeterTrackBrush" Color="#26FFFFFF" />

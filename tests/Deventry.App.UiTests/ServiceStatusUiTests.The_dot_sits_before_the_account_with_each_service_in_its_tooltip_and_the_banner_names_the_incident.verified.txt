@@ -7,6 +7,7 @@
 [button] Status page
 [button] Dismiss
 [button] New tab
+[button] Find a tab
 [button] History
 [button] Collapse the sidebar
 "Start a Claude Code session"

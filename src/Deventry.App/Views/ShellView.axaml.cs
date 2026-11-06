@@ -398,6 +398,7 @@ public partial class ShellView : UserControl
         {
             _shell.PropertyChanged -= OnShellChanged;
             _shell.ToolWindows.FocusRequested -= OnToolFocusRequested;
+            _shell.TabRevealed -= OnTabRevealed;
         }
         _shell = ViewModel;
         if (_shell is not null)
@@ -411,6 +412,7 @@ public partial class ShellView : UserControl
             _shell.ShowFileWindow = ShowFileWindow;
             _shell.PropertyChanged += OnShellChanged;
             _shell.ToolWindows.FocusRequested += OnToolFocusRequested;
+            _shell.TabRevealed += OnTabRevealed;
             if (Bounds.Width > 0)
             {
                 _shell.Layout.SetAvailableWidth(Bounds.Width);
@@ -418,6 +420,20 @@ public partial class ShellView : UserControl
         }
         WatchUpdates();
     }
+
+    /// <summary>
+    /// A tab found with Find a tab (DESIGN.md §4, "Find a tab"): its row, or its square on the rail, scrolled into view
+    /// once the group or thread it opened has been laid out.
+    /// </summary>
+    private void OnTabRevealed(TabViewModel tab) =>
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (this.GetVisualDescendants().OfType<Button>()
+                    .FirstOrDefault(b => b.Classes.Contains("tab") && ReferenceEquals(b.DataContext, tab) && b.IsEffectivelyVisible) is { } row)
+            {
+                row.BringIntoView();
+            }
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
 
     private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -498,6 +514,17 @@ public partial class ShellView : UserControl
         }
         var keyboard = shell.Keyboard;
         bool Is(string id) => Shortcuts.Matches(keyboard, id, e.Key, e.KeyModifiers);
+
+        if (shell.IsTabSearchOpen)
+        {
+            // Find a tab has the keys while it's open (DESIGN.md §4, "Find a tab"); its shortcut closes it again.
+            if (Is(KeyboardShortcuts.FindTab))
+            {
+                shell.CloseTabSearch();
+                e.Handled = true;
+            }
+            return;
+        }
 
         if (shell.IsPaletteOpen)
         {
@@ -582,6 +609,10 @@ public partial class ShellView : UserControl
         else if (Is(KeyboardShortcuts.CommandPalette))
         {
             shell.OpenPaletteCommand.Execute(null);
+        }
+        else if (Is(KeyboardShortcuts.FindTab))
+        {
+            shell.OpenTabSearchCommand.Execute(null);
         }
         else if (Is(KeyboardShortcuts.NextTabNeedingInput))
         {
@@ -770,6 +801,15 @@ public partial class ShellView : UserControl
         if (ReferenceEquals(e.Source, sender))
         {
             ViewModel?.CloseFindInFiles();
+        }
+    }
+
+    /// <summary>A click outside Find a tab closes it.</summary>
+    private void OnTabSearchOverlayPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (ReferenceEquals(e.Source, sender))
+        {
+            ViewModel?.CloseTabSearch();
         }
     }
 

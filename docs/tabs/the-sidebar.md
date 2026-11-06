@@ -114,7 +114,7 @@ On the rail, which lists only a thread's sub-threads under a tab, **Collapse tab
 
 ## The top and the foot
 
-At the top, over a line, **New tab** opens the [picker](opening-tabs.md), the clock opens [History](../history/history.md), and the last button collapses the sidebar. Each group's row has its project's icon, which opens the project's menu of actions and links ([Project tools](../project-tools/using-project-tools.md)). The foot, under a line, shows only while there's something in it: the Claude Code and Deventry update badges when there's an update, and a source build's new commits and **New build ready**. **Settings** and **User Guide** are at the header's right ([A tour of the window](../getting-started/a-tour-of-the-window.md#the-header)).
+At the top, over a line, **New tab** opens the [picker](opening-tabs.md), the magnifier finds a tab by part of its name ([Finding a tab](the-command-palette.md#finding-a-tab)), the clock opens [History](../history/history.md), and the last button collapses the sidebar. Each group's row has its project's icon, which opens the project's menu of actions and links ([Project tools](../project-tools/using-project-tools.md)). The foot, under a line, shows only while there's something in it: the Claude Code and Deventry update badges when there's an update, and a source build's new commits and **New build ready**. **Settings** and **User Guide** are at the header's right ([A tour of the window](../getting-started/a-tour-of-the-window.md#the-header)).
 
 ## Resizing and collapsing
 
@@ -145,6 +145,7 @@ Settings → Perforce → **Show changelist on tabs** shows the changelist badge
 | `Ctrl/Cmd+1` to `Ctrl/Cmd+9` | Go to a tab by its place in the sidebar |
 | `Ctrl+Tab` and `Ctrl+Shift+Tab` | Next and previous tab |
 | `Ctrl/Cmd+J` | Go to the next tab waiting for you |
+| `Ctrl/Cmd+K` | Find a tab by part of its name, its project, folder or branch |
 
 ## See also
 

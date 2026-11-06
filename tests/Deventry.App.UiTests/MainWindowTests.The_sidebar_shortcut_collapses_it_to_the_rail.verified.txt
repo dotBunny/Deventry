@@ -1,6 +1,7 @@
 ﻿[button] Expand the sidebar
 [button] New tab
 [button] History
+[button] Find a tab
 [button] work
 [button] Project tools
 [button] work

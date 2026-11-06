@@ -13,6 +13,7 @@
 [button] Account: me@example.com
 [button] Plan usage: Max plan
 [button] New tab
+[button] Find a tab
 [button] History
 [button] Collapse the sidebar
 [button] work
