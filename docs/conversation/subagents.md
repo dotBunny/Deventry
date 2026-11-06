@@ -19,7 +19,7 @@ With Settings → Conversation → **Show subagents' work** set to **In the conv
 
 ## Subagents that run in the background
 
-A subagent Claude doesn't wait for runs in the background. Its card says it is running until the subagent finishes, and the **Agents** button in the composer bar counts it. The tab's row in the sidebar keeps showing that work is going on after the turn is over, and says how many subagents are still running with a chip at the right of its second line, such as **2 running**, which is there during the turn too (Settings → Conversation → Tab rows → **Show running subagents**). Click it to see them: their rows come out from under a collapsed tab, or, with their work shown in the conversation, the Agents window opens.
+A subagent Claude doesn't wait for runs in the background. Its card says it is running until the subagent finishes, and the **Agents** button in the composer bar counts it. The tab's row in the sidebar keeps showing that work is going on after the turn is over, and its count of tasks still running has the subagents in it. With Settings → Conversation → Tab rows → **Show running subagents** on, a chip at the right of its second line says how many subagents are still running instead, such as **2 running**, during the turn too. Click it to see them: their rows come out from under a collapsed tab, or, with their work shown in the conversation, the Agents window opens.
 
 To stop a subagent, use the **■** on its row in [the agent map](../plans/the-agent-map.md). The running tasks chip leaves subagents out ([The working line and running tasks](the-working-line-and-running-tasks.md)).
 

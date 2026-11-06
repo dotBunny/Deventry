@@ -76,8 +76,8 @@ Small icons before the name and bordered badges at the right of the second line 
 | Branch icon | The tab works in a git worktree. | [Worktree tabs](worktree-tabs.md) |
 | Phone | The tab is connected to the Claude app. It dims while it connects. | [The Claude app](../away/the-claude-app.md) |
 | `⚙` | A process the tab started is using CPU. | [Processes](processes.md) |
-| A number | Background tasks still running after the turn ended, and subagents too with **Show running subagents** off. Hover it for which. | [The working line and running tasks](../conversation/the-working-line-and-running-tasks.md) |
-| Agents icon and `2 running` | Subagents still running, in the turn or after it. Click it to see them: their rows come out from under a collapsed tab, or the Agents window opens. | [Subagents](../conversation/subagents.md#subagents-that-run-in-the-background) |
+| A number | Background tasks still running after the turn ended, subagents among them unless **Show running subagents** gives them their chip. Hover it for which. | [The working line and running tasks](../conversation/the-working-line-and-running-tasks.md) |
+| Agents icon and `2 running` | Subagents still running, in the turn or after it, with **Show running subagents** on. Click it to see them: their rows come out from under a collapsed tab, or the Agents window opens. | [Subagents](../conversation/subagents.md#subagents-that-run-in-the-background) |
 | `3/7` | How many of Claude's tasks are done. Click it to open the Tasks page. | [The Tasks page](../plans/the-tasks-page.md) |
 | Branch name | The git branch the folder has checked out, such as `main`. Click it for **Copy branch name**. A worktree tab shows the worktree's name. | [Worktree tabs](worktree-tabs.md) |
 | `CL 12345` | The Perforce changelist. | [Perforce](../project-tools/perforce.md) |
@@ -130,7 +130,7 @@ Settings → Conversation → Tab rows:
 
 - **Show context**: the ring. On by default.
 - **Show task progress**: `3/7`, and the task Claude is working on in place of the model while it works. On by default.
-- **Show running subagents**: the **2 running** chip. On by default. With it off, the count before the name has the subagents.
+- **Show running subagents**: the **2 running** chip. Off by default. With it on, the count before the name leaves the subagents out.
 
 Settings → Git → Tab rows → **Show the git branch**: the branch badge. On by default. With it off, a worktree tab shows a branch icon before its name instead.
 

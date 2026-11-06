@@ -590,9 +590,9 @@ public sealed class AppearanceSettings
 
     /// <summary>
     /// How many of a tab's subagents are running, on its row, the turn over or not; while it shows, the row's count of
-    /// running tasks leaves them out (DESIGN.md §4, "Sidebar").
+    /// running tasks leaves them out (DESIGN.md §4, "Sidebar"). Off by default.
     /// </summary>
-    public bool ShowRunningSubagentsOnTabs { get; set; } = true;
+    public bool ShowRunningSubagentsOnTabs { get; set; }
 
     /// <summary>
     /// Joulene, the app's pixel mascot, standing on the composer and doing little things now and then (DESIGN.md §5,
