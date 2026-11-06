@@ -117,6 +117,8 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
                 }
             }
         };
+        // Idle tabs unload, once Settings → General says to (DESIGN.md §9, "Unloading idle tabs").
+        IdleUnloadTicker.Run(true);
     }
 
     public ObservableCollection<TabGroupViewModel> Groups { get; } = [];
@@ -1358,6 +1360,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         FindInFiles?.Dispose();
         FindResults.Dispose();
         ToolWindows.Dispose();
+        IdleUnloadTicker.Stop();
         await Task.WhenAll(Groups.Select(g => g.Files).OfType<ProjectFilesViewModel>().ToArray().Select(f => f.DisposeAsync().AsTask()));
         await Task.WhenAll(AllTabs.ToArray().Select(t => t.DisposeAsync().AsTask()));
     }

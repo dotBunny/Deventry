@@ -22,6 +22,12 @@ public sealed partial class GeneralPage : SettingsPage, IDisposable
             Setting("state.startAtLogin", "Start Deventry when I log in", null, null, keywords: ["login item", "startup", "launch at login"], machineOnly: true),
             Setting("sessions.restoreUnpinnedTabs", "Also restore unpinned tabs when Deventry starts", s => s.Sessions.RestoreUnpinnedTabs, (s, v) => s.Sessions.RestoreUnpinnedTabs = v,
                 "Pinned tabs always come back.", keywords: ["reopen", "session restore"]),
+            Setting("sessions.unloadIdleTabs", "Unload idle tabs to save memory", s => s.Sessions.UnloadIdleTabs, (s, v) => s.Sessions.UnloadIdleTabs = v,
+                "A tab left idle stops its Claude Code. Its conversation stays, and your next message starts it again where it was.",
+                "A tab isn't unloaded while Claude works or waits for you, while tasks or subagents run in it, or while it's connected to the Claude app.",
+                ["memory", "ram", "sleep", "suspend", "idle", "unload"]),
+            Setting("sessions.unloadIdleTabsAfterMinutes", "After being idle for (minutes)", s => s.Sessions.UnloadIdleTabsAfterMinutes, (s, v) => s.Sessions.UnloadIdleTabsAfterMinutes = v,
+                keywords: ["memory", "idle", "unload"]),
             Setting("general.confirmCloseWorkingTab", "Confirm before closing a tab where Claude is working",
                 s => s.General.ConfirmCloseWorkingTab, (s, v) => s.General.ConfirmCloseWorkingTab = v,
                 "Closing one stops Claude mid-turn."),
@@ -137,6 +143,18 @@ public sealed partial class GeneralPage : SettingsPage, IDisposable
     {
         get => Settings.Sessions.RestoreUnpinnedTabs;
         set => Set(value, v => Settings.Sessions.RestoreUnpinnedTabs = v);
+    }
+
+    public bool UnloadIdleTabs
+    {
+        get => Settings.Sessions.UnloadIdleTabs;
+        set => Set(value, v => Settings.Sessions.UnloadIdleTabs = v);
+    }
+
+    public decimal? UnloadIdleTabsAfterMinutes
+    {
+        get => Settings.Sessions.UnloadIdleTabsAfterMinutes;
+        set => Set(value, v => Settings.Sessions.UnloadIdleTabsAfterMinutes = Math.Clamp((int)(v ?? new SessionSettings().UnloadIdleTabsAfterMinutes), 1, 24 * 60));
     }
 
     public bool ConfirmCloseWorkingTab

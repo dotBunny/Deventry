@@ -361,6 +361,7 @@ public sealed partial class TabViewModel
         Status = TabStatus.NotStarted;
         // Read again as it starts, which brings the library's copy here (RestoreTranscriptAsync).
         _restoredTranscript = false;
+        _transcriptRead = null;
         await EnsureStartedAsync();
     }
 

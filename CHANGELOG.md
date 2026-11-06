@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Unload idle tabs to save memory.** Settings → General → **Unload idle tabs to save memory** stops Claude Code in a tab left idle for an hour, or as long as you choose. The tab and its conversation stay as they are, and your next message picks the session up where it was. Off by default.
 - **Start a new project from the new tab picker.** **New project…** makes an empty folder where you choose, a git repository from the start unless you turn that off, and opens it as a new tab; the same window clones a repository instead with **Clone from git**. It's in the command palette too.
 - **Clone a repository…**, from **New project…** in the new tab picker or from the command palette. Paste a git address, choose where to put the clone and what to call its folder (filled in from the address), and the clone opens as a new tab. It runs the git from Settings → Source control → Git, and tells you what git said if it can't. See [Cloning a repository](https://deventry.app/tabs/opening-tabs/#cloning-a-repository).
 - **Show or hide ignored and hidden files in the Files tab.** The explorer's **⋯** menu has **Show ignored files** and **Show hidden files**: ticked, they're in the tree, dimmed, and unticked they're left out, in every Files tab. Hidden files are dotfiles, such as `.gitignore` and `.github`, and what Windows or macOS hides, and are now dimmed too. In a Perforce workspace, what your P4IGNORE rules ignore counts as ignored, as what git ignores does; Perforce is asked in the background, so the tree never waits for it. Both are in Settings → **Files and diffs**, where **Files git ignores** moved from Settings → Git as **Ignored files**. See [The explorer](https://deventry.app/project-files/the-explorer/#the-tree).
@@ -15,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Selecting a tab no longer starts Claude Code.** A tab brought back when Deventry starts shows its conversation as soon as you select it, ready to read and scroll, and starts Claude Code only when you send it a message.
 - **Unity's log with `-timestamps` reads in columns.** The time and thread Unity puts before each line (`2026-11-06T12:45:48.327Z|0x9484|`) are no longer part of the message: the time is in the time column, in your time zone, and the thread has a column of its own before the message, in `Editor.log` and in Unity's JSON log, where the time no longer shows twice. Copying a line still gives it as the file has it. See [Editor logs](https://deventry.app/project-tools/editor-logs/).
 
 ### Fixed

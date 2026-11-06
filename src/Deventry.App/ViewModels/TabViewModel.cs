@@ -84,6 +84,11 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
     /// <summary>Cancelled when the tab closes: a start under way stops there, and no new one begins.</summary>
     private readonly CancellationTokenSource _closing = new();
     private bool _restoredTranscript;
+    /// <summary>
+    /// The earlier conversation being read for a restored tab that's shown before it starts, with what it resumes from;
+    /// the start takes it rather than reading it again (DESIGN.md §9, "Starting fast").
+    /// </summary>
+    private Task<string?>? _transcriptRead;
     private bool _restartAfterSignIn;
     /// <summary>
     /// What's waiting on the user: permission prompts by request id, and the Perforce password prompt. A set, so a
@@ -518,7 +523,8 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
                 OnPropertyChanged(nameof(ShowsDoneBar));
             }
             RefreshMessageTimes();
-            _ = EnsureStartedAsync();
+            // Its conversation, but not its claude: that starts with the first message (DESIGN.md §9, "Starting fast").
+            ReadEarlierConversation();
             // Its deventry.json may have changed while another tab was showing (DESIGN.md §18).
             _ = ProjectTools.RefreshFileAsync();
             RefreshBranch();
@@ -1547,7 +1553,34 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         return EnsureStartedAsync();
     }
 
-    /// <summary>Starts the process if it isn't running: restored tabs start on first selection or message.</summary>
+    /// <summary>
+    /// Reads a restored tab's earlier conversation without starting its process, so it can be read and scrolled; its
+    /// claude starts with the first message (DESIGN.md §9, "Starting fast").
+    /// </summary>
+    internal void ReadEarlierConversation()
+    {
+        if (_restoredTranscript || _session is not null || _starting is not null || _closing.IsCancellationRequested)
+        {
+            return;
+        }
+        _restoredTranscript = true;
+        _transcriptRead = ReadAsync();
+
+        async Task<string?> ReadAsync()
+        {
+            var resume = await RestoreTranscriptAsync();
+            ChangedFiles.ChangesRead();
+            if (IsSessionMissing && _session is null && _starting is null)
+            {
+                // As a start would say it (StartAsync).
+                ErrorMessage = "Its earlier conversation is gone";
+                Status = TabStatus.Error;
+            }
+            return resume;
+        }
+    }
+
+    /// <summary>Starts the process if it isn't running: restored tabs start with their first message.</summary>
     public async Task EnsureStartedAsync()
     {
         if (_closing.IsCancellationRequested || _session is not null || IsSessionMissing || Status == TabStatus.Error && (!Directory.Exists(Folder) || WaitsForSignIn))
@@ -1587,9 +1620,17 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         ErrorMessage = null;
         Status = TabStatus.Starting;
         var resume = State.SessionId;
+        var justRead = false;
+        if (_transcriptRead is { } read)
+        {
+            // Read as the tab was shown, before it started.
+            resume = await read;
+            _transcriptRead = null;
+            justRead = true;
+        }
         // Started again (after an exit, say): another machine may have carried the session on since its conversation was
         // read here, and then it's read again, from the library (DESIGN.md §9, "One machine at a time").
-        if (_restoredTranscript && await CompareWithLibraryAsync() is { Standing: LibraryStanding.Ahead or LibraryStanding.Diverged } since)
+        else if (_restoredTranscript && await CompareWithLibraryAsync() is { Standing: LibraryStanding.Ahead or LibraryStanding.Diverged } since)
         {
             if (since.Standing == LibraryStanding.Diverged)
             {
@@ -1599,12 +1640,17 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
             _conversation.Clear();
             ChangedFiles.Reset();
             _restoredTranscript = false;
+            _transcriptRead = null;
         }
         if (!_restoredTranscript)
         {
             _restoredTranscript = true;
             resume = await RestoreTranscriptAsync();
             ChangedFiles.ChangesRead();
+            justRead = true;
+        }
+        if (justRead)
+        {
             if (IsReadOnly)
             {
                 // The session went on here and on another machine: this machine's turns are kept apart.

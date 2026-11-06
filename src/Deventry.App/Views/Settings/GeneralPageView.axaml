@@ -27,6 +27,17 @@
       <c:SettingRow Key="sessions.restoreUnpinnedTabs">
         <ToggleSwitch IsChecked="{Binding RestoreUnpinnedTabs}" />
       </c:SettingRow>
+      <!-- Unloading idle tabs (DESIGN.md §9) -->
+      <c:SettingRow Key="sessions.unloadIdleTabs">
+        <ToggleSwitch IsChecked="{Binding UnloadIdleTabs}" />
+        <c:SettingRow.Details>
+          <StackPanel IsEnabled="{Binding UnloadIdleTabs}">
+            <c:SettingRow Key="sessions.unloadIdleTabsAfterMinutes">
+              <NumericUpDown Minimum="1" Maximum="1440" Increment="15" FormatString="0" Value="{Binding UnloadIdleTabsAfterMinutes}" />
+            </c:SettingRow>
+          </StackPanel>
+        </c:SettingRow.Details>
+      </c:SettingRow>
       <c:SettingRow Key="general.confirmCloseWorkingTab">
         <ToggleSwitch IsChecked="{Binding ConfirmCloseWorkingTab}" />
       </c:SettingRow>

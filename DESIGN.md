@@ -1674,7 +1674,7 @@ Changed files shows everything since the session started. The **Modified files**
   - The unsent message in its composer ([§5](#drafts-and-the-stash)).
   - The changed files ticked as reviewed ([§8](#8-file-changes--diff-view)), and whether every one is, for the row's reviewed icon ([§4](#4-tabs--sessions), "Marks").
 - Tabs come back in the same order and resume their sessions, with the earlier conversation loaded so you can scroll back.
-- **Starting fast.** Restored tabs don't start their `claude` process until you first select them or send them a message. Launching with many pinned tabs is quick, and tabs you don't touch use no resources.
+- **Starting fast.** Restored tabs don't start their `claude` process until you send them a message. Selecting one reads its earlier conversation, so it can be read and scrolled, without starting anything. Launching with many pinned tabs is quick, looking through tabs is too, and tabs you only read use no resources. Tabs that were running when Deventry restarted into a new build start again at once.
   - Reading a tab's earlier conversation happens off the UI thread, a line at a time (a long session's transcript can be tens of MB), and the conversation view takes it in as one change rather than one per message.
 - **Old sessions.** Claude Code deletes local transcripts after 30 days by default. A pinned tab you haven't used in a while could lose its transcript, so Deventry resumes from its session library copy, which isn't affected by that cleanup. Only a tab that syncs, or once did, has a library copy. If there is one, it's used whether or not the tab syncs now. If neither copy exists, the tab says so and waits: **Start a new session** starts one in the same folder, keeping the tab's name, pinned state, overrides and suffixes, and **Unpin and close** (**Close tab**) closes it. It doesn't start a new session by itself.
 - **Missing folder.** If a restored tab's folder no longer exists (for example a deleted clone), the tab shows an error as soon as it's restored, with **Choose folder…** and **Unpin and close** (**Close tab** for an unpinned tab).
@@ -1682,6 +1682,12 @@ Changed files shows everything since the session started. The **Modified files**
   - Claude Code finds sessions by folder, so Deventry copies the transcript to its local working folder and resumes from that file, as for a session from another machine ([Session library](#session-library-sync-across-machines)).
 - **Carried on elsewhere.** A tab that syncs can come back to a session another machine carried on while Deventry was closed here. If that machine still has it open, the tab becomes read-only ([One machine at a time](#session-library-sync-across-machines)). If it has closed Deventry since, the tab picks up where that machine left off, from the library's copy rather than this machine's older transcript, and the conversation ends with *"Picked up where LAPTOP-02 left off at 12:04."* where it would say *"Resumed."*. A sync client may still be bringing that machine's turns as Deventry starts, so the tab keeps looking while it's open ([One machine at a time](#session-library-sync-across-machines)).
 - Pinned tabs belong to this machine. On another machine, the same sessions appear in History ([below](#history)) instead.
+
+### Unloading idle tabs
+
+- Each tab's `claude` holds a few hundred MB while it runs, idle or not. Settings → General → **Unload idle tabs to save memory** (off by default) stops the `claude` of a tab left idle for **After being idle for (minutes)** (60 by default), as long as nothing in it would notice: no turn, no prompt waiting, no running tasks or subagents, no process of its own busy, and no connection to the Claude app.
+- Nothing about the tab changes: its row, conversation, draft and marks stay, and a tab Claude finished in unseen keeps its wash. Like a restored tab ("Starting fast"), it starts again on the same session with its next message.
+- The processes Claude started are left running, as closing a tab can leave them.
 
 ### Starting at login
 

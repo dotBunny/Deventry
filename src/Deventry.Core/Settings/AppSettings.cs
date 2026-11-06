@@ -744,6 +744,16 @@ public sealed class SessionSettings
     /// </summary>
     public bool RestoreUnpinnedTabs { get; set; } = true;
 
+    /// <summary>
+    /// Stop the claude of a tab left idle for <see cref="UnloadIdleTabsAfterMinutes"/>, to give its memory back; its
+    /// conversation stays, and the next message starts it again on the same session (DESIGN.md §9, "Unloading idle tabs").
+    /// Off by default.
+    /// </summary>
+    public bool UnloadIdleTabs { get; set; }
+
+    /// <summary>How many minutes a tab is idle before it's unloaded.</summary>
+    public int UnloadIdleTabsAfterMinutes { get; set; } = 60;
+
     /// <summary>The session library folder (DESIGN.md §9). Null uses the app data folder.</summary>
     public string? LibraryFolder { get; set; }
 
