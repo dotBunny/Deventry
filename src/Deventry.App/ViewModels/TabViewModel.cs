@@ -1593,6 +1593,12 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
     /// <summary>Starts the process if it isn't running: restored tabs start with their first message.</summary>
     public async Task EnsureStartedAsync()
     {
+        if (_unloading is { } unloading)
+        {
+            // A message as the tab unloads: its claude stops first, or stays (DESIGN.md §9, "Unloading idle tabs"). One
+            // started while the old one stops would have its process tree ended with the old one's.
+            await unloading;
+        }
         // A read-only tab's session carries on elsewhere, so it never starts here again: shown again, say, after its start
         // found that (DESIGN.md §9, "One machine at a time").
         if (_closing.IsCancellationRequested || _session is not null || IsReadOnly || IsSessionMissing || Status == TabStatus.Error && (!Directory.Exists(Folder) || WaitsForSignIn))

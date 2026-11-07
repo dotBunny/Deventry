@@ -79,6 +79,28 @@ public class IdleTabsTests
         await TabTestHarness.Eventually(() => tab.Status == TabStatus.NotStarted, "the tab to unload");
     }
 
+    [Fact]
+    public async Task A_message_sent_as_the_tab_unloads_starts_claude_once_the_old_one_has_stopped()
+    {
+        await using var h = new TabTestHarness(s => s.Sessions.UnloadIdleTabs = true);
+        var tab = await IdleTabAsync(h);
+        // Its claude takes its time to exit, finishing its transcript.
+        h.Transport.IgnoresInputClosing = true;
+        h.Time.Advance(TimeSpan.FromMinutes(61));
+        await TabTestHarness.Eventually(() => !tab.IsProcessRunning, "the unload to stop claude");
+
+        tab.ComposerText = "second";
+        var sending = InlineDispatcher.RunAsync(() => tab.SendCommand.ExecuteAsync(null));
+        // Started now, the new claude's process tree would end with the old one's.
+        await Waiting.NeverAsync(() => h.Factory.Launches.Count == 2, "a start while the old claude stops");
+
+        h.Transport.IgnoresInputClosing = false;
+        h.Time.Advance(TimeSpan.FromSeconds(3));
+        await sending.WaitAsync(Waiting.Timeout, TestContext.Current.CancellationToken);
+        await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 2 && h.Transport.SentUserTextsTo(1).Contains("second"), "the session to start again");
+        Assert.Equal("s1", h.Factory.Launches[1].Resume);
+    }
+
     /// <summary>A tab whose first turn has ended, idle from now.</summary>
     private static async Task<TabViewModel> IdleTabAsync(TabTestHarness h)
     {

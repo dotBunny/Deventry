@@ -11,7 +11,10 @@ public sealed partial class TabViewModel
     /// <summary>When <see cref="Status"/> last changed: an idle tab has been idle since then.</summary>
     private DateTimeOffset _statusSince;
 
-    /// <summary>An unload under way, from looking for the processes Claude left running to its claude having stopped.</summary>
+    /// <summary>
+    /// An unload under way, from looking for the processes Claude left running to its claude having stopped: a start
+    /// waits for it.
+    /// </summary>
     private Task? _unloading;
 
     /// <summary>Its claude is running, and nothing in it would notice it stopping: no turn, prompt, task or connection.</summary>

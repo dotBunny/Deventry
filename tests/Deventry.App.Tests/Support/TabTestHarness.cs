@@ -100,6 +100,12 @@ internal sealed class ScriptedTransport : IClaudeTransport
 
     public IEnumerable<string> SentControlSubtypes => Sent.Where(m => m["type"]?.GetValue<string>() == "control_request").Select(m => m["request"]!["subtype"]!.GetValue<string>());
 
+    /// <summary>
+    /// Its processes go on when their input closes, as a <c>claude</c> still writing its transcript does, and end only when
+    /// they're terminated: after the stop's grace, on the test's clock.
+    /// </summary>
+    public bool IgnoresInputClosing { get; set; }
+
     /// <summary>The pretend <c>claude</c> process id, for the process monitor.</summary>
     public int? ProcessId { get; set; } = 4242;
 
@@ -274,7 +280,13 @@ internal sealed class ScriptedTransport : IClaudeTransport
 
         public ValueTask SendAsync(string line, CancellationToken cancellationToken = default) => transport.Receive(process, line);
 
-        public void CloseInput() => process.Exit(0, "");
+        public void CloseInput()
+        {
+            if (!transport.IgnoresInputClosing)
+            {
+                process.Exit(0, "");
+            }
+        }
 
         public void Terminate() => process.Exit(-1, "");
 
