@@ -20,7 +20,7 @@ public sealed partial class ShellViewModel
         var idleFor = TimeSpan.FromMinutes(Math.Max(1, sessions.UnloadIdleTabsAfterMinutes));
         foreach (var tab in AllTabs.Where(t => t.CanUnload(idleFor)).ToArray())
         {
-            _ = tab.UnloadAsync();
+            _ = tab.UnloadAsync(idleFor);
         }
     }
 }

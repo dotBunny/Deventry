@@ -57,4 +57,36 @@ public class IdleTabsTests
         h.Time.Advance(TimeSpan.FromHours(3));
         await Waiting.NeverAsync(() => tab.Status == TabStatus.NotStarted, "an unload");
     }
+
+    [Fact]
+    public async Task An_idle_tab_stays_loaded_while_a_process_Claude_started_runs()
+    {
+        await using var h = new TabTestHarness(s => s.Sessions.UnloadIdleTabs = true);
+        var tab = await IdleTabAsync(h);
+        // A dev server Claude started, waiting for requests. The process monitor is off, so nothing samples it.
+        var tree = h.Trees.Trees[4242];
+        tree.Children.Add((5001, "node"));
+
+        h.Time.Advance(TimeSpan.FromMinutes(61));
+        // The unload looks for the tab's processes, leaving out its MCP servers, which it asks Claude Code for.
+        await TabTestHarness.Eventually(() => h.Transport.SentControlSubtypes.Contains("mcp_status"), "the look for processes");
+        await Waiting.NeverAsync(() => tab.Status == TabStatus.NotStarted, "an unload leaving the server to no one");
+        Assert.True(tab.IsProcessRunning);
+
+        // Once it's gone, the tab unloads.
+        tree.Children.Clear();
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        await TabTestHarness.Eventually(() => tab.Status == TabStatus.NotStarted, "the tab to unload");
+    }
+
+    /// <summary>A tab whose first turn has ended, idle from now.</summary>
+    private static async Task<TabViewModel> IdleTabAsync(TabTestHarness h)
+    {
+        var tab = await h.OpenTabAsync();
+        tab.ComposerText = "first";
+        await InlineDispatcher.RunAsync(() => tab.SendCommand.ExecuteAsync(null));
+        h.Transport.EmitTurn();
+        await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.IsSettled, "the turn to end");
+        return tab;
+    }
 }
