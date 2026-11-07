@@ -13,26 +13,26 @@ A tab can do things for the project in its folder: launch the editor, generate p
 
 ## The project's icon
 
-Each folder's group in the sidebar has its project's icon on its row, before the **Project files** button: its kind's icon (Unreal Engine's logo, a cube for Unity, Godot's logo for Godot). Its tooltip has the project's name, version and kind, such as *NightOwl · UE 5.4 (Unreal Engine)*, and the main action's shortcut. It's there for every group, whatever the folder holds, so you can add a first action or link from it. When no project is recognized, it's a folder icon, and its tooltip has the folder's path.
+Each folder's group in the sidebar has its project's icon on its row, before the **Project files** button: its kind's icon (Unreal Engine's logo, a cube for Unity, Godot's logo for Godot). Its tooltip has the project's name, version and kind, such as *NightOwl · UE 5.4 (Unreal Engine)*, and the main action's shortcut. It's there for every group, whatever the folder holds. When no project is recognized, it's a folder icon, and its tooltip has the folder's path.
 
 It's for the group's tab you used last: that tab runs its jobs, and while one runs a busy dot replaces the icon and the job's name leads its tooltip. When the sidebar is collapsed to its rail, the icon is under the group's color.
 
-Click the icon to open its menu. From the top, it has:
+Click the icon to open its menu. Under a header, its entries are in sections, each under a small title and with an icon before each entry, as a group's and a tab's menus are. From the top, it has:
 
 - A header with the project's name and kind, the engine's version and folder, or what's wrong ("The engine for EngineAssociation "5.9" wasn't found on this machine"). Without a project, it shows the folder's name and path.
-- Notes about entries in `deventry.json` that were skipped, and why.
+- Notes about entries in `deventry.json` that were skipped, and why, or something in one that couldn't be used, such as an icon Deventry doesn't have.
 - **Projects in this folder**, when there are several, as radio items. Your pick is remembered for that folder on this machine.
-- The project's actions.
+- The project's own actions by what they do: **Editor** (launching the editor, opening the solution and the logs, the project's solution, **Open NightOwl.sln**, when its [project settings](../settings/project-settings.md) name one, and the project's fix, such as **Choose engine folder…**), **Build** (generating project files, builds and tests) and **Clean up** (cleaning, and ending the editors).
 - The project's choice, such as Unreal's **Editor configuration**.
-- The project's fix, such as **Choose engine folder…**.
-- The project's solution, **Open NightOwl.sln**, when its [project settings](../settings/project-settings.md) name one, then your own actions, then your **Links**. See [Actions and links](actions-and-links.md).
-- **Show in Explorer** (**Show in Finder** on macOS, **Show in file manager** on Linux), which opens the project's folder, **Show output…**, which shows the newest run's log once an action has run, **Add an action…**, **Add a link…** and **Refresh**.
+- **Folder**: your own actions and links, each in a submenu, **Actions** and **Links**, which opens beside the menu when you point at it or click it ([Actions and links](actions-and-links.md)); then **Show in Explorer** (**Show in Finder** on macOS, **Show in file manager** on Linux), which opens the project's folder, **Show output…**, which shows the newest run's log once an action has run, and **Refresh**.
+
+To add your own actions and links, open the project's settings with **Project settings…** in its group's or a tab's menu ([Actions and links](actions-and-links.md)).
 
 An item that's greyed out says why in its tooltip, for example "Generate project files first." The menu looks at the project's files again each time it opens, so it's current. **Refresh** does the same on demand.
 
 ### A folder with no tab open
 
-A group with nothing open in it, such as one of [Claude Code's projects](../tabs/folder-groups.md#claude-codes-projects) listing only its past sessions, has its project's icon and menu too, from its folder. Anything that starts or opens something works from there: launching the editor, opening the solution, a link, your own `launch` actions. A build, or any other action that shows its output under a tab, needs a tab to run in: until you open one in the group, it's greyed out, with *Open a tab here to run it*. **Show output…**, **Add an action…** and **Add a link…** come with a tab too.
+A group with nothing open in it, such as one of [Claude Code's projects](../tabs/folder-groups.md#claude-codes-projects) listing only its past sessions, has its project's icon and menu too, from its folder. Anything that starts or opens something works from there: launching the editor, opening the solution, a link, your own `launch` actions. A build, or any other action that shows its output under a tab, needs a tab to run in: until you open one in the group, it's greyed out, with *Open a tab here to run it*. **Show output…** comes with a tab too.
 
 ## How a project is found
 

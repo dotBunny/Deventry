@@ -7,17 +7,20 @@ namespace Deventry.App.ViewModels;
 
 /// <summary>
 /// The small dialog for one custom project action (DESIGN.md §18, "Custom actions"): its name, command, working folder,
-/// what must exist for it to be shown, and mode. It hands back a new action, or a changed copy of the one it was given,
-/// and changes nothing itself.
+/// what must exist for it to be shown, its mode, and the group and icon it has in the project's menu. It hands back a
+/// new action, or a changed copy of the one it was given, and changes nothing itself.
 /// </summary>
 public sealed partial class ProjectActionEditorViewModel : ViewModelBase
 {
     private readonly IPlatformServices _platform;
     private readonly CustomProjectAction? _existing;
-    private readonly Action<CustomProjectAction, ProjectFileScope> _save;
+    private readonly Action<CustomProjectAction> _save;
     private readonly Action _close;
+    private readonly IReadOnlyList<MenuIconChoice> _outputIcons = MenuIconChoice.All(MenuIcons.Terminal, "As its mode has it");
+    private readonly IReadOnlyList<MenuIconChoice> _launchIcons = MenuIconChoice.All(MenuIcons.Play, "As its mode has it");
 
-    public ProjectActionEditorViewModel(string folder, IPlatformServices platform, CustomProjectAction? existing, Action<CustomProjectAction, ProjectFileScope> save, Action close)
+    /// <param name="groups">The groups the folder's actions have, to offer.</param>
+    public ProjectActionEditorViewModel(string folder, IPlatformServices platform, CustomProjectAction? existing, IReadOnlyList<string> groups, Action<CustomProjectAction> save, Action close)
     {
         Folder = folder;
         _platform = platform;
@@ -30,31 +33,10 @@ public sealed partial class ProjectActionEditorViewModel : ViewModelBase
         IfExists = string.Join("; ", existing?.IfExists ?? []);
         LaunchAndForget = existing?.Mode == CustomActionMode.LaunchAndForget;
         RunOnNewWorktree = existing?.RunOnNewWorktree ?? false;
-        SaveToShared = existing?.Scope == ProjectFileScope.Shared;
+        Groups = groups;
+        Group = existing?.Group ?? "";
+        SelectedIcon = IconChoices.First(c => c.Name == existing?.Icon);
     }
-
-    /// <summary>Asks which file the action goes in; from Tab settings… the file is already chosen.</summary>
-    public bool AsksForFile { get; init; }
-
-    /// <summary>In <c>deventry.json</c>, shared with the project, rather than <c>deventry.local.json</c>.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SaveToLocal), nameof(FileNote))]
-    public partial bool SaveToShared { get; set; }
-
-    public bool SaveToLocal
-    {
-        get => !SaveToShared;
-        set => SaveToShared = !value;
-    }
-
-    public string SharedText => $"Shared with the project ({ProjectFile.SharedName})";
-
-    public string LocalText => $"Just me ({ProjectFile.LocalName})";
-
-    /// <summary>Saving rewrites the file, which drops its comments.</summary>
-    public string FileNote => AsksForFile
-        ? $"Saving rewrites {ProjectFile.FileName(Folder, SaveToShared ? ProjectFileScope.Shared : ProjectFileScope.Local)} in {Folder}, so comments in it are dropped."
-        : "";
 
     /// <summary>The tab's folder, which the working folder is relative to.</summary>
     public string Folder { get; }
@@ -103,8 +85,33 @@ public sealed partial class ProjectActionEditorViewModel : ViewModelBase
 
     /// <summary>"Launch and forget" rather than the default, "Run with output".</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(RunWithOutput))]
+    [NotifyPropertyChangedFor(nameof(RunWithOutput), nameof(IconChoices))]
     public partial bool LaunchAndForget { get; set; }
+
+    /// <summary>The icon a choice of none shows follows the mode: the same choice, in the list for the new one.</summary>
+    partial void OnLaunchAndForgetChanged(bool value)
+    {
+        if (SelectedIcon is { } chosen)
+        {
+            SelectedIcon = IconChoices.First(c => c.Name == chosen.Name);
+        }
+    }
+
+    /// <summary>
+    /// The section of the project's <b>Actions ▸</b> it goes in (<c>"group"</c>), with the folder's other actions of that
+    /// name; empty for none, at the top (DESIGN.md §18, "Project tools").
+    /// </summary>
+    [ObservableProperty]
+    public partial string Group { get; set; }
+
+    /// <summary>The groups to offer: those the folder's actions have.</summary>
+    public IReadOnlyList<string> Groups { get; }
+
+    /// <summary>Its icon in the project's menu: none, for its mode's, or one of Deventry's by name.</summary>
+    public IReadOnlyList<MenuIconChoice> IconChoices => LaunchAndForget ? _launchIcons : _outputIcons;
+
+    [ObservableProperty]
+    public partial MenuIconChoice? SelectedIcon { get; set; }
 
     public bool RunWithOutput
     {
@@ -131,8 +138,10 @@ public sealed partial class ProjectActionEditorViewModel : ViewModelBase
         action.IfExists = paths.Length > 0 ? paths : null;
         action.Mode = LaunchAndForget ? CustomActionMode.LaunchAndForget : CustomActionMode.RunWithOutput;
         action.RunOnNewWorktree = RunOnNewWorktree;
+        action.Group = string.IsNullOrWhiteSpace(Group) ? null : Group.Trim();
+        action.Icon = SelectedIcon?.Name;
         _close();
-        _save(action, SaveToShared ? ProjectFileScope.Shared : ProjectFileScope.Local);
+        _save(action);
     }
 
     private bool CanSave() => Name.Trim().Length > 0 && Command.Trim().Length > 0 && Command.IndexOfAny(['\r', '\n']) < 0;

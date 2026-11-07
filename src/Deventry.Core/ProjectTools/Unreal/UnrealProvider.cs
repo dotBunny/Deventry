@@ -105,13 +105,17 @@ public sealed class UnrealProvider(IUnrealEngineRegistry? registry = null) : IPr
             var launchSpec = UnrealCommands.LaunchEditor(engine.Root, engine.EditorName, project.Path, configuration, os);
             launch = new ProjectAction("launch-editor", $"Launch editor{suffix}", ProjectActionKind.Launch)
             {
+                Group = ProjectActionGroups.Editor, Icon = MenuIcons.Play,
                 Description = debugGame ? "Opens the project in the editor, loading its DebugGame modules (-debug)." : "Opens the project in the editor.",
                 Process = launchSpec,
                 IsMain = true,
                 DisabledReason = File.Exists(launchSpec.FileName) ? null : $"The editor isn't built yet ({Path.GetFileName(launchSpec.FileName)} is missing): run Build editor first.",
             };
         }
-        actions.Add(launch ?? new ProjectAction("launch-editor", $"Launch editor{suffix}", ProjectActionKind.Launch) { IsMain = true, DisabledReason = noEngine });
+        actions.Add(launch ?? new ProjectAction("launch-editor", $"Launch editor{suffix}", ProjectActionKind.Launch)
+        {
+            IsMain = true, DisabledReason = noEngine, Group = ProjectActionGroups.Editor, Icon = MenuIcons.Play,
+        });
 
         var scriptMissing = engine is not null && !File.Exists(UnrealCommands.BuildScript(engine.Root, os))
             ? $"The engine has no {Path.GetFileName(UnrealCommands.BuildScript(engine.Root, os))}."
@@ -120,6 +124,7 @@ public sealed class UnrealProvider(IUnrealEngineRegistry? registry = null) : IPr
         var rider = context.Settings.OpenSolutionsWith == SolutionOpener.Rider && RiderReadsUProject(engine?.Version, os);
         actions.Add(new ProjectAction("generate-project-files", "Generate project files", ProjectActionKind.Run)
         {
+            Group = ProjectActionGroups.Build, Icon = MenuIcons.Files,
             Description = $"Generates the {FormatName(format)} project files, as the .uproject's menu does."
                 + (rider ? " Rider doesn't need them: Open in Rider reads the .uproject itself." : ""),
             Process = engine is null ? null : UnrealCommands.GenerateProjectFiles(engine.Root, project.Path, format, os),
@@ -131,6 +136,7 @@ public sealed class UnrealProvider(IUnrealEngineRegistry? registry = null) : IPr
             ?? (!project.HasCode && engine is { IsInstalledBuild: true } ? "The project has no C++ code, and an installed engine's editor is already built." : null);
         var build = new ProjectAction("build-editor", $"Build editor{suffix}", ProjectActionKind.Run)
         {
+            Group = ProjectActionGroups.Build, Icon = MenuIcons.Build,
             Description = $"Builds {target} for {UnrealCommands.Platform(os)} {configuration}.",
             Process = engine is null ? null : UnrealCommands.BuildEditor(engine.Root, target, project.Path, configuration, os),
             DisabledReason = cantBuild,
@@ -151,6 +157,7 @@ public sealed class UnrealProvider(IUnrealEngineRegistry? registry = null) : IPr
             // mobile targets Rider's .uproject model doesn't cover yet, is in Rider's own File → Open.
             actions.Add(new ProjectAction("open-solution", "Open in Rider", ProjectActionKind.Open)
             {
+                Group = ProjectActionGroups.Editor, Icon = MenuIcons.File,
                 Description = $"Opens {Path.GetFileName(project.Path)} in Rider, which reads the project itself: no project files to generate.",
                 OpenPath = project.Path,
                 OpenWithIde = true,
@@ -163,6 +170,7 @@ public sealed class UnrealProvider(IUnrealEngineRegistry? registry = null) : IPr
             var solution = UnrealCommands.SolutionCandidates(project.Root, project.Name, format, os).FirstOrDefault(p => File.Exists(p) || Directory.Exists(p));
             actions.Add(new ProjectAction("open-solution", "Open solution", ProjectActionKind.Open)
             {
+                Group = ProjectActionGroups.Editor, Icon = MenuIcons.File,
                 Description = solution is null ? null : $"Opens {Path.GetFileName(solution)}.",
                 OpenPath = solution,
                 OpenWithIde = true,
@@ -173,6 +181,7 @@ public sealed class UnrealProvider(IUnrealEngineRegistry? registry = null) : IPr
         var log = UnrealCommands.LogPath(project.Root, project.Name, os);
         actions.Add(new ProjectAction("open-log", "Open latest log", ProjectActionKind.Open)
         {
+            Group = ProjectActionGroups.Editor, Icon = MenuIcons.Log,
             Description = $"Opens Saved/Logs/{project.Name}.log.",
             OpenPath = log,
             DisabledReason = File.Exists(log) ? null : "No log yet: the editor hasn't run for this project.",
@@ -181,6 +190,7 @@ public sealed class UnrealProvider(IUnrealEngineRegistry? registry = null) : IPr
         var cleanable = CleanFolders(project.Root);
         actions.Add(new ProjectAction("clean", "Clean intermediates…", ProjectActionKind.Destructive)
         {
+            Group = ProjectActionGroups.CleanUp, Icon = MenuIcons.Trash,
             Description = "Deletes Binaries and Intermediate in the project and each of its plugins, so the next build starts from scratch.",
             Destructive = new DeleteFolders(project.Root, () => CleanFolders(project.Root), EditorProcessNames: EditorProcessNames, ProjectFile: project.Path),
             DisabledReason = cleanable.Count == 0 ? "Nothing to clean: there are no Binaries or Intermediate folders." : null,
@@ -190,6 +200,7 @@ public sealed class UnrealProvider(IUnrealEngineRegistry? registry = null) : IPr
         var running = context.Processes?.Find(EditorProcessNames);
         actions.Add(new ProjectAction("kill-editors", "End all Unreal editors…", ProjectActionKind.Destructive)
         {
+            Group = ProjectActionGroups.CleanUp, Icon = MenuIcons.Stop,
             Description = "Ends every running Unreal editor, with ShaderCompileWorker and whatever else each started.",
             Destructive = new KillProcesses(EditorProcessNames, "Unreal editor", p => SystemProcessNames.FileArgument(p.CommandLine, ".uproject")),
             DisabledReason = running is { Count: 0 } ? "No Unreal editor is running." : null,

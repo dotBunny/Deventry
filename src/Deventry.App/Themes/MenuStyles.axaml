@@ -11,6 +11,32 @@
   <Style Selector="MenuFlyoutPresenter.sectioned Separator, ContextMenu.sectioned Separator">
     <Setter Property="Margin" Value="0,4" />
   </Style>
+  <!-- The project's menu (DESIGN.md §18, "Project tools") is a flyout, for its header and the tips on its disabled
+       entries, drawn as these menus are: its rows are buttons with the class menuentry, laid out as a MenuItem is, its
+       sections' titles TextBlocks with the class menusection, and its lines run from edge to edge. -->
+  <Style Selector="FlyoutPresenter.sectioned">
+    <Setter Property="Padding" Value="0,4" />
+    <Setter Property="MinWidth" Value="220" />
+  </Style>
+  <Style Selector="FlyoutPresenter.sectioned Separator">
+    <Setter Property="Margin" Value="0,4" />
+  </Style>
+  <Style Selector="Button.menuentry">
+    <Setter Property="Padding" Value="12,4,11,7" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <!-- Actions ▸ or Links ▸ while its submenu is open. -->
+  <Style Selector="Button.menuentry.open /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  </Style>
+  <!-- In line with the entries' labels, after the 14 pixels of the icon and the 13 after it. -->
+  <Style Selector="TextBlock.menusection">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="Margin" Value="39,4,12,2" />
+  </Style>
   <Style Selector="MenuItem.menusection">
     <Setter Property="FontSize" Value="11" />
     <Setter Property="MinHeight" Value="0" />

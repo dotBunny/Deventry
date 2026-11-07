@@ -36,6 +36,13 @@ public sealed class UnrealProviderTests : IDisposable
         Assert.Equal("NightOwl", info.Name);
         Assert.Equal("UE 5.4", info.ShortVersion);
         Assert.Equal(["launch-editor", "generate-project-files", "build-editor", "build-and-launch", "open-solution", "open-log", "clean", "kill-editors"], info.Actions.Select(a => a.Id));
+        // The project's menu has them in sections by what they do, each with an icon (DESIGN.md §18, "Project tools").
+        Assert.Equal(
+        [
+            (ProjectActionGroups.Editor, MenuIcons.Play), (ProjectActionGroups.Build, MenuIcons.Files), (ProjectActionGroups.Build, MenuIcons.Build),
+            (ProjectActionGroups.Build, MenuIcons.Build), (ProjectActionGroups.Editor, MenuIcons.File), (ProjectActionGroups.Editor, MenuIcons.Log),
+            (ProjectActionGroups.CleanUp, MenuIcons.Trash), (ProjectActionGroups.CleanUp, MenuIcons.Stop),
+        ], info.Actions.Select(a => (a.Group!, a.MenuIcon)));
         Assert.Equal("launch-editor", info.MainAction!.Id);
         Assert.Equal(ProjectActionKind.Launch, Action(info, "launch-editor").Kind);
         Assert.True(Action(info, "launch-editor").IsEnabled);

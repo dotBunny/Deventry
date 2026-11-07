@@ -339,6 +339,7 @@ public sealed class GodotProvider : IProjectType
         {
             new("open-in-godot", "Open in Godot", ProjectActionKind.Launch)
             {
+                Group = ProjectActionGroups.Editor, Icon = MenuIcons.Play,
                 Description = "Opens the project in the Godot editor.",
                 Process = godot is null ? null : GodotExecutables.OpenEditor(godot, project.Root),
                 IsMain = true,
@@ -346,6 +347,7 @@ public sealed class GodotProvider : IProjectType
             },
             new("run-project", "Run project", ProjectActionKind.Launch)
             {
+                Group = ProjectActionGroups.Editor, Icon = MenuIcons.Play,
                 Description = "Runs the project's main scene.",
                 Process = godot is null ? null : GodotExecutables.Run(godot, project.Root),
                 DisabledReason = noGodot,
@@ -359,12 +361,14 @@ public sealed class GodotProvider : IProjectType
             var target = solution ?? csharp.FirstOrDefault();
             actions.Add(new ProjectAction("build-csharp", "Build C#", ProjectActionKind.Run)
             {
+                Group = ProjectActionGroups.Build, Icon = MenuIcons.Build,
                 Description = target is null ? null : $"Runs dotnet build on {Path.GetFileName(target)}.",
                 Process = target is null ? null : GodotExecutables.BuildCSharp(target, project.Root),
                 DisabledReason = target is null ? "There's no .sln or .csproj yet: open the project in Godot, which makes them." : null,
             });
             actions.Add(new ProjectAction("open-solution", "Open solution", ProjectActionKind.Open)
             {
+                Group = ProjectActionGroups.Editor, Icon = MenuIcons.File,
                 Description = solution is null ? null : $"Opens {Path.GetFileName(solution)}.",
                 OpenPath = solution,
                 OpenWithIde = true,
@@ -375,6 +379,7 @@ public sealed class GodotProvider : IProjectType
         var imports = Path.Combine(project.Root, project.ImportFolder);
         actions.Add(new ProjectAction("clean", $"Clean {project.ImportFolder}…", ProjectActionKind.Destructive)
         {
+            Group = ProjectActionGroups.CleanUp, Icon = MenuIcons.Trash,
             Description = $"Deletes {project.ImportFolder}/, Godot's imported assets and caches.",
             Destructive = new DeleteFolders(project.Root, () => Directory.Exists(imports) ? [imports] : [],
                 "Godot reimports every asset the next time it opens the project, which can take a while."),
@@ -384,6 +389,7 @@ public sealed class GodotProvider : IProjectType
         var running = context.Processes?.Find(EditorProcessNames);
         actions.Add(new ProjectAction("kill-editors", "End all Godot editors…", ProjectActionKind.Destructive)
         {
+            Group = ProjectActionGroups.CleanUp, Icon = MenuIcons.Stop,
             Description = "Ends every running Godot, with whatever each started.",
             Destructive = new KillProcesses(EditorProcessNames, "Godot editor", p => SystemProcessNames.FolderAfter(p.CommandLine, "--path")),
             DisabledReason = running is { Count: 0 } ? "No Godot editor is running." : null,

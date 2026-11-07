@@ -183,6 +183,82 @@ public sealed class ProjectFileTests : IDisposable
     }
 
     [Fact]
+    public void Actions_and_links_have_a_group_and_an_icon_and_one_that_cant_be_used_is_left_out_with_a_note()
+    {
+        var contents = ProjectFile.Parse("""
+            {
+              "actions": [
+                { "name": "Deploy", "command": "./deploy", "group": " Release ", "icon": "Upload" },
+                { "name": "Lint", "command": "npm run lint", "group": "", "icon": "" },
+                { "name": "Rocket", "command": "./go", "icon": "rocket" },
+                { "name": "Numbered", "command": "./n", "group": 3, "icon": 4 }
+              ],
+              "links": [
+                { "name": "Dashboard", "url": "https://example.com", "group": "Release", "icon": "web" },
+                { "url": "https://example.com/odd", "icon": "sparkles" }
+              ]
+            }
+            """, ProjectFileScope.Shared, ToolOS.Linux);
+
+        // An action or link with a group or icon that can't be used is still read, under Actions or Links, with its own icon.
+        Assert.Equal(["Deploy", "Lint", "Rocket", "Numbered"], contents.Actions.Select(a => a.Name));
+        Assert.Equal<string?[]>(["Release", null, null, null], [.. contents.Actions.Select(a => a.Group)]);
+        Assert.Equal<string?[]>([MenuIcons.Upload, null, null, null], [.. contents.Actions.Select(a => a.Icon)]);
+        Assert.Equal<(string?, string?)[]>([("Release", MenuIcons.Web), (null, null)], [.. contents.Links.Select(l => (l.Group, l.Icon))]);
+        Assert.Equal(
+        [
+            $"deventry.json: actions[2] (\"Rocket\"): \"icon\" is \"rocket\", which isn't one of Deventry's icons ({string.Join(", ", MenuIcons.Names)}), so it shows without it.",
+            "deventry.json: actions[3] (\"Numbered\"): \"group\" should be a name, such as \"Deploy\"; \"icon\" should be the name of one of Deventry's icons, such as \"play\", so it shows without it.",
+            $"deventry.json: links[1] (\"https://example.com/odd\"): \"icon\" is \"sparkles\", which isn't one of Deventry's icons ({string.Join(", ", MenuIcons.Names)}), so it shows without it.",
+        ], contents.Problems);
+
+        // They carry on to what the menu shows.
+        var deploy = contents.Actions[0].ToAction(_temp.Path, ToolOS.Linux, "/bin/sh");
+        Assert.Equal(("Release", MenuIcons.Upload, MenuIcons.Upload), (deploy.Group, deploy.Icon, deploy.MenuIcon));
+        Assert.Equal(MenuIcons.Terminal, contents.Actions[1].ToAction(_temp.Path, ToolOS.Linux, "/bin/sh").MenuIcon);
+        var link = ProjectLinks.Resolve(contents.Links[0], new LinkValues("main", null, "game"));
+        Assert.Equal(("Release", MenuIcons.Web), (link.Group, link.Icon));
+    }
+
+    [Fact]
+    public void Saving_writes_the_group_and_icon_and_leaves_them_out_when_empty()
+    {
+        var action = new CustomProjectAction { Name = "Deploy", Command = "./deploy", Group = "Release", Icon = MenuIcons.Upload };
+        var json = ProjectFile.ToJson(action);
+        Assert.Equal(("Release", "upload"), (json["group"]!.GetValue<string>(), json["icon"]!.GetValue<string>()));
+        action.Group = " ";
+        action.Icon = null;
+        var cleared = ProjectFile.ToJson(action, json);
+        Assert.False(cleared.ContainsKey("group"));
+        Assert.False(cleared.ContainsKey("icon"));
+
+        var link = ProjectFile.LinkToJson("Dashboard", "https://example.com", new JsonObject { ["note"] = "kept" }, " Release ", MenuIcons.Web);
+        Assert.Equal(("Release", "web", "kept"), (link["group"]!.GetValue<string>(), link["icon"]!.GetValue<string>(), link["note"]!.GetValue<string>()));
+        var plain = ProjectFile.LinkToJson("Dashboard", "https://example.com", link);
+        Assert.False(plain.ContainsKey("group"));
+        Assert.False(plain.ContainsKey("icon"));
+
+        // What reads as none here, such as an icon a newer Deventry has, stays as written when the entry is saved again.
+        var entries = ProjectFile.Parse("""
+            { "actions": [ { "name": "Go", "command": "./go", "group": 3, "icon": "rocket" } ],
+              "links": [ { "url": "https://example.com", "icon": "sparkles" } ] }
+            """, ProjectFileScope.Shared, ToolOS.Linux);
+        var raw = new JsonObject { ["name"] = "Go", ["command"] = "./go", ["group"] = 3, ["icon"] = "rocket" };
+        var again = ProjectFile.ToJson(entries.Actions[0], raw);
+        Assert.Equal((3, "rocket"), (again["group"]!.GetValue<int>(), again["icon"]!.GetValue<string>()));
+        var linkRaw = new JsonObject { ["url"] = "https://example.com", ["icon"] = "sparkles" };
+        Assert.Equal("sparkles", ProjectFile.LinkToJson(null, "https://example.com", linkRaw, entries.Links[0].Group, entries.Links[0].Icon)["icon"]!.GetValue<string>());
+        // Chosen in the editor, it's written over them.
+        var chosen = entries.Actions[0].Clone();
+        chosen.Icon = MenuIcons.Play;
+        Assert.Equal("play", ProjectFile.ToJson(chosen, raw)["icon"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void An_icons_name_is_found_whatever_its_case() =>
+        Assert.All(MenuIcons.Names, name => Assert.Equal(name, MenuIcons.Find($" {name.ToUpperInvariant()} ")));
+
+    [Fact]
     public void A_missing_file_is_created_and_one_that_isnt_JSON_is_never_overwritten()
     {
         var folder = _temp.CreateFolder("game");

@@ -28,6 +28,7 @@
                     <TextBlock Grid.Column="1" Classes="muted small" Text="{Binding FileText}" VerticalAlignment="Center" />
                   </Grid>
                   <TextBlock Classes="muted small mono" Text="{Binding Url}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Url}" IsVisible="{Binding CanEdit}" />
+                  <TextBlock Classes="muted small" Text="{Binding GroupText}" IsVisible="{Binding HasGroup}" />
                   <TextBlock Classes="small warning" Text="{Binding Warning}" TextWrapping="Wrap" IsVisible="{Binding HasWarning}" />
                 </StackPanel>
               </DataTemplate>

@@ -25,7 +25,8 @@ public sealed record CustomActionRow(JsonNode? Raw, CustomProjectAction? Action,
             + action.Command + (string.IsNullOrWhiteSpace(action.WorkingFolder) ? "" : $"  (in {action.WorkingFolder})")
             + (ForThisOS ? "" : $"  · only on {string.Join(" or ", (action.Os ?? []).Select(OsName).Distinct())}")
             + (action.IfExists is { } paths ? $"  · only when {string.Join(" and ", paths)} {(paths.Count == 1 ? "exists" : "exist")}" : "")
-            + (action.RunOnNewWorktree ? "  · runs in each new worktree" : "");
+            + (action.RunOnNewWorktree ? "  · runs in each new worktree" : "")
+            + (action.Group is { } group ? $"  · in {group}" : "");
 
     /// <summary>An <c>os</c> entry's proper name, "macOS" for <c>mac</c> or <c>darwin</c>; one it doesn't know as written.</summary>
     private static string OsName(string name) =>
@@ -105,23 +106,20 @@ public sealed partial class ProjectSettingsViewModel
 
     public bool HasActionsError => ActionsError is not null;
 
-    /// <summary>
-    /// <b>Add an action…</b> from the project's menu: the dialog asks which file the action goes in, as it did
-    /// over the main window, and the page shows that file once it's saved.
-    /// </summary>
-    internal void StartNewAction() => Editor = new ProjectActionEditorViewModel(Folder, _services.Platform, null, (action, scope) =>
-    {
-        SelectedProjectActionFile = ProjectActionFiles.Single(f => f.Value == scope);
-        AddActionRow(action, scope);
-    }, CloseEditor) { AsksForFile = true };
-
     /// <summary><b>Add…</b>: an action for the chosen file.</summary>
     [RelayCommand(CanExecute = nameof(CanEditProjectActionFile))]
     private void AddProjectAction()
     {
         var scope = Scope;
-        Editor = new ProjectActionEditorViewModel(Folder, _services.Platform, null, (action, _) => AddActionRow(action, scope), CloseEditor);
+        Editor = new ProjectActionEditorViewModel(Folder, _services.Platform, null, ActionGroups(), action => AddActionRow(action, scope), CloseEditor);
     }
+
+    /// <summary>
+    /// The groups the action dialog offers (DESIGN.md §18, "Project tools"): those the folder's actions have in both files,
+    /// in the order they come. They're the sections of the project's <b>Actions ▸</b>.
+    /// </summary>
+    internal IReadOnlyList<string> ActionGroups() =>
+        [.. _sharedRows.Concat(_localRows).Select(r => r.Action?.Group).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)];
 
     private void AddActionRow(CustomProjectAction action, ProjectFileScope scope)
     {
@@ -142,7 +140,7 @@ public sealed partial class ProjectSettingsViewModel
         }
         var rows = ProjectActions;
         var scope = Scope;
-        Editor = new ProjectActionEditorViewModel(Folder, _services.Platform, existing, (action, _) =>
+        Editor = new ProjectActionEditorViewModel(Folder, _services.Platform, existing, ActionGroups(), action =>
         {
             var index = rows.IndexOf(row);
             if (index >= 0)

@@ -35,14 +35,20 @@ public sealed record ProjectLinkRow(JsonNode? Raw, ProjectLink? Link, string? Pr
 
     public bool HasWarning => Warning is not null;
 
+    /// <summary>The section of the project's menu it's in, when it names one: "In Release".</summary>
+    public string? GroupText => Link?.Group is { } group ? $"In {group}" : null;
+
+    public bool HasGroup => GroupText is not null;
+
     /// <summary>The entry to write back.</summary>
-    public JsonNode? ToJson() => Link is { } link ? ProjectFile.LinkToJson(GivenName, link.Url, Raw) : Raw?.DeepClone();
+    public JsonNode? ToJson() => Link is { } link ? ProjectFile.LinkToJson(GivenName, link.Url, Raw, link.Group, link.Icon) : Raw?.DeepClone();
 
     /// <summary>A link as the editor saved it: its JSON, with <paramref name="raw"/>'s other fields kept.</summary>
-    public static ProjectLinkRow From(string name, string url, ProjectFileScope scope, JsonNode? raw = null)
+    public static ProjectLinkRow From(ProjectLinkFields fields, ProjectFileScope scope, JsonNode? raw = null)
     {
-        var json = ProjectFile.LinkToJson(name, url, raw);
-        return new ProjectLinkRow(json, new ProjectLink(name.Trim().Length > 0 ? name.Trim() : url.Trim(), url.Trim(), scope), null, scope);
+        var json = ProjectFile.LinkToJson(fields.Name, fields.Url, raw, fields.Group, fields.Icon);
+        var name = fields.Name.Trim().Length > 0 ? fields.Name.Trim() : fields.Url.Trim();
+        return new ProjectLinkRow(json, new ProjectLink(name, fields.Url.Trim(), scope, fields.Group, fields.Icon), null, scope);
     }
 }
 
@@ -112,14 +118,11 @@ public sealed partial class ProjectSettingsViewModel
         MoveLinkDownCommand.NotifyCanExecuteChanged();
     }
 
-    /// <summary><b>Add a link…</b> from the project's menu: the same dialog as <b>Add…</b>.</summary>
-    internal void StartNewLink() => AddLink();
-
     /// <summary><b>Add…</b>: the link dialog, which asks which file it goes in (just the user's by default).</summary>
     [RelayCommand]
-    private void AddLink() => Editor = new ProjectLinkEditorViewModel(Folder, null, LinkFileProblem, (name, url, scope) =>
+    private void AddLink() => Editor = new ProjectLinkEditorViewModel(Folder, null, LinkGroups(), LinkFileProblem, (fields, scope) =>
     {
-        var row = ProjectLinkRow.From(name, url, scope);
+        var row = ProjectLinkRow.From(fields, scope);
         // The shared file's links come first, so a shared one goes at the end of those.
         Links.Insert(scope == ProjectFileScope.Shared ? Links.Count(r => r.Scope == ProjectFileScope.Shared) : Links.Count, row);
         if (SaveLinks(scope))
@@ -128,6 +131,9 @@ public sealed partial class ProjectSettingsViewModel
         }
     }, CloseEditor);
 
+    /// <summary>The groups the link dialog offers: those the folder's links have, in the order they come, the sections of <b>Links ▸</b>.</summary>
+    internal IReadOnlyList<string> LinkGroups() => [.. Links.Select(l => l.Link?.Group).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase)];
+
     [RelayCommand(CanExecute = nameof(CanEditSelectedLink))]
     private void EditLink()
     {
@@ -135,14 +141,14 @@ public sealed partial class ProjectSettingsViewModel
         {
             return;
         }
-        Editor = new ProjectLinkEditorViewModel(Folder, row, LinkFileProblem, (name, url, _) =>
+        Editor = new ProjectLinkEditorViewModel(Folder, row, LinkGroups(), LinkFileProblem, (fields, _) =>
         {
             var index = Links.IndexOf(row);
             if (index < 0)
             {
                 return;
             }
-            var edited = ProjectLinkRow.From(name, url, row.Scope, row.Raw);
+            var edited = ProjectLinkRow.From(fields, row.Scope, row.Raw);
             Links[index] = edited;
             if (SaveLinks(row.Scope))
             {

@@ -167,6 +167,12 @@ public sealed class GodotProviderTests : IDisposable
 
         var before = Describe(file, context);
         Assert.Equal(["open-in-godot", "run-project", "build-csharp", "open-solution", "clean", "kill-editors"], before.Actions.Select(a => a.Id));
+        // The project's menu has them in sections by what they do, each with an icon (DESIGN.md §18, "Project tools").
+        Assert.Equal(
+        [
+            (ProjectActionGroups.Editor, MenuIcons.Play), (ProjectActionGroups.Editor, MenuIcons.Play), (ProjectActionGroups.Build, MenuIcons.Build),
+            (ProjectActionGroups.Editor, MenuIcons.File), (ProjectActionGroups.CleanUp, MenuIcons.Trash), (ProjectActionGroups.CleanUp, MenuIcons.Stop),
+        ], before.Actions.Select(a => (a.Group!, a.MenuIcon)));
         Assert.Equal(["--editor", "--path", root], Action(before, "open-in-godot").Process!.Arguments);
         Assert.True(Action(before, "open-in-godot").Process!.Detached);
         Assert.True(Action(before, "open-in-godot").IsMain);

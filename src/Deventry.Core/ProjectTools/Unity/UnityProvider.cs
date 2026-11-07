@@ -91,6 +91,7 @@ public sealed class UnityProvider : IProjectType
         {
             new("open-in-unity", isOpen ? "Unity has this project open" : optimization == UnityCodeOptimization.Debug ? "Open in Unity (Debug)" : "Open in Unity", ProjectActionKind.Launch)
             {
+                Group = ProjectActionGroups.Editor, Icon = MenuIcons.Play,
                 Description = optimization == UnityCodeOptimization.Debug ? "Opens the project with -debugCodeOptimization, for stepping through scripts." : "Opens the project in the Unity editor.",
                 Process = editor is null ? null : UnityEditors.Open(editor, project.Root, optimization),
                 IsMain = true,
@@ -101,6 +102,7 @@ public sealed class UnityProvider : IProjectType
         var results = Path.Combine(context.JobsDirectory ?? Path.GetTempPath(), $"unity-{ShortHash(project.Root)}", "EditModeResults.xml");
         actions.Add(new ProjectAction("run-editmode-tests", "Run EditMode tests", ProjectActionKind.Run)
         {
+            Group = ProjectActionGroups.Build, Icon = MenuIcons.Test,
             Description = "Runs the EditMode tests in batch mode, and says how many passed.",
             Process = editor is null ? null : UnityEditors.RunEditModeTests(editor, project.Root, results),
             ResultFile = results,
@@ -111,6 +113,7 @@ public sealed class UnityProvider : IProjectType
         var method = project.SyncMethod(context.Settings.OpenSolutionsWith == SolutionOpener.Rider);
         actions.Add(new ProjectAction("regenerate-solution", "Regenerate the C# solution", ProjectActionKind.Run)
         {
+            Group = ProjectActionGroups.Build, Icon = MenuIcons.Files,
             Description = method is null ? null : $"Runs {method} in batch mode.",
             Process = editor is null || method is null ? null : UnityEditors.SyncSolution(editor, project.Root, method),
             DisabledReason = noEditor ?? locked
@@ -120,6 +123,7 @@ public sealed class UnityProvider : IProjectType
         var solution = Path.Combine(project.Root, $"{project.Name}.sln");
         actions.Add(new ProjectAction("open-solution", "Open solution", ProjectActionKind.Open)
         {
+            Group = ProjectActionGroups.Editor, Icon = MenuIcons.File,
             Description = $"Opens {project.Name}.sln.",
             OpenPath = solution,
             OpenWithIde = true,
@@ -129,6 +133,7 @@ public sealed class UnityProvider : IProjectType
         var editorLog = UnityEditors.EditorLog(context.Paths, os);
         actions.Add(new ProjectAction("open-editor-log", "Open Editor log", ProjectActionKind.Open)
         {
+            Group = ProjectActionGroups.Editor, Icon = MenuIcons.Log,
             OpenPath = editorLog,
             DisabledReason = editorLog is not null && File.Exists(editorLog) ? null : "No Editor log yet.",
         });
@@ -136,6 +141,7 @@ public sealed class UnityProvider : IProjectType
         var playerLog = project.CompanyName is { } company && project.ProductName is { } product ? UnityEditors.PlayerLog(context.Paths, os, company, product) : null;
         actions.Add(new ProjectAction("open-player-log", "Open Player log", ProjectActionKind.Open)
         {
+            Group = ProjectActionGroups.Editor, Icon = MenuIcons.Log,
             Description = playerLog is null ? null : $"Opens the log a player build of {project.ProductName} writes.",
             OpenPath = playerLog,
             DisabledReason = playerLog is null ? "ProjectSettings.asset doesn't name the company and product."
@@ -145,6 +151,7 @@ public sealed class UnityProvider : IProjectType
         var cleanable = CleanFolders(project.Root);
         actions.Add(new ProjectAction("clean-library", "Clean Library…", ProjectActionKind.Destructive)
         {
+            Group = ProjectActionGroups.CleanUp, Icon = MenuIcons.Trash,
             Description = "Deletes Library, Temp and obj, so Unity rebuilds them.",
             Destructive = new DeleteFolders(project.Root, () => CleanFolders(project.Root),
                 "Unity reimports every asset the next time it opens the project, which can take a long while.", EditorProcessNames, project.Root),
@@ -154,6 +161,7 @@ public sealed class UnityProvider : IProjectType
         var running = context.Processes?.Find(EditorProcessNames);
         actions.Add(new ProjectAction("kill-editors", "End all Unity editors…", ProjectActionKind.Destructive)
         {
+            Group = ProjectActionGroups.CleanUp, Icon = MenuIcons.Stop,
             Description = "Ends every running Unity editor (not Unity Hub), with whatever each started.",
             Destructive = new KillProcesses(EditorProcessNames, "Unity editor", p => SystemProcessNames.FolderAfter(p.CommandLine, "-projectPath")),
             DisabledReason = running is { Count: 0 } ? "No Unity editor is running." : null,

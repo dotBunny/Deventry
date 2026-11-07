@@ -1,0 +1,10 @@
+﻿"work"
+"{root}/work"
+"Folder"
+[button] Links
+[button] Show in Explorer
+[button] Refresh
+
+--- Links ▸
+[button] Board
+[button] Pull request

@@ -16,29 +16,38 @@ You can write the files by hand, which [Reference](../reference/deventry-json.md
 
 ## Add an action
 
-1. Open the project's menu and choose **Add an action…**. The project's settings open on their **Actions** page with a dialog.
+1. Open the project's settings, with **Project settings…** in its group's or a tab's menu, and go to **Actions**. Choose the file the action goes in, **Just me (deventry.local.json)** or **Shared with the project (deventry.json)**, and then **Add…**.
 2. Fill in **Name** and **Command**. The command runs through your shell: `cmd.exe` on Windows, and your `$SHELL` (or `/bin/sh`) on macOS and Linux.
 3. Set **Working folder** if the command shouldn't run in the tab's folder. It's relative to that folder.
 4. Optionally, set **Only show when this exists** to a file or folder, relative to the tab's folder, such as the build the action runs. The action shows only while it exists. **Browse…** picks one, and several are separated by semicolons.
 5. Choose **Run with output**, which makes a run under the tab in the sidebar, with its log, **Stop** and a notification when it ends, or **Launch and forget**, for programs that keep running on their own.
 6. Optionally, tick **Also run it in each new worktree a worktree tab makes** ([below](#setting-up-each-new-worktree)).
-7. Under **Save in**, choose **Just me (deventry.local.json)**, the default, or **Shared with the project (deventry.json)**, and then **Save**.
+7. Optionally, give it a **Group** and an **Icon** ([below](#groups-and-icons)), and then **Save**.
 
-The action appears in the project's menu after the project's own actions, under a separator. Hovering it shows its whole command.
+The action appears in the project's menu in **Actions**, under **Folder**, or under its group there. Hovering it shows its whole command.
 
 {: .warning }
 Actions run when you click them, without asking, whichever file they're in. A project from someone else can put any command behind a friendly name in `deventry.json`, so hover an action to read its command before the first click. Nothing from these files runs by itself, except actions marked to run in each new worktree, and the shared file's only in a folder you trust ([Folder trust](../permissions/folder-trust.md)).
 
 ## Add a link
 
-1. Choose **Add a link…** in the project's menu. The project's settings open on their **Links** page with a dialog.
+1. In the project's settings, go to **Links** and choose **Add…**.
 2. Type the **Name**, which can be empty (the menu then shows the address), and the **Address**.
-3. Choose which file it goes in, as for an action, and **Save**.
+3. Optionally, give it a **Group** and an **Icon** ([below](#groups-and-icons)).
+4. Choose which file it goes in, **Just me (deventry.local.json)**, the default, or **Shared with the project (deventry.json)**, and **Save**.
 
-Links show under **Links** in the project's menu, each marked ↗, the shared file's first. Hovering one shows the address it opens, and a click opens it in your browser.
+Links show in **Links** in the project's menu, under **Folder**, the shared file's first, or under their group there, each with an arrow out of a box unless you gave it another icon. Hovering one shows the address it opens, and a click opens it in your browser.
 
 - Only `https`, `http` and `mailto` links open. Anything else, such as a `file:` address, shows greyed out with the reason, and never opens.
 - An address can use placeholders, filled in from the selected tab and escaped for a web address: `{branch}` (the git branch), `{changelist}` (the Perforce changelist Claude is working in) and `{folderName}` (the tab's folder name). A link whose placeholder can't be filled right now is greyed out and says why, for example "No git branch." For example, `https://github.com/org/repo/compare/{branch}?expand=1` opens a pull request for the tab's branch.
+
+## Groups and icons
+
+Your actions and links are in two submenus of the project's menu, **Actions** and **Links**, under **Folder**. Point at one, or click it, and it opens beside the menu. Give actions a **Group** to put them in a section of **Actions** under that name: a *Deploy* group can hold your deploy actions together. Those without a group come first, then each group, in the order it first appears, and actions with the same group share its section whatever the case of its name. Links have groups of their own in **Links** the same way. A group is yours alone: one called *Build* is a section of **Actions**, apart from the project's own **Build**. **Group** offers the groups you've used already.
+
+**Icon** picks the icon before it in the menu, from Deventry's own, each shown beside its name: `play`, `build`, `test`, `terminal` and so on. Without one, an action's icon follows how it runs (a terminal's prompt for **Run with output**, a play triangle for **Launch and forget**), and a link's is an arrow out of a box.
+
+In the files, they're `group` and `icon` ([Reference](../reference/deventry-json.md)).
 
 ## Edit them in the project's settings
 

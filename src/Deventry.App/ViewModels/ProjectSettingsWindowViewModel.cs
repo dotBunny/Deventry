@@ -29,7 +29,7 @@ public sealed partial class ProjectSettingsWindowViewModel : ViewModelBase, IDis
     private readonly AppServices _services;
     private readonly SettingsContext _context;
 
-    public ProjectSettingsWindowViewModel(AppServices services, ProjectSettingsViewModel project, string page = LinksPage, bool startNew = false)
+    public ProjectSettingsWindowViewModel(AppServices services, ProjectSettingsViewModel project, string page = LinksPage)
     {
         _services = services;
         _context = new SettingsContext(services);
@@ -42,7 +42,7 @@ public sealed partial class ProjectSettingsWindowViewModel : ViewModelBase, IDis
         NavEntries = [.. Pages.Select(p => SettingsNavEntry.Page(p.Title, p.IconKey))];
         _context.SettingsSaved += OnSettingsChanged;
         _context.AllPagesChanged += OnSettingsChanged;
-        Open(page, startNew);
+        Open(page);
     }
 
     public void Dispose()
@@ -92,27 +92,12 @@ public sealed partial class ProjectSettingsWindowViewModel : ViewModelBase, IDis
 
     private void OnSettingsChanged() => OnPropertyChanged(nameof(IsClaudeStyle));
 
-    /// <summary>
-    /// Shows <paramref name="page"/>, and on Links or Actions with <paramref name="startNew"/>, starts a new link or action
-    /// there: the window was asked for again, or opened, by <b>Add a link…</b> or <b>Add an action…</b>.
-    /// </summary>
-    public void Open(string page, bool startNew = false)
+    /// <summary>Shows <paramref name="page"/>: the window was opened, or asked for again, at it.</summary>
+    public void Open(string page)
     {
         if (PageNames.Contains(page))
         {
             SelectedPage = page;
-        }
-        if (!startNew)
-        {
-            return;
-        }
-        if (SelectedPage == LinksPage)
-        {
-            Project.StartNewLink();
-        }
-        else if (SelectedPage == ActionsPage)
-        {
-            Project.StartNewAction();
         }
     }
 }

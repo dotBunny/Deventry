@@ -25,14 +25,16 @@ A missing file means nothing, and so does an empty one. Deventry's own repositor
   "icon": "Assets/logo.png",
   "color": "#4A6FC4",
   "actions": [
-    { "name": "Run tests", "command": "dotnet test", "folder": "src", "mode": "output" },
+    { "name": "Run tests", "command": "dotnet test", "folder": "src", "mode": "output", "group": "Build", "icon": "test" },
+    { "name": "Deploy to staging", "command": "./deploy.sh staging", "group": "Deploy", "icon": "upload" },
     { "name": "Open Grafana", "command": "start https://grafana.example", "mode": "launch", "os": ["windows"] },
     { "name": "Play the build", "command": "Build\\Game.exe", "mode": "launch", "ifExists": "Build/Game.exe" },
     { "name": "Install packages", "command": "npm ci", "runOnNewWorktree": true },
   ],
   "links": [
     { "name": "Board", "url": "https://example.atlassian.net/jira/software/projects/ABC/boards/1" },
-    { "name": "Pull request", "url": "https://github.com/org/repo/compare/{branch}?expand=1" }
+    { "name": "Pull request", "url": "https://github.com/org/repo/compare/{branch}?expand=1" },
+    { "name": "Staging dashboard", "url": "https://grafana.example/d/staging", "group": "Deploy", "icon": "web" }
   ]
 }
 ```
@@ -41,7 +43,7 @@ The top level is an object with two lists, `actions` and `links`, and a `color` 
 
 ## Actions
 
-Each entry of `actions` is an object. It shows in the project's menu after the project's own actions, under a separator, in the order of the files and then of the list.
+Each entry of `actions` is an object. It shows in the project menu's **Actions** submenu, or under its `group` there, in the order of the files and then of the list.
 
 | Field | Required | What it is |
 |---|---|---|
@@ -52,6 +54,8 @@ Each entry of `actions` is an object. It shows in the project's menu after the p
 | `os` | No | `"windows"`, `"macos"` or `"linux"`, or a list of them. The action shows only on those systems, with no reason given elsewhere. `win`, `win64`, `mac`, `osx` and `darwin` also work, in any case. |
 | `ifExists` | No | A path, or a list of paths, relative to the tab's folder. The action shows only while every one exists, as a file or a folder, and is left out without a reason otherwise. Empty paths are ignored. |
 | `runOnNewWorktree` | No | `true` also runs the action on its own in each new worktree a worktree tab makes. Anything but the value `true`, a quoted `"true"` included, leaves it to a click. |
+| `group` | No | The section of **Actions** it goes in, under that name ([Groups and icons](#groups-and-icons)). Without one, it's at the top, with no title. |
+| `icon` | No | The icon before it in the menu, by name ([Groups and icons](#groups-and-icons)). Without one, `terminal` for `"output"` and `play` for `"launch"`. |
 
 `ifExists` is checked each time the files are read, so an action that runs a build appears once a build has made it.
 
@@ -63,8 +67,18 @@ Each entry of `links` is an object.
 |---|---|---|
 | `url` | Yes | The address to open. |
 | `name` | No | The label in the menu. Without one, the menu shows the address. |
+| `group` | No | The section of **Links** it goes in, under that name ([Groups and icons](#groups-and-icons)). Without one, it's at the top, with no title. |
+| `icon` | No | The icon before it in the menu, by name ([Groups and icons](#groups-and-icons)). Without one, `link`, an arrow out of a box. |
 
 Only `https`, `http` and `mailto` addresses open, and an address has to be a full one, such as `https://example.com`. A link with another kind of address, or with a placeholder that can't be filled, isn't skipped: it's listed greyed out, and its tooltip says why.
+
+## Groups and icons
+
+An action's `group` is a section of the project menu's **Actions** submenu, under that name, and a link's a section of its **Links**. The entries with the same `group` share it, whatever its case, under the name it first appears with; those with none come first, and the groups follow in the order they first appear. A group is the folder's own: `"Build"` is a section of **Actions**, apart from the project's own **Build**.
+
+An action's or a link's `icon`, unlike the file's own [`icon`](#icon), is one of these names, in any case: `play`, `build`, `test`, `terminal`, `file`, `files`, `folder`, `log`, `link`, `web`, `docs`, `refresh`, `upload`, `download`, `package`, `trash`, `stop`, `settings`, `bug`, `branch` and `check`.
+
+A `group` that isn't a name, or an `icon` that isn't one of these, such as one a later version of Deventry has, is left out with a note in the menu's header, and the action or link shows without it. Saving the file from the project's settings keeps it as written.
 
 ### Placeholders
 
@@ -84,7 +98,7 @@ Any other word in braces makes the link greyed out: "Unknown placeholder …: us
 
 ## Solution
 
-`solution` is the file that defines the project, usually its solution, such as `NightOwl.sln`: its path from the project's folder, or a full path. The local file's wins over the shared one's. The project's menu has **Open NightOwl.sln** for it, before your own actions. A solution or workspace (`.sln`, `.slnx`, `.code-workspace` or `.xcworkspace`) opens with the app Settings → Project tools → All tools → **Open solutions with** says, your system's own by default; any other file opens with the app your system has for it. It sits beside an Unreal, Unity or Godot project's own **Open solution**, and in a folder Deventry finds no such project in, it's what **Run the project's main action** (`Ctrl/Cmd+Shift+E`) does. While the file isn't there, the entry is greyed out and says so. The project's **Solution** page, in its [project settings](../settings/project-settings.md), sets it.
+`solution` is the file that defines the project, usually its solution, such as `NightOwl.sln`: its path from the project's folder, or a full path. The local file's wins over the shared one's. The project's menu has **Open NightOwl.sln** for it, under **Editor**. A solution or workspace (`.sln`, `.slnx`, `.code-workspace` or `.xcworkspace`) opens with the app Settings → Project tools → All tools → **Open solutions with** says, your system's own by default; any other file opens with the app your system has for it. It sits beside an Unreal, Unity or Godot project's own **Open solution**, and in a folder Deventry finds no such project in, it's what **Run the project's main action** (`Ctrl/Cmd+Shift+E`) does. While the file isn't there, the entry is greyed out and says so. The project's **Solution** page, in its [project settings](../settings/project-settings.md), sets it.
 
 ## Icon
 

@@ -385,11 +385,75 @@ public partial class ShellView : UserControl
     }
 
     /// <summary>
-    /// An entry of the project's menu was picked: the menu closes, as a menu does, once the entry has run its command,
-    /// which a button does after raising Click.
+    /// An entry of the project's menu, or of a submenu, was picked: both close, as a menu does, once the entry has run its
+    /// command, which a button does after raising Click.
     /// </summary>
     private void OnProjectMenuItemPicked(object? sender, RoutedEventArgs e) =>
-        Avalonia.Threading.Dispatcher.UIThread.Post(() => _projectMenu?.Hide());
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _projectSubmenu?.Close();
+            _projectMenu?.Hide();
+        });
+
+    /// <summary>The project's menu closed, picked from or not: so does its submenu.</summary>
+    private void OnProjectMenuClosed(object? sender, EventArgs e) => _projectSubmenu?.Close();
+
+    /// <summary>The project's menu's <b>Actions ▸</b> or <b>Links ▸</b> open now (DESIGN.md §18, "Project tools").</summary>
+    private Popup? _projectSubmenu;
+
+    /// <summary>Its row stays lit while it's open, as a menu's does (Themes/MenuStyles.axaml).</summary>
+    private void OnProjectSubmenuOpened(object? sender, EventArgs e)
+    {
+        _projectSubmenu = sender as Popup;
+        SubmenuRow(_projectSubmenu)?.Classes.Add("open");
+    }
+
+    private void OnProjectSubmenuClosed(object? sender, EventArgs e) => SubmenuRow(sender as Popup)?.Classes.Remove("open");
+
+    /// <summary>A submenu's row: the button beside its popup.</summary>
+    private static Button? SubmenuRow(Popup? popup) => (popup?.Parent as Panel)?.Children.OfType<Button>().FirstOrDefault(b => b.IsVisible);
+
+    /// <summary>
+    /// The pointer left the submenu: it closes, unless the pointer went back onto its own row, which keeps it open, as a
+    /// menu's submenu does.
+    /// </summary>
+    private void OnProjectSubmenuExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is not Visual submenu || _projectSubmenu is not { IsOpen: true } open || SubmenuRow(open) is not { } row)
+        {
+            return;
+        }
+        var at = submenu.PointToScreen(e.GetPosition(submenu));
+        var (from, to) = (row.PointToScreen(default), row.PointToScreen(new Point(row.Bounds.Width, row.Bounds.Height)));
+        if (at.X < from.X || at.X >= to.X || at.Y < from.Y || at.Y >= to.Y)
+        {
+            open.Close();
+        }
+    }
+
+    /// <summary>Pointing at <b>Actions ▸</b> or <b>Links ▸</b> opens it, as a menu's submenu opens, in place of the other.</summary>
+    private void OnProjectSubmenuEntered(object? sender, PointerEventArgs e) => OpenProjectSubmenu(sender);
+
+    /// <summary>A click, or Enter, opens it too, and leaves it open when pointing at it already had.</summary>
+    private void OnProjectSubmenuClicked(object? sender, RoutedEventArgs e) => OpenProjectSubmenu(sender);
+
+    private void OpenProjectSubmenu(object? sender)
+    {
+        if (sender is Button { Parent: Panel row } && row.Children.OfType<Popup>().FirstOrDefault() is { IsOpen: false } submenu)
+        {
+            _projectSubmenu?.Close();
+            submenu.Open();
+        }
+    }
+
+    /// <summary>Pointing at another of the menu's entries closes the submenu open beside it; one of its own leaves it.</summary>
+    private void OnProjectMenuEntryEntered(object? sender, PointerEventArgs e)
+    {
+        if (_projectSubmenu is { IsOpen: true, Child: Visual submenu } && sender is Visual entry && !entry.GetVisualAncestors().Contains(submenu))
+        {
+            _projectSubmenu.Close();
+        }
+    }
 
     protected override void OnDataContextChanged(EventArgs e)
     {
@@ -876,7 +940,7 @@ public partial class ShellView : UserControl
     {
         if (_projectSettingsWindows.FirstOrDefault(w => w.DataContext is ProjectSettingsWindowViewModel open && FolderHistory.SamePath(open.Project.Folder, opening.Folder)) is { } existing)
         {
-            ((ProjectSettingsWindowViewModel)existing.DataContext!).Open(opening.Page, opening.StartNew);
+            ((ProjectSettingsWindowViewModel)existing.DataContext!).Open(opening.Page);
             UnfocusedWindows.Activate(existing);
             return Task.CompletedTask;
         }
@@ -884,7 +948,7 @@ public partial class ShellView : UserControl
         {
             return Task.CompletedTask;
         }
-        var window = new ProjectSettingsWindow { DataContext = new ProjectSettingsWindowViewModel(main.Services, project, opening.Page, opening.StartNew) };
+        var window = new ProjectSettingsWindow { DataContext = new ProjectSettingsWindowViewModel(main.Services, project, opening.Page) };
         _projectSettingsWindows.Add(window);
         window.Closed += (_, _) => _projectSettingsWindows.Remove(window);
         window.Show(owner);

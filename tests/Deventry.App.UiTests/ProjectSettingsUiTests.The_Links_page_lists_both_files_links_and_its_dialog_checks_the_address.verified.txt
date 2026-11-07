@@ -27,6 +27,11 @@
 [field] "javascript:alert(1)"
 ""javascript:" links don't open from Deventry; only https, http and mailto do."
 "{branch}, {changelist} and {folderName} are filled in from the tab: its git branch, its Perforce changelist and its folder's name."
+"Group"
+"Icon"
+[field] "None"
+[choice] "A link's"
+"Links in the same group share a section, under its name, in the project menu's Links."
 "Save in"
 [toggle on] Just me (deventry.local.json)
 [toggle] Shared with the project (deventry.json)

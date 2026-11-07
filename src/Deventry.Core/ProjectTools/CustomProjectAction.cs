@@ -56,6 +56,15 @@ public sealed class CustomProjectAction
     /// </summary>
     public bool RunOnNewWorktree { get; set; }
 
+    /// <summary>
+    /// The section of the project's <b>Actions ▸</b> it goes in (<c>"group"</c>), with the folder's other actions of that
+    /// name; null for none, at the top.
+    /// </summary>
+    public string? Group { get; set; }
+
+    /// <summary>One of <see cref="MenuIcons"/> (<c>"icon"</c>); null for its mode's.</summary>
+    public string? Icon { get; set; }
+
     /// <summary>The variable a new worktree's actions find the worktree in.</summary>
     public const string WorktreeVariable = "DEVENTRY_WORKTREE";
 
@@ -94,15 +103,19 @@ public sealed class CustomProjectAction
                 DisabledReason = Command.Trim().Length == 0 ? $"The action has no command. Edit it in {file}."
                     : !Directory.Exists(folder) ? $"Its folder, {folder}, doesn't exist."
                     : null,
+                Group = Group,
+                Icon = Icon,
             };
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
-            return new ProjectAction(id, label, kind) { Description = Command, DisabledReason = ex.Message };
+            return new ProjectAction(id, label, kind) { Description = Command, DisabledReason = ex.Message, Group = Group, Icon = Icon };
         }
     }
 }
 
-/// <summary>A link from a folder's project files, shown in the sidebar for the selected tab (DESIGN.md §18, "Links").</summary>
+/// <summary>A link from a folder's project files, shown in the project's menu (DESIGN.md §18, "Links").</summary>
 /// <param name="Url">The address, with placeholders such as <c>{branch}</c> still in it.</param>
-public sealed record ProjectLink(string Name, string Url, ProjectFileScope Scope);
+/// <param name="Group">The section of the project's <b>Links ▸</b> it goes in (<c>"group"</c>); null for none, at the top.</param>
+/// <param name="Icon">One of <see cref="MenuIcons"/> (<c>"icon"</c>); null for a link's.</param>
+public sealed record ProjectLink(string Name, string Url, ProjectFileScope Scope, string? Group = null, string? Icon = null);

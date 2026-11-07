@@ -63,6 +63,19 @@ public sealed record ProjectAction(string Id, string Label, ProjectActionKind Ki
     /// <summary>The action "Run the project's main action" (Ctrl/Cmd+Shift+E) runs, such as Launch editor.</summary>
     public bool IsMain { get; init; }
 
+    /// <summary>
+    /// The section it's in (DESIGN.md §18, "Project tools"): one of <see cref="ProjectActionGroups"/> for a project type's
+    /// own, in the project's menu, or a folder's action's <c>"group"</c>, in its <b>Actions ▸</b>; null for a folder's
+    /// action with none, at the top of that.
+    /// </summary>
+    public string? Group { get; init; }
+
+    /// <summary>One of <see cref="MenuIcons"/>; null for the one its kind has (<see cref="MenuIcons.For"/>).</summary>
+    public string? Icon { get; init; }
+
+    /// <summary>The icon the project's menu shows for it.</summary>
+    public string MenuIcon => Icon ?? MenuIcons.For(Kind);
+
     /// <summary>Reads what a finished <see cref="ProjectActionKind.Run"/> job produced, for its status line.</summary>
     public Func<int, string?>? Summarize { get; init; }
 

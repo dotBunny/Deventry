@@ -41,8 +41,6 @@ internal sealed class FolderProjectToolsHost(ShellViewModel shell, TabGroupViewM
     {
     }
 
-    public Task OpenProjectSettingsAsync(string page, bool startNew) => shell.OpenProjectSettingsAsync(group.Folder, page, startNew);
-
     public void UseGroupColor(string color) => shell.UseProjectColor(group, color);
 
     // No job runs without a tab, so there are no runs to show.

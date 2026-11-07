@@ -98,6 +98,14 @@ public sealed class UnityProviderTests : IDisposable
         Assert.Null(info.Problem);
         Assert.Equal(editor, Action(info, "open-in-unity").Process!.FileName);
         Assert.Equal("Unity 2022.3", info.ShortVersion);
+        // The project's menu has its actions in sections by what they do, each with an icon (DESIGN.md §18, "Project tools").
+        Assert.Equal(
+        [
+            ("open-in-unity", ProjectActionGroups.Editor, MenuIcons.Play), ("run-editmode-tests", ProjectActionGroups.Build, MenuIcons.Test),
+            ("regenerate-solution", ProjectActionGroups.Build, MenuIcons.Files), ("open-solution", ProjectActionGroups.Editor, MenuIcons.File),
+            ("open-editor-log", ProjectActionGroups.Editor, MenuIcons.Log), ("open-player-log", ProjectActionGroups.Editor, MenuIcons.Log),
+            ("clean-library", ProjectActionGroups.CleanUp, MenuIcons.Trash), ("kill-editors", ProjectActionGroups.CleanUp, MenuIcons.Stop),
+        ], info.Actions.Select(a => (a.Id, a.Group!, a.MenuIcon)));
     }
 
     [Fact]

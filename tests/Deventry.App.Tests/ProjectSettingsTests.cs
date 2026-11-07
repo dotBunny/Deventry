@@ -48,7 +48,7 @@ public class ProjectSettingsTests
 
     /// <summary>The window's view model, as the view makes it for <paramref name="opening"/>.</summary>
     private static ProjectSettingsWindowViewModel Window(TabTestHarness h, ProjectSettingsOpening opening) =>
-        new(h.Services, h.Shell.ProjectSettingsFor(opening.Folder)!, opening.Page, opening.StartNew);
+        new(h.Services, h.Shell.ProjectSettingsFor(opening.Folder)!, opening.Page);
 
     /// <summary>A tab that isn't started: its folder is gone, so selecting it doesn't start a session.</summary>
     private static TabViewModel AddUnstartedTab(TabTestHarness h, string name)
@@ -353,10 +353,9 @@ public class ProjectSettingsTests
         Assert.Contains("only on plan9", project.ProjectActions[1].Detail, StringComparison.Ordinal);
         Assert.Contains("comments in it are dropped", project.ProjectActionsNote, StringComparison.Ordinal);
 
-        // The same dialog as before, without asking for the file: the page has chosen it.
+        // The dialog adds to the file the page has chosen.
         project.AddProjectActionCommand.Execute(null);
         var editor = Assert.IsType<ProjectActionEditorViewModel>(project.Editor);
-        Assert.False(editor.AsksForFile);
         editor.Name = "Second";
         editor.Command = "two";
         editor.WorkingFolder = "sub";
@@ -452,7 +451,7 @@ public class ProjectSettingsTests
     }
 
     [Fact]
-    public async Task Add_an_action_from_the_menu_opens_the_project_settings_on_Actions_with_the_dialog_that_asks_for_the_file()
+    public async Task An_action_added_with_a_group_and_icon_shows_in_its_section_of_every_tabs_Actions_in_the_folder()
     {
         await using var h = new TabTestHarness();
         Write(Path.Combine(h.WorkFolder, ProjectFile.SharedName), """{ "links": [ { "name": "Board", "url": "https://example.com/board" } ] }""");
@@ -460,41 +459,49 @@ public class ProjectSettingsTests
         var sibling = new TabViewModel(h.Services, h.Shell, new TabState { Folder = h.WorkFolder }, isRestored: false);
         await sibling.ProjectTools.RefreshAsync();
         h.Shell.Groups.Single().Tabs.Add(sibling);
-        // From the menu of a tab that isn't selected: the window is for its folder, whichever tab is selected.
-        var elsewhere = AddUnstartedTab(h, "elsewhere");
-        h.Shell.SelectedTab = elsewhere;
+        var opening = await OpeningAsync(h, () => h.Shell.OpenGroupProjectSettingsCommand.ExecuteAsync(h.Shell.Groups.Single()));
+        using var settings = Window(h, opening!);
+        settings.SelectedPage = ProjectSettingsWindowViewModel.ActionsPage;
+        var project = settings.Project;
+        project.SelectedProjectActionFile = project.ProjectActionFiles.Single(f => f.Value == ProjectFileScope.Shared);
 
-        var opening = await OpeningAsync(h, () => tab.ProjectTools.AddActionCommand.ExecuteAsync(null));
-
-        Assert.Same(elsewhere, h.Shell.SelectedTab);
-        Assert.Equal((h.WorkFolder, ProjectSettingsWindowViewModel.ActionsPage, true), (opening!.Folder, opening.Page, opening.StartNew));
-        using var settings = Window(h, opening);
-        Assert.IsType<ProjectActionsPage>(settings.CurrentPage);
-        var editor = Assert.IsType<ProjectActionEditorViewModel>(settings.Project.Editor);
+        project.AddProjectActionCommand.Execute(null);
+        var editor = Assert.IsType<ProjectActionEditorViewModel>(project.Editor);
         Assert.Equal("Add an action", editor.Title);
-        Assert.True(editor.AsksForFile);
-        Assert.True(editor.SaveToLocal);
         Assert.False(editor.SaveCommand.CanExecute(null));
+        // No groups yet to offer; no icon is its mode's, which follows the mode.
+        Assert.Empty(editor.Groups);
+        Assert.Equal((null, MenuIcons.Terminal), (editor.SelectedIcon!.Name, editor.SelectedIcon.Shown));
         editor.Name = "Serve";
         editor.Command = "npm run dev";
         editor.LaunchAndForget = true;
-        editor.SaveToShared = true;
-        Assert.Contains("comments in it are dropped", editor.FileNote, StringComparison.Ordinal);
+        Assert.Equal((null, MenuIcons.Play), (editor.SelectedIcon!.Name, editor.SelectedIcon.Shown));
+        editor.Group = " Run ";
+        editor.SelectedIcon = editor.IconChoices.Single(c => c.Name == MenuIcons.Upload);
         editor.SaveCommand.Execute(null);
 
-        Assert.Null(settings.Project.Editor);
-        Assert.Equal(ProjectFileScope.Shared, settings.Project.SelectedProjectActionFile.Value);
-        Assert.Equal("Serve", settings.Project.SelectedProjectAction!.Name);
+        Assert.Null(project.Editor);
+        Assert.Equal("Serve", project.SelectedProjectAction!.Name);
+        Assert.Contains("· in Run", project.SelectedProjectAction.Detail, StringComparison.Ordinal);
         var written = Read(Path.Combine(h.WorkFolder, ProjectFile.SharedName));
         Assert.Equal("https://example.com/board", written["links"]![0]!["url"]!.GetValue<string>());
-        Assert.Equal(("Serve", "npm run dev", "launch"), (written["actions"]![0]!["name"]!.GetValue<string>(), written["actions"]![0]!["command"]!.GetValue<string>(), written["actions"]![0]!["mode"]!.GetValue<string>()));
+        var action = written["actions"]![0]!;
+        Assert.Equal(("Serve", "npm run dev", "launch", "Run", "upload"),
+            (action["name"]!.GetValue<string>(), action["command"]!.GetValue<string>(), action["mode"]!.GetValue<string>(), action["group"]!.GetValue<string>(), action["icon"]!.GetValue<string>()));
         await TabTestHarness.Eventually(() => tab.ProjectTools.Actions.Count == 1 && sibling.ProjectTools.Actions.Count == 1, "both tabs");
         Assert.Equal(ProjectActionKind.Launch, sibling.ProjectTools.Actions.Single().Kind);
+        var actions = InlineDispatcher.Read(() => sibling.ProjectTools.Menu.Single(e => e.IsSubmenu && e.Label == "Actions").Items);
+        Assert.Equal(["Run", "Serve"], actions.Select(e => e.Label));
+        Assert.Equal(MenuIcons.Upload, actions[1].Icon);
 
-        // Asked for again while the window is open, it comes to that page with another new one started.
-        settings.Open(ProjectSettingsWindowViewModel.LinksPage, startNew: true);
-        Assert.IsType<ProjectLinksPage>(settings.CurrentPage);
-        Assert.IsType<ProjectLinkEditorViewModel>(settings.Project.Editor);
+        // The next action's dialog offers the group; the link dialog doesn't, as links are in a submenu of their own.
+        project.AddProjectActionCommand.Execute(null);
+        var next = Assert.IsType<ProjectActionEditorViewModel>(project.Editor);
+        Assert.Equal(["Run"], next.Groups);
+        next.CancelCommand.Execute(null);
+        settings.SelectedPage = ProjectSettingsWindowViewModel.LinksPage;
+        project.AddLinkCommand.Execute(null);
+        Assert.Empty(Assert.IsType<ProjectLinkEditorViewModel>(project.Editor).Groups);
     }
 
     // ---- The solution (issue #112) -------------------------------------------------------------------------------------
@@ -661,7 +668,7 @@ public class ProjectSettingsTests
 
         var opening = await OpeningAsync(h, () => h.Shell.OpenGroupProjectSettingsCommand.ExecuteAsync(group));
 
-        Assert.Equal((h.WorkFolder, ProjectSettingsWindowViewModel.LinksPage, false), (opening!.Folder, opening.Page, opening.StartNew));
+        Assert.Equal((h.WorkFolder, ProjectSettingsWindowViewModel.LinksPage), (opening!.Folder, opening.Page));
         using (var settings = Window(h, opening))
         {
             Assert.Same(group, settings.Project.Group);
@@ -678,30 +685,44 @@ public class ProjectSettingsTests
     }
 
     [Fact]
-    public async Task Add_a_link_from_the_menu_opens_the_project_settings_on_Links_with_the_dialog_that_asks_for_the_file()
+    public async Task A_link_added_on_the_page_goes_in_its_group_and_the_menu_has_no_entries_to_add_them()
     {
         await using var h = new TabTestHarness();
         var tab = await h.OpenTabAsync();
 
-        // A folder with no project has the entry too: the project's row is there for every tab.
-        Assert.Same(tab.ProjectTools.AddLinkCommand, InlineDispatcher.Read(() => tab.ProjectTools.Menu.Single(e => e.Label == "Add a link…")).Command);
-        var opening = await OpeningAsync(h, () => tab.ProjectTools.AddLinkCommand.ExecuteAsync(null));
-
-        Assert.Equal((ProjectSettingsWindowViewModel.LinksPage, true), (opening!.Page, opening.StartNew));
-        using var settings = Window(h, opening);
+        // Actions and links are added in the project's settings, which a group's and a tab's menus open.
+        var labels = InlineDispatcher.Read(() => tab.ProjectTools.Menu.Select(e => e.Label).ToArray());
+        Assert.DoesNotContain("Add an action…", labels);
+        Assert.DoesNotContain("Add a link…", labels);
+        var opening = await OpeningAsync(h, () => h.Shell.OpenTabProjectSettingsCommand.ExecuteAsync(tab));
+        using var settings = Window(h, opening!);
         Assert.IsType<ProjectLinksPage>(settings.CurrentPage);
+
+        settings.Project.AddLinkCommand.Execute(null);
         var editor = Assert.IsType<ProjectLinkEditorViewModel>(settings.Project.Editor);
         Assert.Equal("Add a link", editor.Title);
         Assert.True(editor.AsksForFile);
         Assert.True(editor.SaveToLocal);
+        Assert.Equal((null, MenuIcons.Link), (editor.SelectedIcon!.Name, editor.SelectedIcon.Shown));
         editor.Name = "Board";
         editor.Url = "https://example.com/board";
+        editor.Group = "Planning";
+        editor.SelectedIcon = editor.IconChoices.Single(c => c.Name == MenuIcons.Docs);
         editor.SaveCommand.Execute(null);
 
         Assert.Null(settings.Project.Editor);
-        Assert.Equal("Board", settings.Project.SelectedLink!.Name);
-        Assert.Equal(["Board"], Names(Read(Path.Combine(h.WorkFolder, ProjectFile.LocalName)), "links"));
+        Assert.Equal(("Board", "In Planning"), (settings.Project.SelectedLink!.Name, settings.Project.SelectedLink.GroupText));
+        var link = Read(Path.Combine(h.WorkFolder, ProjectFile.LocalName))["links"]![0]!;
+        Assert.Equal(("Board", "Planning", "docs"), (link["name"]!.GetValue<string>(), link["group"]!.GetValue<string>(), link["icon"]!.GetValue<string>()));
         await TabTestHarness.Eventually(() => tab.ProjectTools.Links.Select(l => l.Name).SequenceEqual(["Board"]), "the new link in the menu");
+        var links = InlineDispatcher.Read(() => tab.ProjectTools.Menu.Single(e => e.IsSubmenu && e.Label == "Links").Items);
+        Assert.Equal(["Planning", "Board"], links.Select(e => e.Label));
+        Assert.Equal(MenuIcons.Docs, links[1].Icon);
+
+        // Edited again, its group and icon come back as saved.
+        settings.Project.EditLinkCommand.Execute(null);
+        var again = Assert.IsType<ProjectLinkEditorViewModel>(settings.Project.Editor);
+        Assert.Equal(("Planning", MenuIcons.Docs), (again.Group, again.SelectedIcon!.Name));
     }
 
     [Fact]
@@ -717,7 +738,7 @@ public class ProjectSettingsTests
         Assert.Equal("In NightOwl's project settings, on Actions.", tabSettings.ProjectActionsText);
         var opening = await OpeningAsync(h, () => tabSettings.OpenProjectActionsCommand.ExecuteAsync(null));
 
-        Assert.Equal((tab.Folder, ProjectSettingsWindowViewModel.ActionsPage, false), (opening!.Folder, opening.Page, opening.StartNew));
+        Assert.Equal((tab.Folder, ProjectSettingsWindowViewModel.ActionsPage), (opening!.Folder, opening.Page));
         // Tab settings stays open behind the window, with nothing applied yet.
         Assert.Same(tabSettings, h.Shell.TabSettings);
     }

@@ -142,11 +142,10 @@ public class ProjectToolsTests
         Assert.Equal(Waits, actions["Run tests"].DisabledReason);
         Assert.True(actions["Grafana"].IsEnabled);
         Assert.True(actions["End all Unreal editors…"].IsEnabled);
-        // No output to show without a tab; the folder's project settings are there all the same.
+        // No output to show without a tab.
         var menu = InlineDispatcher.Read(() => tools.Menu.Select(e => e.Label).ToArray());
         Assert.Contains(ShowFolder, menu);
         Assert.Contains("Refresh", menu);
-        Assert.Contains("Add an action…", menu);
         Assert.DoesNotContain("Show output…", menu);
 
         // A tab opening in the group brings its own tools, whose jobs run under it.
@@ -175,8 +174,10 @@ public class ProjectToolsTests
         Assert.True(tab.ProjectTools.HasTools);
         Assert.Null(tab.ProjectTools.Project);
         Assert.Equal("Open Tools.sln", tab.ProjectTools.MainAction?.Label);
-        Assert.Equal(["Open Tools.sln", "Test", ShowFolder, "Show output…", "Add an action…", "Add a link…", "Refresh"],
-            InlineDispatcher.Read(() => tab.ProjectTools.Menu.Where(e => e.IsButton).Select(e => e.Label).ToArray()));
+        // The solution goes with the editor; the folder's own action is in Actions.
+        var menu = InlineDispatcher.Read(() => tab.ProjectTools.Menu);
+        Assert.Equal(["Editor", "Open Tools.sln", "-", "Folder", "Actions", ShowFolder, "Show output…", "Refresh"], menu.Select(e => e.IsSeparator ? "-" : e.Label));
+        Assert.Equal(["Test"], menu.Single(e => e.IsSubmenu && e.Label == "Actions").Items.Select(e => e.Label));
 
         await InlineDispatcher.RunAsync(() => tab.ProjectTools.RunMainActionCommand.ExecuteAsync(null));
         Assert.Equal([sln], h.Platform.OpenedFiles);
@@ -210,12 +211,12 @@ public class ProjectToolsTests
         Assert.False(tab.ProjectTools.HasTools);
         Assert.Null(tab.ProjectTools.Project);
         Assert.DoesNotContain(tab.InfoRows, r => r.Label == "Project");
-        // The icon on the group's row is there all the same, for adding actions and links, with the folder in its tip.
+        // The icon on the group's row is there all the same, with the folder in its tip.
         Assert.StartsWith(tab.Folder, tab.ProjectTools.ButtonTip, StringComparison.Ordinal);
         Assert.Equal(tab.FolderName, tab.ProjectTools.HeaderTitle);
         Assert.Equal([tab.Folder], tab.ProjectTools.HeaderLines);
         // No Show output…: without project tools there's no Project page.
-        Assert.Equal([ShowFolder, "Add an action…", "Add a link…", "Refresh"], InlineDispatcher.Read(() => tab.ProjectTools.Menu.Select(e => e.Label).ToArray()));
+        Assert.Equal(["Folder", ShowFolder, "Refresh"], InlineDispatcher.Read(() => tab.ProjectTools.Menu.Select(e => e.Label).ToArray()));
 
         // Show in Explorer opens the folder the row is named after.
         var show = Entry(tab, ShowFolder);
@@ -226,7 +227,7 @@ public class ProjectToolsTests
     }
 
     [Fact]
-    public async Task The_menu_lists_the_actions_then_the_configuration_then_the_menus_own_commands()
+    public async Task The_menu_lists_the_actions_by_what_they_do_then_the_configuration_then_the_menus_own_commands()
     {
         var (h, _, _) = UnrealHarness(s => s.ProjectTools.SetValue(UnrealProvider.KindId, UnrealProvider.ProjectFilesKey, nameof(ProjectFileFormat.VisualStudio)));
         await using var _h = h;
@@ -236,10 +237,11 @@ public class ProjectToolsTests
 
         Assert.Equal(
         [
-            "Launch editor", "Generate project files", "Build editor", "Build and launch", "Open solution", "Open latest log", "Clean intermediates…", "End all Unreal editors…",
+            "Editor", "Launch editor", "Open solution", "Open latest log", "Choose another engine folder…",
+            "-", "Build", "Generate project files", "Build editor", "Build and launch",
+            "-", "Clean up", "Clean intermediates…", "End all Unreal editors…",
             "-", "Editor configuration", "Development", "DebugGame",
-            "-", "Choose another engine folder…",
-            "-", ShowFolder, "Show output…", "Add an action…", "Add a link…", "Refresh",
+            "-", "Folder", ShowFolder, "Show output…", "Refresh",
         ], menu);
         // Show in Explorer opens the project's folder.
         Assert.Equal(tab.ProjectTools.Project!.Root, Entry(tab, ShowFolder).Tip);
@@ -709,7 +711,8 @@ public class ProjectToolsTests
         Assert.Null(tab.ProjectTools.Project);
         Assert.StartsWith(tab.Folder, tab.ProjectTools.ButtonTip, StringComparison.Ordinal);
         Assert.Equal(tab.FolderName, tab.ProjectTools.HeaderTitle);
-        Assert.Equal(["Run tests", "-", ShowFolder, "Show output…", "Add an action…", "Add a link…", "Refresh"], tab.ProjectTools.Menu.Select(e => e.IsSeparator ? "-" : e.Label));
+        Assert.Equal(["Folder", "Actions", ShowFolder, "Show output…", "Refresh"], tab.ProjectTools.Menu.Select(e => e.IsSeparator ? "-" : e.Label));
+        Assert.Equal(["Run tests"], tab.ProjectTools.Menu.Single(e => e.IsSubmenu).Items.Select(e => e.Label));
         Assert.Equal("Run tests", tab.ProjectTools.MainAction!.Label);
 
         // The local file is the user's own: it runs without asking.
@@ -771,6 +774,29 @@ public class ProjectToolsTests
     // ---- Links --------------------------------------------------------------------------------------------------------------
 
     [Fact]
+    public async Task The_menu_stays_the_same_while_a_look_at_the_files_finds_nothing_new()
+    {
+        await using var h = new TabTestHarness();
+        var file = Path.Combine(h.WorkFolder, ProjectFile.SharedName);
+        File.WriteAllText(file, """{ "actions": [{ "name": "Test", "command": "dotnet test" }] }""");
+        var tab = await h.OpenTabAsync();
+        await TabTestHarness.Eventually(() => tab.ProjectTools.HasTools, "the actions");
+        var before = InlineDispatcher.Read(() => tab.ProjectTools.Menu);
+
+        // Opening the menu looks at the files again: finding nothing new, it's the same menu, so the view keeps its rows
+        // and a submenu open over them stays open (DESIGN.md §18, "Project tools").
+        await tab.ProjectTools.RefreshAsync();
+        Assert.Same(before, InlineDispatcher.Read(() => tab.ProjectTools.Menu));
+
+        // Something that changed what an entry runs makes it again.
+        File.WriteAllText(file, """{ "actions": [{ "name": "Test", "command": "dotnet test --no-build" }] }""");
+        await tab.ProjectTools.RefreshAsync();
+        var after = InlineDispatcher.Read(() => tab.ProjectTools.Menu);
+        Assert.NotSame(before, after);
+        Assert.Contains("--no-build", after.Single(e => e.IsSubmenu).Items.Single().Tip, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Links_are_in_the_projects_menu_and_open_only_when_allowed()
     {
         await using var h = new TabTestHarness();
@@ -790,10 +816,11 @@ public class ProjectToolsTests
         Assert.False(tab.ProjectTools.HasTools);
         Assert.StartsWith(tab.Folder, tab.ProjectTools.ButtonTip, StringComparison.Ordinal);
         var menu = InlineDispatcher.Read(() => tab.ProjectTools.Menu.ToArray());
-        Assert.Equal(["Links", "Pull request", "Changelist", "Local file", "-", ShowFolder, "Add an action…", "Add a link…", "Refresh"], menu.Select(e => e.IsSeparator ? "-" : e.Label));
-        var links = menu.Where(e => e.IsLink).ToArray();
+        Assert.Equal(["Folder", "Links", ShowFolder, "Refresh"], menu.Select(e => e.IsSeparator ? "-" : e.Label));
+        var links = menu.Single(e => e.IsSubmenu && e.Label == "Links").Items.ToArray();
+        Assert.Equal(["Pull request", "Changelist", "Local file"], links.Select(e => e.Label));
         Assert.Equal("https://github.com/org/repo/compare/owl%2Feyes?expand=1", Assert.IsType<ResolvedLink>(links[0].Parameter).Url);
-        Assert.Equal(("↗", true), (links[0].Mark, links[0].IsEnabled));
+        Assert.Equal((MenuIcons.Link, true), (links[0].Icon, links[0].IsEnabled));
         Assert.Equal("No Perforce changelist.", Assert.IsType<ResolvedLink>(links[1].Parameter).Problem);
         Assert.False(links[1].IsEnabled);
         Assert.False(links[2].IsEnabled);

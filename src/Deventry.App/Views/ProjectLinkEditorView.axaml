@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Deventry.App.ViewModels"
+             xmlns:conversation="using:Deventry.App.Conversation"
              x:Class="Deventry.App.Views.ProjectLinkEditorView"
              x:DataType="vm:ProjectLinkEditorViewModel">
   <!-- A link on Settings' Links page (DESIGN.md §18, "Links"), checked as the sidebar opens links -->
@@ -13,6 +14,26 @@
       <TextBox Classes="mono" Text="{Binding Url}" PlaceholderText="https://github.com/org/repo/compare/{branch}?expand=1" AutomationProperties.Name="Address" />
       <TextBlock Classes="small error" Text="{Binding UrlProblem}" TextWrapping="Wrap" IsVisible="{Binding HasUrlProblem}" />
       <TextBlock Classes="muted small" Text="{Binding PlaceholderHint}" TextWrapping="Wrap" />
+      <!-- Where it shows in the project's menu, and with what (DESIGN.md §18, "Project tools") -->
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="8" RowDefinitions="Auto,Auto" RowSpacing="8" Margin="0,4,0,0">
+        <TextBlock Text="Group" />
+        <TextBlock Grid.Column="1" Text="Icon" />
+        <AutoCompleteBox Grid.Row="1" ItemsSource="{Binding Groups}" Text="{Binding Group}" FilterMode="ContainsOrdinal" MinimumPrefixLength="0"
+                         PlaceholderText="None" AutomationProperties.Name="Group" />
+        <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" ItemsSource="{Binding IconChoices}" SelectedItem="{Binding SelectedIcon}"
+                  AutomationProperties.Name="Icon">
+          <ComboBox.ItemTemplate>
+            <DataTemplate DataType="vm:MenuIconChoice">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Path Classes="menuicon" Width="14" Height="14" Data="{Binding IconKey, Converter={x:Static conversation:ToolIcons.Geometry}}" />
+                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+              </StackPanel>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </Grid>
+      <TextBlock Classes="muted small" TextWrapping="Wrap"
+                 Text="Links in the same group share a section, under its name, in the project menu's Links." />
       <StackPanel Spacing="4" IsVisible="{Binding AsksForFile}" Margin="0,4,0,0">
         <TextBlock Text="Save in" />
         <RadioButton GroupName="ProjectLinkFile" Content="{Binding LocalText}" IsChecked="{Binding SaveToLocal}" />

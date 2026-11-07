@@ -22,13 +22,12 @@ public sealed partial class ShellViewModel : ISettingsHost
     public Func<ProjectSettingsOpening, Task>? ShowProjectSettingsWindow { get; set; }
 
     /// <summary>
-    /// The folder's project settings, in their window, at <paramref name="page"/>: Actions for <b>Add an action…</b> and
-    /// Links for <b>Add a link…</b>, with a new one started. There's one window for each folder: asked for again, it comes
-    /// to the front at that page.
+    /// The folder's project settings, in their window, at <paramref name="page"/>. There's one window for each folder:
+    /// asked for again, it comes to the front at that page.
     /// </summary>
-    internal Task OpenProjectSettingsAsync(string folder, string page, bool startNew = false) =>
+    internal Task OpenProjectSettingsAsync(string folder, string page) =>
         ShowProjectSettingsWindow is { } show && ProjectToolsFor(folder) is not null
-            ? show(new ProjectSettingsOpening(folder, page, startNew))
+            ? show(new ProjectSettingsOpening(folder, page))
             : Task.CompletedTask;
 
     /// <summary>The pages of <paramref name="folder"/>'s project settings, for its window; null for a folder with no tab or group.</summary>
@@ -61,4 +60,4 @@ public sealed partial class ShellViewModel : ISettingsHost
 }
 
 /// <summary>Where a project's settings window opens: the folder, the page, and whether to start a new link or action there.</summary>
-public sealed record ProjectSettingsOpening(string Folder, string Page, bool StartNew = false);
+public sealed record ProjectSettingsOpening(string Folder, string Page);

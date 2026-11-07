@@ -35,13 +35,15 @@ public sealed record ProjectIcon(string Path, ProjectFileScope Scope, string? Fu
 /// <param name="Action">What it reads as; null when it can't be read.</param>
 /// <param name="Problem">Why it can't be read.</param>
 /// <param name="ForThisOS">Its <c>os</c> includes this machine's.</param>
-public sealed record ProjectFileEntry(JsonNode? Raw, CustomProjectAction? Action, string? Problem, bool ForThisOS);
+/// <param name="Note">Something it has that was left out, such as an icon Deventry doesn't have, while the rest is read.</param>
+public sealed record ProjectFileEntry(JsonNode? Raw, CustomProjectAction? Action, string? Problem, bool ForThisOS, string? Note = null);
 
 /// <summary>One entry of a file's <c>links</c>, as the Links page of Settings sees it (DESIGN.md §18, "Links").</summary>
 /// <param name="Raw">The entry as it is in the file. Saving keeps its other fields.</param>
 /// <param name="Link">What it reads as; null when it can't be read.</param>
 /// <param name="Problem">Why it can't be read.</param>
-public sealed record ProjectFileLinkEntry(JsonNode? Raw, ProjectLink? Link, string? Problem)
+/// <param name="Note">Something it has that was left out, such as an icon Deventry doesn't have, while the rest is read.</param>
+public sealed record ProjectFileLinkEntry(JsonNode? Raw, ProjectLink? Link, string? Problem, string? Note = null)
 {
     /// <summary>The name as written: empty when the entry has none, and the sidebar shows its address instead.</summary>
     public string GivenName => LenientJson.String(Raw, "name")?.Trim() ?? "";
@@ -58,12 +60,12 @@ public sealed record ProjectFileLinkEntry(JsonNode? Raw, ProjectLink? Link, stri
 ///   "color": "#4A6FC4",
 ///   "solution": "NightOwl.sln",
 ///   "actions": [
-///     { "name": "Run tests", "command": "dotnet test", "folder": "src", "mode": "output" },
+///     { "name": "Run tests", "command": "dotnet test", "folder": "src", "mode": "output", "group": "Build", "icon": "test" },
 ///     { "name": "Open Grafana", "command": "start https://grafana", "mode": "launch", "os": ["windows"] },
 ///     { "name": "Play", "command": "Build\\Game.exe", "mode": "launch", "ifExists": "Build/Game.exe" }
 ///   ],
 ///   "links": [
-///     { "name": "Pull request", "url": "https://github.com/org/repo/compare/{branch}?expand=1" }
+///     { "name": "Pull request", "url": "https://github.com/org/repo/compare/{branch}?expand=1", "group": "Review" }
 ///   ]
 /// }
 /// </code>
@@ -166,6 +168,10 @@ public static class ProjectFile
             else if (entry.ForThisOS && entry.Action is { } action)
             {
                 actions.Add(action);
+                if (entry.Note is { } note)
+                {
+                    problems.Add($"{file}: {note}");
+                }
             }
         }
         var links = new List<ProjectLink>();
@@ -174,6 +180,10 @@ public static class ProjectFile
             if (entry.Link is { } link)
             {
                 links.Add(link);
+                if (entry.Note is { } note)
+                {
+                    problems.Add($"{file}: {note}");
+                }
             }
             else
             {
@@ -430,25 +440,57 @@ public static class ProjectFile
         {
             json.Remove("runOnNewWorktree");
         }
+        SetGroupAndIcon(json, action.Group, action.Icon);
         return json;
     }
 
-    /// <summary>
-    /// A link as an entry of <c>links</c>: <paramref name="raw"/>'s other fields kept, its name and address written over
-    /// them. An empty name is left out, and the sidebar shows the address instead.
-    /// </summary>
-    public static JsonObject LinkToJson(string? name, string url, JsonNode? raw = null)
+    /// <summary>Writes <paramref name="value"/> as <paramref name="key"/>, or leaves the key out when it's empty.</summary>
+    private static void SetOrRemove(JsonObject json, string key, string? value)
     {
-        var json = raw is JsonObject existing ? (JsonObject)existing.DeepClone() : [];
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(value))
         {
-            json.Remove("name");
+            json.Remove(key);
         }
         else
         {
-            json["name"] = name.Trim();
+            json[key] = value.Trim();
         }
+    }
+
+    /// <summary>
+    /// Writes an entry's <c>"group"</c> and <c>"icon"</c>, but leaves each as written while it still reads as
+    /// <paramref name="group"/> and <paramref name="icon"/>: an icon a newer Deventry has, which reads as none here, isn't
+    /// lost when another entry of the file is edited or moved.
+    /// </summary>
+    private static void SetGroupAndIcon(JsonObject json, string? group, string? icon)
+    {
+        if (!json.TryGetPropertyValue("group", out var writtenGroup) || ReadGroup(writtenGroup).Group != group)
+        {
+            SetOrRemove(json, "group", group);
+        }
+        if (!json.TryGetPropertyValue("icon", out var writtenIcon) || MenuIcons.Find(ReadString(writtenIcon)) != icon)
+        {
+            SetOrRemove(json, "icon", icon);
+        }
+    }
+
+    /// <summary>A <c>"group"</c> as written: its name, null for none, and whether it's a name at all.</summary>
+    private static (string? Group, bool IsName) ReadGroup(JsonNode? node) =>
+        ReadString(node) is { } text ? (text.Trim() is { Length: > 0 } trimmed ? trimmed : null, true) : (null, node is null);
+
+    private static string? ReadString(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
+    /// <summary>
+    /// A link as an entry of <c>links</c>: <paramref name="raw"/>'s other fields kept, its name, address, group and icon
+    /// written over them. An empty name is left out, and the menu shows the address instead; so are an empty group and
+    /// icon.
+    /// </summary>
+    public static JsonObject LinkToJson(string? name, string url, JsonNode? raw = null, string? group = null, string? icon = null)
+    {
+        var json = raw is JsonObject existing ? (JsonObject)existing.DeepClone() : [];
+        SetOrRemove(json, "name", name);
         json["url"] = url.Trim();
+        SetGroupAndIcon(json, group, icon);
         return json;
     }
 
@@ -512,6 +554,7 @@ public static class ProjectFile
             ifExists = given.Length > 0 ? given : null;
         }
         var folder = LenientJson.String(entry, "folder")?.Trim();
+        var (group, icon, note) = GroupAndIcon(entry, $"{where} (\"{name}\")");
         var action = new CustomProjectAction
         {
             Id = $"{(scope == ProjectFileScope.Shared ? "shared" : "local")}:{index}",
@@ -524,8 +567,37 @@ public static class ProjectFile
             IfExists = ifExists,
             // Anything but true leaves it to a click.
             RunOnNewWorktree = entry["runOnNewWorktree"] is JsonValue run && run.TryGetValue<bool>(out var on) && on,
+            Group = group,
+            Icon = icon,
         };
-        return new ProjectFileEntry(node, action, null, forThisOS);
+        return new ProjectFileEntry(node, action, null, forThisOS, note);
+    }
+
+    /// <summary>
+    /// An entry's <c>"group"</c> and <c>"icon"</c> (DESIGN.md §18, "deventry.json"). One that can't be used is left out,
+    /// with a note, and the entry is read without it: at the top of its submenu, with its usual icon.
+    /// </summary>
+    private static (string? Group, string? Icon, string? Note) GroupAndIcon(JsonObject entry, string where)
+    {
+        var notes = new List<string>();
+        var (group, isName) = ReadGroup(entry["group"]);
+        if (!isName)
+        {
+            notes.Add("\"group\" should be a name, such as \"Deploy\"");
+        }
+        string? icon = null;
+        if (entry["icon"] is JsonNode iconNode)
+        {
+            var written = ReadString(iconNode)?.Trim();
+            icon = MenuIcons.Find(written);
+            if (icon is null && written is not { Length: 0 })
+            {
+                notes.Add(written is null
+                    ? "\"icon\" should be the name of one of Deventry's icons, such as \"play\""
+                    : $"\"icon\" is \"{written}\", which isn't one of Deventry's icons ({string.Join(", ", MenuIcons.Names)})");
+            }
+        }
+        return (group, icon, notes.Count == 0 ? null : $"{where}: {string.Join("; ", notes)}, so it shows without it.");
     }
 
     /// <summary>A string or a list of strings, such as <c>"os"</c>; null when it's neither. Other values in a list are ignored.</summary>
@@ -549,7 +621,9 @@ public static class ProjectFile
             return new ProjectFileLinkEntry(node, null, $"{where} has no url, so it was skipped.");
         }
         var name = LenientJson.String(entry, "name")?.Trim();
-        return new ProjectFileLinkEntry(node, new ProjectLink(string.IsNullOrEmpty(name) ? url : name, url, scope), null);
+        var shown = string.IsNullOrEmpty(name) ? url : name;
+        var (group, icon, note) = GroupAndIcon(entry, $"{where} (\"{shown}\")");
+        return new ProjectFileLinkEntry(node, new ProjectLink(shown, url, scope, group, icon), null, note);
     }
 
     private static IEnumerable<JsonNode?> Entries(JsonObject root, string name, string file, List<string> problems)

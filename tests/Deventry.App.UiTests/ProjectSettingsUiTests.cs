@@ -221,8 +221,8 @@ public class ProjectSettingsUiTests
         window.Width = 820;
         window.Height = 650;
 
-        // From the project's menu: the tallest the dialog gets, as it asks for the file too.
-        settings.Project.StartNewAction();
+        // A new action: the dialog at its tallest, with its group and icon.
+        settings.Project.AddProjectActionCommand.Execute(null);
         UiText.Settle(window);
         var dialog = window.GetVisualDescendants().OfType<ProjectActionEditorView>().Single();
         Assert.True(dialog.IsEffectivelyVisible);

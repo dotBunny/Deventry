@@ -8,7 +8,9 @@ namespace Deventry.Core.ProjectTools;
 public sealed record LinkValues(string? Branch, string? Changelist, string FolderName);
 
 /// <summary>A link ready to show: its address, or why it can't be opened.</summary>
-public sealed record ResolvedLink(string Name, string? Url, string? Problem, ProjectFileScope Scope)
+/// <param name="Group">The section of the project's <b>Links ▸</b> it goes in; null for none, at the top.</param>
+/// <param name="Icon">One of <see cref="MenuIcons"/>; null for a link's.</param>
+public sealed record ResolvedLink(string Name, string? Url, string? Problem, ProjectFileScope Scope, string? Group = null, string? Icon = null)
 {
     public bool IsEnabled => Url is not null;
 
@@ -33,8 +35,8 @@ public static partial class ProjectLinks
 
     public static ResolvedLink Resolve(ProjectLink link, LinkValues values) =>
         Fill(link.Url.Trim(), values, showFilled: true, out var filled) is { } problem
-            ? new ResolvedLink(link.Name, null, problem, link.Scope)
-            : new ResolvedLink(link.Name, filled, null, link.Scope);
+            ? new ResolvedLink(link.Name, null, problem, link.Scope, link.Group, link.Icon)
+            : new ResolvedLink(link.Name, filled, null, link.Scope, link.Group, link.Icon);
 
     /// <summary>
     /// Why an address typed into Settings' Links page can't be saved, by the rules the project's menu opens links with: only

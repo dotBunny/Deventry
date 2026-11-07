@@ -13,7 +13,7 @@ What belongs to a project rather than to Deventry is in a window of its own, one
 
 - Right-click a group's label in the sidebar, or its color in the rail, and choose **Project settings…**. It works for a group with nothing open in it too, such as one of [Claude Code's projects](../tabs/folder-groups.md#claude-codes-projects).
 - Right-click a tab and choose **Project settings…**, after **Tab settings…**, for the tab's folder.
-- In the project's menu, **Add a link…** and **Add an action…** open it with a new link or action started. **Open** beside **Project actions** in [Tab settings…](../tabs/tab-settings.md) opens it at **Actions**.
+- **Open** beside **Project actions** in [Tab settings…](../tabs/tab-settings.md) opens it at **Actions**.
 
 The window opens beside the main window, which you can keep using. Each project has one: asking for it again brings it to the front at the page you asked for. Press `Esc`, or `Ctrl/Cmd+W`, to close it.
 
@@ -21,8 +21,8 @@ Its title, and the top of its sidebar, name the project, or the folder when Deve
 
 ## The pages
 
-- **Links** lists the project's web links, from `deventry.json` and `deventry.local.json`, with **Add…**, **Edit…**, **Remove**, **Move up** and **Move down**.
-- **Actions** is the same for the project's own actions, with **Open file**.
+- **Links** lists the project's web links, from `deventry.json` and `deventry.local.json`, with **Add…**, **Edit…**, **Remove**, **Move up** and **Move down**. Its dialog has each link's **Group** and **Icon** in the project's menu.
+- **Actions** is the same for the project's own actions, with **Open file**, and the same **Group** and **Icon**.
 - **Solution** is the file that defines the project, usually its solution (`NightOwl.sln`), in either file, with **Choose…** and **Remove**. The project's menu then has **Open NightOwl.sln**: a solution or workspace opens with the app Settings → Project tools → All tools → **Open solutions with** says, your system's own by default, and any other file with the app your system has for it. It sits beside an Unreal, Unity or Godot project's own **Open solution**, and in a folder without one of those it's the project's main action (`Ctrl/Cmd+Shift+E`). The page says what the menu does with it, or why it can't open it.
 - **Tools** holds this machine's choices for the project: which project file when the folder has several, its editor configuration or code optimization, and the engine folder, Unity editor or Godot executable you picked, each with **Clear** to forget the pick. Without a project it says "No Unreal, Unity or Godot project in this folder". The defaults every project starts with are on its kind's page in Settings → Project tools, which **Open Unreal Engine** (or Unity, or Godot) at the foot of the page opens; without a project, **Open All tools**.
 - **Group** is how the project's group looks in the sidebar, in either file: its color, with **Choose…** and **Remove**, and the picture in place of its dot, with **Choose…** and **Remove**. See [Changing a group's color](../tabs/folder-groups.md#changing-a-groups-color) and [A group's icon](../tabs/folder-groups.md#a-groups-icon).

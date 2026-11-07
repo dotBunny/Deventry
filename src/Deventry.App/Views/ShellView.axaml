@@ -110,12 +110,29 @@
                    IsVisible="{Binding Runs.IsJobRunning}" />
       </Panel>
     </DataTemplate>
+    <!-- An entry of the project's menu, or of its Actions ▸ and Links ▸: a section's line or title, or something to pick -->
+    <DataTemplate x:Key="ProjectMenuEntry" DataType="vm:ProjectMenuEntry">
+      <Panel>
+        <Separator IsVisible="{Binding IsSeparator}" />
+        <TextBlock Classes="menusection" Text="{Binding Label}" IsVisible="{Binding IsHeader}" />
+        <Button Classes="flat menuentry" IsVisible="{Binding IsButton}" IsEnabled="{Binding IsEnabled}"
+                ToolTip.Tip="{Binding Tip}" ToolTip.ShowOnDisabled="True" Click="OnProjectMenuItemPicked" PointerEntered="OnProjectMenuEntryEntered"
+                Command="{Binding Command}" CommandParameter="{Binding Parameter}" AutomationProperties.Name="{Binding Label}">
+          <Grid ColumnDefinitions="14,*" ColumnSpacing="13">
+            <Path Classes="menuicon" Data="{Binding IconKey, Converter={x:Static conversation:ToolIcons.Geometry}}" IsVisible="{Binding HasIcon}" />
+            <TextBlock Classes="small" Text="{Binding Mark}" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding HasMark}" />
+            <TextBlock Grid.Column="1" Text="{Binding Label}" />
+          </Grid>
+        </Button>
+      </Panel>
+    </DataTemplate>
     <!-- The project's menu (DESIGN.md §18, "Project tools"): the project and what's wrong with deventry.json, then its
-         actions and links -->
+         actions in sections, and the folder's own actions and links in submenus, drawn as the sidebar's other menus are
+         (Themes/MenuStyles.axaml) -->
     <DataTemplate x:Key="ProjectMenu" DataType="vm:ProjectToolsViewModel">
-      <StackPanel x:Name="ProjectMenu" MinWidth="300" MaxWidth="440" Spacing="1">
-        <TextBlock Text="{Binding HeaderTitle}" FontWeight="SemiBold" Margin="8,2,8,0" />
-        <ItemsControl ItemsSource="{Binding HeaderLines}" Margin="8,0,8,2">
+      <StackPanel x:Name="ProjectMenu" MinWidth="300" MaxWidth="440">
+        <TextBlock Text="{Binding HeaderTitle}" FontWeight="SemiBold" Margin="12,2,12,0" />
+        <ItemsControl ItemsSource="{Binding HeaderLines}" Margin="12,0,12,2">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="x:String">
               <TextBlock Classes="muted small" Text="{Binding}" TextWrapping="Wrap" />
@@ -123,28 +140,36 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
         <!-- Entries of deventry.json that were skipped, and why (DESIGN.md §18) -->
-        <ItemsControl ItemsSource="{Binding FileProblems}" Margin="8,0,8,2" IsVisible="{Binding HasFileProblems}">
+        <ItemsControl ItemsSource="{Binding FileProblems}" Margin="12,0,12,2" IsVisible="{Binding HasFileProblems}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="x:String">
               <TextBlock Classes="small warning" Text="{Binding}" TextWrapping="Wrap" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Separator Margin="0,2" />
+        <Separator />
         <ItemsControl ItemsSource="{Binding Menu}">
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="vm:ProjectMenuEntry">
               <Panel>
-                <Separator Margin="0,3" IsVisible="{Binding IsSeparator}" />
-                <TextBlock Classes="muted small" Text="{Binding Label}" Margin="8,4,8,1" IsVisible="{Binding IsHeader}" />
-                <Button Classes="flat row" IsVisible="{Binding IsButton}" IsEnabled="{Binding IsEnabled}" HorizontalContentAlignment="Stretch"
-                        ToolTip.Tip="{Binding Tip}" ToolTip.ShowOnDisabled="True" Click="OnProjectMenuItemPicked"
-                        Command="{Binding Command}" CommandParameter="{Binding Parameter}">
-                  <Grid ColumnDefinitions="16,*">
-                    <TextBlock Classes="small" Text="{Binding Mark}" VerticalAlignment="Center" IsVisible="{Binding HasMark}" />
+                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource ProjectMenuEntry}" IsVisible="{Binding !IsSubmenu}" />
+                <!-- Actions ▸ and Links ▸: pointing at one or clicking it opens it beside the menu, as a menu's submenu does -->
+                <Button Classes="flat menuentry" IsVisible="{Binding IsSubmenu}" ToolTip.Tip="{Binding Tip}" AutomationProperties.Name="{Binding Label}"
+                        Click="OnProjectSubmenuClicked" PointerEntered="OnProjectSubmenuEntered">
+                  <Grid ColumnDefinitions="14,*,Auto" ColumnSpacing="13">
+                    <Path Classes="menuicon" Data="{Binding IconKey, Converter={x:Static conversation:ToolIcons.Geometry}}" />
                     <TextBlock Grid.Column="1" Text="{Binding Label}" />
+                    <Path Grid.Column="2" Classes="menuicon" Data="{StaticResource IconChevronRight}" Width="8" Height="8" />
                   </Grid>
                 </Button>
+                <!-- Its entries, beside its row. A popup that isn't dismissed by a click elsewhere, as a flyout is: a flyout
+                     open over the menu would keep the pointer from it, so pointing at another entry couldn't close or
+                     switch it. ShellView closes it as a menu's submenu closes. -->
+                <Popup Placement="RightEdgeAlignedTop" IsLightDismissEnabled="False" Opened="OnProjectSubmenuOpened" Closed="OnProjectSubmenuClosed">
+                  <FlyoutPresenter Classes="sectioned" PointerExited="OnProjectSubmenuExited">
+                    <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ProjectMenuEntry}" MinWidth="220" MaxWidth="440" />
+                  </FlyoutPresenter>
+                </Popup>
               </Panel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
@@ -590,7 +615,7 @@
                               ToolTip.Tip="{Binding ProjectTools.ButtonTip, FallbackValue={x:Null}}" AutomationProperties.Name="Project tools">
                         <ContentControl Content="{Binding ProjectTools}" ContentTemplate="{StaticResource ProjectIcon}" />
                         <Button.Flyout>
-                          <Flyout Placement="RightEdgeAlignedTop" Opened="OnProjectMenuOpened">
+                          <Flyout Placement="RightEdgeAlignedTop" FlyoutPresenterClasses="sectioned" Opened="OnProjectMenuOpened" Closed="OnProjectMenuClosed">
                             <ContentControl Content="{Binding ProjectTools}" ContentTemplate="{StaticResource ProjectMenu}" />
                           </Flyout>
                         </Button.Flyout>
@@ -1258,7 +1283,7 @@
                           ToolTip.Tip="{Binding ProjectTools.ButtonTip, FallbackValue={x:Null}}" ToolTip.Placement="Right" AutomationProperties.Name="Project tools">
                     <ContentControl Content="{Binding ProjectTools}" ContentTemplate="{StaticResource ProjectIcon}" />
                     <Button.Flyout>
-                      <Flyout Placement="RightEdgeAlignedTop" Opened="OnProjectMenuOpened">
+                      <Flyout Placement="RightEdgeAlignedTop" FlyoutPresenterClasses="sectioned" Opened="OnProjectMenuOpened" Closed="OnProjectMenuClosed">
                         <ContentControl Content="{Binding ProjectTools}" ContentTemplate="{StaticResource ProjectMenu}" />
                       </Flyout>
                     </Button.Flyout>
