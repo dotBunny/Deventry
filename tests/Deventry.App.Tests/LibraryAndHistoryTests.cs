@@ -689,6 +689,31 @@ public class LibraryAndHistoryTests
     }
 
     [Fact]
+    public async Task A_restored_tab_that_has_not_started_looks_at_the_library_before_its_first_message()
+    {
+        await using var h = new TabTestHarness();
+        var first = UserLine("pin-8", "Add the export button", h.WorkFolder);
+        h.WriteTranscript("pin-8", first);
+        await CarriedOnElsewhereAsync(h, "pin-8", first);
+        // Selected, it reads its conversation without starting (DESIGN.md §9, "Starting fast").
+        var tab = RestorePinned(h, "pin-8");
+        await TabTestHarness.Eventually(() => Notes(tab).Any(n => n.Text == "Resumed."), "the earlier conversation");
+        // The laptop carries the session on meanwhile, and closes Deventry, which lets its lease go.
+        await CarriedOnElsewhereAsync(h, "pin-8", first, UserLine("pin-8", "Now the import", h.WorkFolder, "2026-09-28T12:00:00Z"));
+
+        tab.ComposerText = "Ship it";
+        await InlineDispatcher.RunAsync(() => tab.SendCommand.ExecuteAsync(null));
+
+        // Not sent from this machine's older copy: the laptop's turn is read first, and the message waits to be sent again.
+        var resume = Assert.Single(h.Factory.Launches).Resume!;
+        Assert.StartsWith(h.Services.Paths.LocalSessionsDirectory, resume, StringComparison.Ordinal);
+        Assert.Contains(tab.Items, i => i is Conversation.UserMessageItem { Text: "Now the import" });
+        Assert.Equal("Ship it", tab.ComposerText);
+        Assert.DoesNotContain("Ship it", h.Transport.SentUserTexts);
+        Assert.Contains(Notes(tab), n => n.Text.StartsWith("Your message wasn't sent", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_copy_after_a_turn_never_writes_over_turns_another_machine_added()
     {
         await using var h = new TabTestHarness(s => s.Sessions.SyncNewTabs = true);

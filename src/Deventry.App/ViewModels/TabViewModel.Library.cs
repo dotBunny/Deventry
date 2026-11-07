@@ -316,15 +316,24 @@ public sealed partial class TabViewModel
     }
 
     /// <summary>
-    /// Before the first message since Claude Code started, as for <see cref="CheckLibraryAsync"/>. When it brings another
-    /// machine's turns here, the message isn't sent but stays in the composer, to be read again against them. Returns
-    /// whether the message was held back.
+    /// Before the first message since Claude Code started, as for <see cref="CheckLibraryAsync"/>, and before the one that
+    /// starts it once its conversation is read: a restored tab is read as it's shown, maybe long before its first message
+    /// (DESIGN.md §9, "Starting fast"), and an unloaded one was read as it first started. When it brings another machine's
+    /// turns here, the message isn't sent but stays in the composer, to be read again against them. Returns whether the
+    /// message was held back.
     /// </summary>
     private async Task<bool> CheckLibraryBeforeSendingAsync()
     {
-        if (_sentSinceStart || _session is null || IsWorking || !State.SyncToLibrary)
+        // One still to read its conversation looks as its start reads it.
+        var due = _session is null ? _restoredTranscript && _starting is null : !_sentSinceStart;
+        if (!due || IsWorking || !State.SyncToLibrary)
         {
             return false;
+        }
+        if (_transcriptRead is { } read)
+        {
+            // What's compared is what the tab shows.
+            await read;
         }
         if (!await ActOnLibraryAsync(await CompareWithLibraryAsync()))
         {
