@@ -146,6 +146,7 @@ public class TabMarkTests
         Assert.Equal(TabMark.Star, entry.Mark);
 
         await history.OpenCommand.ExecuteAsync(entry);
+        h.Start();
 
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal(TabMark.Star, h.Shell.SelectedTab!.Mark);
@@ -164,6 +165,7 @@ public class TabMarkTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
         await Assert.IsType<ConfirmationViewModel>(h.Shell.Confirmation).SecondaryCommand.ExecuteAsync(null);
+        h.Start();
 
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.True(h.Factory.Launches[0].ForkSession);

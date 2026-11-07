@@ -74,6 +74,7 @@ public class MascotTabTests
         h.Services.Settings.Sessions.RestoreUnpinnedTabs = true;
         h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true }, new TabState { Folder = h.WorkFolder }, new TabState { Folder = h.WorkFolder }];
         h.Shell.Restore(null);
+        h.Start();
         var group = h.Shell.Groups.Single();
         var (a, b, c) = (group.Tabs[0], group.Tabs[1], group.Tabs[2]);
         var director = h.Services.Mascot.Director!;

@@ -420,6 +420,8 @@ public class RemoteControlTests
         off.Services.State.Tabs = [new TabState { Folder = off.WorkFolder, RemoteControl = false }];
         off.Shell.Restore(null);
         var other = off.Shell.SelectedTab!;
+        // Without the switch on, it starts with its first message, as any restored tab does (DESIGN.md §9, "Starting fast").
+        off.Start(other);
         await TabTestHarness.Eventually(() => other.Status == TabStatus.Idle && other.IsSettled, "the restored tab to start");
         Assert.False(other.RemoteControl.IsOn);
         Assert.Empty(RemoteRequests(off));

@@ -92,6 +92,7 @@ public class ClaudeProjectsTests
         Assert.Equal(["w2", "w1"], work.PastSessions.Select(r => r.Entry.SessionId));
         Assert.True(work.ShowsPastSessionsFold);
         Assert.False(work.ShowsPastSessionList);
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("w3", h.Factory.Launches[0].Resume);
         // A group with a tab is placed with the tabs, first.

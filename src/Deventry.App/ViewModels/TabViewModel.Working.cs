@@ -127,6 +127,8 @@ public sealed partial class TabViewModel
 
     partial void OnStatusChanged(TabStatus oldValue, TabStatus newValue)
     {
+        // How long an idle tab has been idle, for unloading it (DESIGN.md §9, "Unloading idle tabs").
+        _statusSince = _services.Time.GetUtcNow();
         // Unseen outlives a restart, which brings the tab back not started; a new turn, or the user looking, ends it.
         if (newValue == TabStatus.Unread && !State.Unseen)
         {

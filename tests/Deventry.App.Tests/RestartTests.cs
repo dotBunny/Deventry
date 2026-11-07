@@ -71,6 +71,7 @@ public class RestartTests
         h.Services.Settings.Sessions.RestoreUnpinnedTabs = true;
         h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true, UserName = "pinned" }, new TabState { Folder = h.WorkFolder, UserName = "unpinned" }];
         h.Shell.Restore(null);
+        h.Start();
         h.Services.Settings.Sessions.RestoreUnpinnedTabs = false;
         var (pinned, unpinned) = (h.Shell.AllTabs.First(), h.Shell.AllTabs.Last());
         await TabTestHarness.Eventually(() => pinned.Status == TabStatus.Idle && pinned.IsSettled, "the selected tab to start");

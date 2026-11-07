@@ -220,6 +220,7 @@ public class ChangesPerTurnTests
                 new JsonObject { ["filePath"] = path, ["oldString"] = "a", ["originalFile"] = "one\n", ["structuredPatch"] = new JsonArray() }));
         h.Services.State.Tabs = [new Core.Settings.TabState { Folder = h.WorkFolder, IsPinned = true, SessionId = "s1" }];
         h.Shell.Restore(null);
+        h.Start();
         var tab = h.Shell.AllTabs.Single();
         h.Shell.SelectedTab = tab;
         // The rows are listed once the tab is shown, after the files are read off the UI thread.

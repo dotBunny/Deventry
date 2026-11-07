@@ -571,6 +571,7 @@ public partial class ComposerTests
         await TabTestHarness.Eventually(() => !history.IsLoading, "History to load");
 
         await history.OpenCommand.ExecuteAsync(Assert.Single(Assert.Single(history.Groups).Entries));
+        h.Start();
 
         var tab = h.Shell.SelectedTab!;
         // The conversation is read back as the tab starts, off the UI thread, and more follows the prompt: it's the start

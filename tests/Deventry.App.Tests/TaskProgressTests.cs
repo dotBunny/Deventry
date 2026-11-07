@@ -333,6 +333,7 @@ public class TaskProgressTests
             }))));
         h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true, SessionId = "s1", TodoListClosed = closed }];
         h.Shell.Restore(null);
+        h.Start();
         var tab = h.Shell.AllTabs.Single();
 
         await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.TodoList.HasItems, "the restored list");

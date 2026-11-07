@@ -730,6 +730,7 @@ public class AgentMapTests
             [Wire.Entry("assistant", "2026-09-28T10:00:05Z", Wire.Message(new JsonObject { ["type"] = "text", ["text"] = "Deep answer." }), sidechain: true)]);
         h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true, SessionId = "s1" }];
         h.Shell.Restore(null);
+        h.Start();
         var tab = h.Shell.AllTabs.Single();
 
         await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.Agents.HasSubagents, "the restored conversation");
