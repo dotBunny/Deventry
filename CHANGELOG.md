@@ -20,6 +20,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - **Connect Four is now Four in a Row.** The same game against Joulene, under the name it's known by everywhere else; your score and level come with it.
 - **The games look like games.** Each board is one surface, with slots to play in and keys that sink when you press them, in place of rows of buttons. An empty square shows your ✕ before you play it, a column shows where your piece would land, the three in a row that win tic-tac-toe are struck through, the last piece dropped in Four in a Row has a dot, hangman's word is spelled out on lines, and Minesweeper's squares sit raised until you open them.
+- **An editor log closes with its tab.** Closing a tab closes the editor logs under it, instead of moving them to another of the project's tabs. While the editor keeps running, its log stays closed, as it does when you close it with its **×**, and comes back when the editor next starts. See [Editor logs](https://deventry.app/project-tools/editor-logs/).
 - **Unity's log with `-timestamps` reads in columns.** The time and thread Unity puts before each line (`2026-11-06T12:45:48.327Z|0x9484|`) are no longer part of the message: the time is in the time column, in your time zone, and the thread has a column of its own before the message, in `Editor.log` and in Unity's JSON log, where the time no longer shows twice. Copying a line still gives it as the file has it. See [Editor logs](https://deventry.app/project-tools/editor-logs/).
 
 ### Fixed
