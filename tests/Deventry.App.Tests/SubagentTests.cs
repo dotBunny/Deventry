@@ -337,6 +337,7 @@ public class SubagentTests
             Wire.Entry("user", "2026-09-28T10:01:02Z", Wire.ResultMessage("new", "Found that.")));
         h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true, SessionId = "s1" }];
         h.Shell.Restore(null);
+        h.Start();
         var tab = h.Shell.AllTabs.Single();
 
         await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.Agents.Subagents.Count == 2, "the restored conversation");

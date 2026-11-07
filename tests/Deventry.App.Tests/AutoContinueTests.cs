@@ -156,6 +156,7 @@ public class AutoContinueTests
             },
         ];
         h.Shell.Restore(null);
+        h.Start();
         var tab = h.Shell.SelectedTab!;
 
         Assert.True(tab.WillContinueAfterLimit);
@@ -181,6 +182,7 @@ public class AutoContinueTests
             },
         ];
         h.Shell.Restore(null);
+        h.Start();
         var tab = h.Shell.SelectedTab!;
         await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.IsSettled, "the tab to start");
 

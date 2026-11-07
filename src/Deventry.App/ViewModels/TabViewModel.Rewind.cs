@@ -280,6 +280,7 @@ public sealed partial class TabViewModel
             State.ResumeDropsTurn = dropsTurn;
             // Read again, up to the point.
             _restoredTranscript = false;
+            _transcriptRead = null;
             _forkNote = note;
         }
         _services.SaveState();

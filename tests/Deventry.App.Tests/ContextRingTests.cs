@@ -18,6 +18,7 @@ public class ContextRingTests
             new TabState { Folder = h.WorkFolder, IsPinned = true },
         ];
         h.Shell.Restore(null);
+        h.Start();
         var selected = h.Shell.SelectedTab!;
         var waiting = h.Shell.AllTabs.Single(t => t != selected);
         await TabTestHarness.Eventually(() => selected.Status == TabStatus.Idle && selected.IsSettled, "the selected tab to start");

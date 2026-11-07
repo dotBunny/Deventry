@@ -9,6 +9,13 @@
 "Also restore unpinned tabs when Deventry starts"
 "Pinned tabs always come back."
 [toggle on] Also restore unpinned tabs when Deventry starts
+"Unload idle tabs to save memory"
+"A tab left idle stops its Claude Code. Its conversation stays, and your next message starts it again where it was.  "
+[toggle] Unload idle tabs to save memory
+"After being idle for (minutes)"
+[button] (icon)
+[button] (icon)
+[field] "60"
 "Confirm before closing a tab where Claude is working"
 "Closing one stops Claude mid-turn."
 [toggle on] Confirm before closing a tab where Claude is working

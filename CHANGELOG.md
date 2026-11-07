@@ -8,6 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- **Unload idle tabs to save memory.** Settings → General → **Unload idle tabs to save memory** stops Claude Code in a tab left idle for an hour, or as long as you choose. The tab and its conversation stay as they are, and your next message picks the session up where it was. Off by default.
 - **Start a new project from the new tab picker.** **New project…** makes an empty folder where you choose, a git repository from the start unless you turn that off, and opens it as a new tab; the same window clones a repository instead with **Clone from git**. It's in the command palette too.
 - **Clone a repository…**, from **New project…** in the new tab picker or from the command palette. Paste a git address, choose where to put the clone and what to call its folder (filled in from the address), and the clone opens as a new tab. It runs the git from Settings → Source control → Git, and tells you what git said if it can't. See [Cloning a repository](https://deventry.app/tabs/opening-tabs/#cloning-a-repository).
 - **Show or hide ignored and hidden files in the Files tab.** The explorer's **⋯** menu has **Show ignored files** and **Show hidden files**: ticked, they're in the tree, dimmed, and unticked they're left out, in every Files tab. Hidden files are dotfiles, such as `.gitignore` and `.github`, and what Windows or macOS hides, and are now dimmed too. In a Perforce workspace, what your P4IGNORE rules ignore counts as ignored, as what git ignores does; Perforce is asked in the background, so the tree never waits for it. Both are in Settings → **Files and diffs**, where **Files git ignores** moved from Settings → Git as **Ignored files**. See [The explorer](https://deventry.app/project-files/the-explorer/#the-tree).
@@ -18,6 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- **Selecting a tab no longer starts Claude Code.** A tab brought back when Deventry starts shows its conversation as soon as you select it, ready to read and scroll, and starts Claude Code only when you send it a message.
 - **Connect Four is now Four in a Row.** The same game against Joulene, under the name it's known by everywhere else; your score and level come with it.
 - **The games look like games.** Each board is one surface, with slots to play in and keys that sink when you press them, in place of rows of buttons. An empty square shows your ✕ before you play it, a column shows where your piece would land, the three in a row that win tic-tac-toe are struck through, the last piece dropped in Four in a Row has a dot, hangman's word is spelled out on lines, and Minesweeper's squares sit raised until you open them.
 - **An editor log closes with its tab.** Closing a tab closes the editor logs under it, instead of moving them to another of the project's tabs. While the editor keeps running, its log stays closed, as it does when you close it with its **×**, and comes back when the editor next starts. See [Editor logs](https://deventry.app/project-tools/editor-logs/).

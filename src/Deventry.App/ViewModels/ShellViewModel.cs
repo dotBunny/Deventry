@@ -117,6 +117,8 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
                 }
             }
         };
+        // Idle tabs unload, once Settings → General says to (DESIGN.md §9, "Unloading idle tabs").
+        IdleUnloadTicker.Run(true);
     }
 
     public ObservableCollection<TabGroupViewModel> Groups { get; } = [];
@@ -357,7 +359,8 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
             {
                 tab.MarkFolderMissing();
             }
-            // Before the panes show it: showing a tab starts it, and the start reads this.
+            // Before anything starts it, the panes showing a tab connected to the Claude app or the running tabs starting
+            // below: the start reads this.
             if (snapshot?.InterruptedTabIds.Contains(tab.Id) == true)
             {
                 tab.CarryOnInterruptedTurn();
@@ -1358,6 +1361,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         FindInFiles?.Dispose();
         FindResults.Dispose();
         ToolWindows.Dispose();
+        IdleUnloadTicker.Stop();
         await Task.WhenAll(Groups.Select(g => g.Files).OfType<ProjectFilesViewModel>().ToArray().Select(f => f.DisposeAsync().AsTask()));
         await Task.WhenAll(AllTabs.ToArray().Select(t => t.DisposeAsync().AsTask()));
     }

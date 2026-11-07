@@ -25,6 +25,8 @@ None of this page syncs, and a tab can't change it for itself.
 |---|---|---|---|
 | **Start Deventry when I log in** | Starting and closing | Off (your OS keeps it) | [Starting at login](../away/starting-at-login.md) |
 | **Also restore unpinned tabs when Deventry starts** | Starting and closing | On | [Closing and restoring](../tabs/closing-and-restoring.md) |
+| **Unload idle tabs to save memory** | Starting and closing | Off | [Closing and restoring](../tabs/closing-and-restoring.md) |
+| **After being idle for (minutes)** | Starting and closing | 60 | [Closing and restoring](../tabs/closing-and-restoring.md) |
 | **Confirm before closing a tab where Claude is working** | Starting and closing | On | [Closing and restoring](../tabs/closing-and-restoring.md) |
 | **Keep this computer awake** | Keeping the computer awake | Off | [Keeping the computer awake](../away/keeping-the-computer-awake.md) |
 | **When**: **Only while Claude has work to finish** or **Whenever Deventry is running** | Keeping the computer awake | Only while Claude has work to finish | [Keeping the computer awake](../away/keeping-the-computer-awake.md) |

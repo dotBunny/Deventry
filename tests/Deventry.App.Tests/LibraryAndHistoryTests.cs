@@ -57,6 +57,7 @@ public class LibraryAndHistoryTests
 
         Assert.False(h.Shell.IsHistoryOpen);
         var tab = h.Shell.SelectedTab!;
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("old-1", h.Factory.Launches[0].Resume);
         // It only ever lived on this machine, so it stays here.
@@ -311,6 +312,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(entry);
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         var resume = h.Factory.Launches[0].Resume!;
         Assert.StartsWith(h.Services.Paths.LocalSessionsDirectory, resume, StringComparison.Ordinal);
@@ -340,6 +342,7 @@ public class LibraryAndHistoryTests
 
         await confirmation.SecondaryCommand.ExecuteAsync(null);
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.True(h.Factory.Launches[0].ForkSession);
         // A copy of a library session syncs too, under its own id once it has one.
@@ -415,6 +418,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.IsType<LeaseStatus.Mine>(h.Services.Library.CheckLease("lib-3"));
     }
@@ -431,6 +435,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         var record = h.Services.Library.Library.List().Single().Record;
         Assert.Equal(h.Time.GetUtcNow(), record.LastOpened);
@@ -494,6 +499,7 @@ public class LibraryAndHistoryTests
         await confirmation.ConfirmCommand.ExecuteAsync(null);
 
         // Taken over: resumed from this machine's own transcript, with the lease now held here.
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("both-1", h.Factory.Launches[0].Resume);
         Assert.IsType<LeaseStatus.Mine>(h.Services.Library.CheckLease("both-1"));
@@ -514,6 +520,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(entry);
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.StartsWith(h.Services.Paths.LocalSessionsDirectory, h.Factory.Launches[0].Resume!, StringComparison.Ordinal);
         Assert.True(h.Shell.SelectedTab!.SyncToLibrary);
@@ -682,6 +689,31 @@ public class LibraryAndHistoryTests
     }
 
     [Fact]
+    public async Task A_restored_tab_that_has_not_started_looks_at_the_library_before_its_first_message()
+    {
+        await using var h = new TabTestHarness();
+        var first = UserLine("pin-8", "Add the export button", h.WorkFolder);
+        h.WriteTranscript("pin-8", first);
+        await CarriedOnElsewhereAsync(h, "pin-8", first);
+        // Selected, it reads its conversation without starting (DESIGN.md §9, "Starting fast").
+        var tab = RestorePinned(h, "pin-8");
+        await TabTestHarness.Eventually(() => Notes(tab).Any(n => n.Text == "Resumed."), "the earlier conversation");
+        // The laptop carries the session on meanwhile, and closes Deventry, which lets its lease go.
+        await CarriedOnElsewhereAsync(h, "pin-8", first, UserLine("pin-8", "Now the import", h.WorkFolder, "2026-09-28T12:00:00Z"));
+
+        tab.ComposerText = "Ship it";
+        await InlineDispatcher.RunAsync(() => tab.SendCommand.ExecuteAsync(null));
+
+        // Not sent from this machine's older copy: the laptop's turn is read first, and the message waits to be sent again.
+        var resume = Assert.Single(h.Factory.Launches).Resume!;
+        Assert.StartsWith(h.Services.Paths.LocalSessionsDirectory, resume, StringComparison.Ordinal);
+        Assert.Contains(tab.Items, i => i is Conversation.UserMessageItem { Text: "Now the import" });
+        Assert.Equal("Ship it", tab.ComposerText);
+        Assert.DoesNotContain("Ship it", h.Transport.SentUserTexts);
+        Assert.Contains(Notes(tab), n => n.Text.StartsWith("Your message wasn't sent", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_copy_after_a_turn_never_writes_over_turns_another_machine_added()
     {
         await using var h = new TabTestHarness(s => s.Sessions.SyncNewTabs = true);
@@ -769,6 +801,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("claude-sonnet-5-5", h.Factory.Launches[0].Model);
         Assert.Equal("plan", h.Factory.Launches[0].PermissionMode);
@@ -805,6 +838,7 @@ public class LibraryAndHistoryTests
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
 
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal([(Path.Combine(h.WorkFolder, "src", "auth.cs"), "e1")], h.Shell.SelectedTab!.State.ReviewedFiles.Select(m => (m.Path, m.Change)));
     }
@@ -974,6 +1008,7 @@ public class LibraryAndHistoryTests
         await history.OpenCommand.ExecuteAsync(entry);
 
         // Resumed from this machine's own transcript, and syncing, so it takes the lease as it starts.
+        h.Start();
         await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
         Assert.Equal("both-3", h.Factory.Launches[0].Resume);
         Assert.True(h.Shell.SelectedTab!.SyncToLibrary);
@@ -1299,6 +1334,7 @@ public class LibraryAndHistoryTests
         await TabTestHarness.Eventually(() => !history.IsLoading, "History to load");
 
         await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
+        h.Start();
 
         // Before any turn: read with its lease as the tab starts.
         var tab = h.Shell.SelectedTab!;

@@ -40,7 +40,7 @@ Claude Code sets variables for the programs it starts, to tell them they're insi
 
 Open Task Manager or Activity Monitor and you'll see a `claude` for each tab that has started, plus one more. That one is a hidden helper that never receives a prompt and saves no session. It asks Claude Code for what doesn't belong to a tab: the list of models, your plan's usage and sign-in. Deventry also runs `claude` briefly to check its version and how it was installed, and to update it.
 
-Tabs you haven't touched since launch don't start `claude` until you select them or send a message, so many pinned tabs cost nothing until used. Closing a tab stops its `claude`, and what it started unless you choose to leave that running. Closing Deventry stops every tab's. See [Processes](../tabs/processes.md).
+Tabs you haven't sent a message to since launch don't start `claude`, even when you select one to read it, so many pinned tabs cost nothing until used. Closing a tab stops its `claude`, and what it started unless you choose to leave that running. Closing Deventry stops every tab's. See [Processes](../tabs/processes.md).
 
 ## What Deventry asks Claude Code for on its own
 

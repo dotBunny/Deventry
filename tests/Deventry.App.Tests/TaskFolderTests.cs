@@ -128,6 +128,7 @@ public class TaskFolderTests
         WriteTask(h, "3", "Run the tests");
         h.Services.State.Tabs = [new Core.Settings.TabState { Folder = h.WorkFolder, IsPinned = true, SessionId = "s1" }];
         h.Shell.Restore(null);
+        h.Start();
         var tab = h.Shell.AllTabs.Single();
         h.Shell.SelectedTab = tab;
 

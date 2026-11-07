@@ -32,7 +32,7 @@ A tab's row is colored by what Claude is doing in it, with faint washes behind i
 | A pale green wash, fading out to the right | Finished while you were in another tab. It stays until you open the tab, through a restart too. |
 | A pale red wash, fading out to the right | An error. The row's second line says what went wrong. |
 | The name shimmering | Starting. |
-| Nothing | Idle, not started yet, or not running. A restored tab doesn't start its `claude` until you first select it. |
+| Nothing | Idle, not started yet, or not running. A restored tab doesn't start its `claude` until you send it a message, and one left idle may have stopped it ([Closing and restoring](closing-and-restoring.md#settings)). |
 
 With reduced motion on, the highlight holds still and the orange doesn't blink. A subagent's row under its tab is colored the same way by what the subagent is doing.
 
@@ -44,7 +44,7 @@ Settings → Appearance → **Tab activity** → **Status dots** leaves the row 
 
 | Icon | Meaning |
 |---|---|
-| `○` | Not started yet, or not running. A restored tab doesn't start its `claude` until you first select it. |
+| `○` | Not started yet, or not running. A restored tab doesn't start its `claude` until you send it a message, and one left idle may have stopped it ([Closing and restoring](closing-and-restoring.md#settings)). |
 | `●` (pulsing) | Starting, or Claude is working. |
 | `!` (highlighted) | Needs your input: a permission prompt, a question or a plan is waiting. |
 | `•` | Finished while you were in another tab. It clears when you look at the tab. |

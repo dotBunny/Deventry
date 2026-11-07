@@ -48,9 +48,9 @@ For each tab Deventry restores:
 
 Tabs come back in the same order and resume their sessions, with the earlier conversation loaded so you can scroll back.
 
-### Tabs that start when selected
+### Tabs that start with your first message
 
-A restored tab doesn't start its `claude` until you first select it or send it a message, so launching with many tabs is quick and tabs you don't touch use no resources. Until then its row shows `○`. The earlier conversation is read back a line at a time, off the main thread, so a long session doesn't hold the window up.
+A restored tab doesn't start its `claude` until you send it a message. Selecting it shows its conversation, ready to read and scroll, without starting anything, so launching with many tabs is quick, looking through them is too, and tabs you only read use no resources. Until it starts its row shows `○`. The earlier conversation is read back a line at a time, off the main thread, so a long session doesn't hold the window up.
 
 ## A folder that's gone
 
@@ -76,6 +76,7 @@ Closing the Deventry window interrupts running turns and stops each tab's `claud
 ## Settings
 
 - Settings → General → **Also restore unpinned tabs when Deventry starts**: see above.
+- Settings → General → **Unload idle tabs to save memory** (off by default): a tab left idle for **After being idle for (minutes)**, 60 by default, stops its `claude`, giving back the few hundred MB it holds. The tab stays as it is, with its conversation, and your next message starts it again on the same session. A tab isn't unloaded while Claude works or waits for you, while tasks or subagents run in it, while a program Claude started in it is still running, such as a dev server, or while it's connected to the Claude app.
 - Settings → General → **Confirm before closing a tab where Claude is working**: on by default.
 
 ## Shortcuts
