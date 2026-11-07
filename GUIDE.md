@@ -265,7 +265,7 @@ One page, out of the sidebar and linked from both footers and the privacy chapte
 | Page | Covers | From |
 |---|---|---|
 | Joulene on the composer | What she does and why, poking and carrying her, her hats, her settings, **Hide Joulene**. | [Joulene on the composer](DESIGN.md#joulene-on-the-composer) |
-| Games with Joulene | Starting a game, the four games and their levels, the score. | [Games with Joulene](DESIGN.md#games-with-joulene) |
+| Games with Joulene | Starting a game, the five games and their levels, the score, Pipeline's flow waiting while you're away. | [Games with Joulene](DESIGN.md#games-with-joulene) |
 
 ### Settings (`settings/`)
 

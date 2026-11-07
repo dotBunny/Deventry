@@ -61,7 +61,7 @@ For the selected tab:
 - **Stash the message**, while something's typed in the composer
 - **Show changed files**, **Show the agent map**, **Show tasks**, **Show processes**, **Show MCP servers** (when the session has some) and **Show scratch pad**
 - **Open project files**, which opens the project's Files tab. See [Opening project files](../project-files/opening-project-files.md).
-- **Play tic-tac-toe with Joulene**, **Play Connect Four with Joulene**, **Play hangman with Joulene** and **Play Minesweeper with Joulene**, unless the games are turned off. See [Games with Joulene](../joulene/games-with-joulene.md).
+- **Play tic-tac-toe with Joulene**, **Play Four in a Row with Joulene**, **Play hangman with Joulene**, **Play Minesweeper with Joulene** and **Play Pipeline with Joulene**, unless the games are turned off. See [Games with Joulene](../joulene/games-with-joulene.md).
 - **Tab settings…**, **Duplicate tab** and **Export conversation…**
 - **Collapse tab** (or **Expand tab**), while the tab has rows under it. See [Collapsing a tab](the-sidebar.md#collapsing-a-tab).
 - **New tab in a worktree**, for a folder in a git repository

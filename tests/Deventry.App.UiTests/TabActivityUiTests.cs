@@ -30,32 +30,31 @@ public class TabActivityUiTests
         var agentRow = window.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("agentrow"));
 
         AssertFills(row);
-        // A subagent's starts at its icon, a little out from its row's content, and fills the rest.
-        AssertFills(agentRow, left: agentRow.Padding.Left - 2);
+        AssertFills(agentRow);
 
         h.Services.Settings.Appearance.Density = Density.Compact;
         h.Services.SaveSettings();
         UiText.Settle(window);
         AssertFills(row);
-        AssertFills(agentRow, left: agentRow.Padding.Left - 2);
+        AssertFills(agentRow);
 
         h.Services.Settings.Appearance.Style = AppStyle.Claude;
         h.Services.SaveSettings();
         UiText.Settle(window);
         AssertFills(row);
-        AssertFills(agentRow, left: agentRow.Padding.Left - 2);
+        AssertFills(agentRow);
         window.Close();
     }
 
-    /// <summary>The row's wash covers it as its hover does: its whole height and width from <paramref name="left"/>, with its corners.</summary>
-    private static void AssertFills(Button row, double left = 0)
+    /// <summary>The row's wash covers it as its hover does: its whole width and height, with its corners.</summary>
+    private static void AssertFills(Button row)
     {
         var wash = row.GetVisualDescendants().OfType<WorkBar>().Single();
         Assert.True(wash.IsEffectivelyVisible);
         var at = wash.TranslatePoint(default, row)!.Value;
-        Assert.Equal(left, at.X, precision: 3);
+        Assert.Equal(0, at.X, precision: 3);
         Assert.Equal(0, at.Y, precision: 3);
-        Assert.Equal(row.Bounds.Width - left, wash.Bounds.Width, precision: 3);
+        Assert.Equal(row.Bounds.Width, wash.Bounds.Width, precision: 3);
         Assert.Equal(row.Bounds.Height, wash.Bounds.Height, precision: 3);
         Assert.Equal(row.CornerRadius, wash.CornerRadius);
     }

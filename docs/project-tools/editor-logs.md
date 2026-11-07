@@ -81,7 +81,7 @@ When Unity is started with `-timestamps`, it puts its time and the thread that w
 
 ## Closing it
 
-Click **×** on the row, **Close** over the log, or press `Ctrl/Cmd+W` while it has the focus.
+Click **×** on the row, **Close** over the log, or press `Ctrl/Cmd+W` while it has the focus. Closing the tab it's under closes it too.
 
 - While the editor is running, the row goes until the editor next starts, when it comes back with the new log.
 - Once the editor has closed, the row goes for good. The next time the editor starts, it gets a new row.
@@ -96,7 +96,7 @@ A log is under one tab, even when several tabs have the project:
 2. Otherwise the tab whose **Launch editor** (or **Open in Unity**, **Open in Godot**) started the editor.
 3. Otherwise the project's first tab in the sidebar, so a thread's log is under the thread rather than its sub-threads.
 
-If you close that tab, the log moves to the next of the project's tabs, keeping its lines. Once no tab has the project, it goes.
+If you close that tab, the log closes with it, as it does when you close it yourself: while the editor is running, it stays closed until the editor next starts, and then its new log comes back under one of the project's tabs. If the tab stays open but no longer has the project, as when Claude moves it into a worktree, the log moves to the next of the project's tabs, keeping its lines. Once no tab has the project, it goes.
 
 When a tab is [collapsed](../tabs/the-sidebar.md#collapsing-a-tab), its logs fold away with its other rows. The collapsed row's badge shows a red ✕ when a log has crashed, or has errors you haven't looked at yet.
 

@@ -283,10 +283,6 @@
       <Setter Property="Border.CornerRadius" Value="{Binding $parent[Button].CornerRadius}" />
       <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
-    <!-- A subagent's row: the wash starts at its icon, under its tab's name, rather than out in the row's padding -->
-    <Style Selector="controls|WorkBar.agentglow, Border.agentglow">
-      <Setter Property="Margin" Value="{Binding $parent[Button].Padding, Converter={x:Static vm:Converters.OutsetFromIcon}}" />
-    </Style>
     <Style Selector=":is(Window).reducemotion controls|WorkBar">
       <Setter Property="IsStill" Value="True" />
     </Style>
@@ -842,6 +838,11 @@
           <!-- Games with Joulene (DESIGN.md §18): the user's marks and pieces blue, hers in her rose. -->
           <SolidColorBrush x:Key="GameYouBrush" Color="#2A78D6" />
           <SolidColorBrush x:Key="GameJouleneBrush" Color="#A85E74" />
+          <!-- A game's board: its slots sunk into it, its keys and shut squares raised off it, each lighter under the pointer. -->
+          <SolidColorBrush x:Key="GameSlotBrush" Color="#E9EBEE" />
+          <SolidColorBrush x:Key="GameSlotHotBrush" Color="#DFE1E5" />
+          <SolidColorBrush x:Key="GameTileBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="GameTileHotBrush" Color="#F1F3F6" />
           <SolidColorBrush x:Key="AccentStatusBrush" Color="#3574F0" />
           <SolidColorBrush x:Key="CautionBorderBrush" Color="#D9A400" />
           <SolidColorBrush x:Key="CautionBackgroundBrush" Color="#FFF6D6" />
@@ -974,6 +975,10 @@
           <SolidColorBrush x:Key="MarkStarBrush" Color="#F5B83D" />
           <SolidColorBrush x:Key="GameYouBrush" Color="#5B9BD5" />
           <SolidColorBrush x:Key="GameJouleneBrush" Color="#E29AAE" />
+          <SolidColorBrush x:Key="GameSlotBrush" Color="#26282B" />
+          <SolidColorBrush x:Key="GameSlotHotBrush" Color="#303236" />
+          <SolidColorBrush x:Key="GameTileBrush" Color="#393B40" />
+          <SolidColorBrush x:Key="GameTileHotBrush" Color="#45474D" />
           <SolidColorBrush x:Key="AccentStatusBrush" Color="#548AF7" />
           <SolidColorBrush x:Key="CautionBorderBrush" Color="#8A6D00" />
           <SolidColorBrush x:Key="CautionBackgroundBrush" Color="#2B2610" />

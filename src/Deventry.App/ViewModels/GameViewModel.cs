@@ -84,14 +84,18 @@ public abstract partial class GameViewModel : ObservableObject, IDisposable
     public partial string Status { get; protected set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOver), nameof(NewRoundText))]
+    [NotifyPropertyChangedFor(nameof(IsOver), nameof(NewRoundText), nameof(IsYourTurn))]
     public partial GameOutcome Outcome { get; protected set; }
 
     public bool IsOver => Outcome != GameOutcome.Playing;
 
     /// <summary>Joulene is thinking about her move: the user's moves wait.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsYourTurn))]
     public partial bool IsHerTurn { get; private set; }
+
+    /// <summary>The user can move: it isn't her turn, and the round goes on. The board shows where a move would go.</summary>
+    public bool IsYourTurn => !IsHerTurn && !IsOver;
 
     /// <summary><b>Play again</b> once a round is over; <b>New game</b> during one, which drops it uncounted.</summary>
     public string NewRoundText => IsOver ? "Play again" : "New game";
@@ -141,6 +145,25 @@ public abstract partial class GameViewModel : ObservableObject, IDisposable
 
     /// <summary>Whether a round can end in a draw, so the score counts them.</summary>
     protected virtual bool HasDraws => true;
+
+    /// <summary>
+    /// The user can see the board: the Games window shows and Deventry is in front. A game that runs by the clock waits
+    /// otherwise (DESIGN.md §18, "Games with Joulene").
+    /// </summary>
+    public bool IsWatched { get; private set; }
+
+    public void SetWatched(bool watched)
+    {
+        if (IsWatched != watched)
+        {
+            IsWatched = watched;
+            OnWatchedChanged();
+        }
+    }
+
+    protected virtual void OnWatchedChanged()
+    {
+    }
 
     /// <summary>Starts a round: the first, <b>Play again</b>, or <b>New game</b> part-way through one, which isn't counted.</summary>
     [RelayCommand]
@@ -199,7 +222,15 @@ public abstract partial class GameViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _herTurn.Dispose();
+        Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            _herTurn.Dispose();
+        }
     }
 }

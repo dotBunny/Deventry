@@ -66,9 +66,10 @@
             <Button.Flyout>
               <MenuFlyout Placement="TopEdgeAlignedLeft">
                 <MenuItem Header="Tic-tac-toe" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.TicTacToe}" />
-                <MenuItem Header="Connect Four" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.ConnectFour}" />
+                <MenuItem Header="Four in a Row" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.FourInARow}" />
                 <MenuItem Header="Hangman" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.Hangman}" />
                 <MenuItem Header="Minesweeper" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.Minesweeper}" />
+                <MenuItem Header="Pipeline" Command="{Binding PlayGameCommand}" CommandParameter="{x:Static games:GameKind.Pipeline}" />
               </MenuFlyout>
             </Button.Flyout>
           </Button>

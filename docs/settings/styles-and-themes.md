@@ -83,7 +83,7 @@ Four switches decide what else the row carries: three in Settings → Conversati
 - **Show task progress** shows how many of Claude's tasks are done, such as `3/7`, at the right of the second line, and the task Claude is working on in place of the model while it works ([The Tasks page](../plans/the-tasks-page.md)).
 - **Show running subagents** shows how many of the tab's subagents are running, such as **2 running**, at the right of the second line, during the turn and after it. Click it to see them. While it shows, the count of tasks still running after the turn leaves them out ([Subagents](../conversation/subagents.md#subagents-that-run-in-the-background)).
 
-All four are on by default.
+**Show running subagents** is off by default, and the other three on.
 
 ## Settings
 
@@ -101,7 +101,7 @@ All of these sync to your other machines when [settings sync](../history/setting
 | **Show context** | On | Settings → Conversation → Tab rows |
 | **Show the git branch** | On | Settings → Git → Tab rows |
 | **Show task progress** | On | Settings → Conversation → Tab rows |
-| **Show running subagents** | On | Settings → Conversation → Tab rows |
+| **Show running subagents** | Off | Settings → Conversation → Tab rows |
 
 ## See also
 

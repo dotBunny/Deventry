@@ -237,7 +237,7 @@ public class EditorLogsTests
     }
 
     [Fact]
-    public async Task The_log_goes_under_the_tab_that_launched_the_editor_and_moves_to_another_when_that_tab_closes()
+    public async Task The_log_goes_under_the_tab_that_launched_the_editor_and_closes_with_it()
     {
         var (f, first) = await OpenAsync();
         await using var _f = f;
@@ -252,16 +252,37 @@ public class EditorLogsTests
 
         Assert.Empty(Logs(first));
         var log = Assert.Single(Logs(second));
+        log.OpenCommand.Execute(null);
 
         await h.Shell.CloseTabCommand.ExecuteAsync(second);
 
-        // It keeps its lines under the other tab of the project.
-        Assert.Same(log, Assert.Single(Logs(first)));
-        Assert.Contains("LogInit: Display: Starting", log.Lines());
-        Assert.Contains(log, h.Shell.OpenTabs);
-
-        await h.Shell.CloseTabCommand.ExecuteAsync(first);
+        // It doesn't go to the project's other tab, which takes its place on screen.
+        Assert.Empty(Logs(first));
         Assert.DoesNotContain(log, h.Shell.OpenTabs);
+        Assert.Same(first, h.Shell.Selected);
+        // It stays away while the editor runs, as one ×'d away does.
+        Fixture.AppendLog(f.MainLog, "LogTemp: Display: More");
+        f.Look();
+        Assert.Empty(Logs(first));
+
+        // The editor starts again: its new log is under the project's tab.
+        f.Processes.End(4412);
+        f.Look();
+        f.StartEditor(5120);
+        File.Delete(f.MainLog);
+        f.WriteLog(f.MainLog, "LogInit: Display: Again");
+        f.Look();
+        var again = Assert.Single(Logs(first));
+        Assert.Contains("LogInit: Display: Again", again.Lines());
+
+        // Ended, it closes with its tab all the same.
+        f.Processes.End(5120);
+        f.Look();
+        var third = await AddTabAsync(f, 1);
+        Assert.Same(again, Assert.Single(Logs(first)));
+        await h.Shell.CloseTabCommand.ExecuteAsync(first);
+        Assert.Empty(Logs(third));
+        Assert.DoesNotContain(again, h.Shell.OpenTabs);
     }
 
     [Fact]

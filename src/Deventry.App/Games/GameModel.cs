@@ -4,14 +4,15 @@ namespace Deventry.App.Games;
 public enum GameKind
 {
     TicTacToe,
-    ConnectFour,
+    FourInARow,
     Hangman,
     Minesweeper,
+    Pipeline,
 }
 
 /// <summary>
-/// How well Joulene plays, or in Minesweeper, how many mines she hides. Tic-tac-toe calls the top level Unbeatable, the
-/// others Hard.
+/// How well Joulene plays, or in Minesweeper how many mines she hides, and in Pipeline how far and how fast her flow
+/// goes. Tic-tac-toe calls the top level Unbeatable, the others Hard.
 /// </summary>
 public enum GameLevel
 {

@@ -590,9 +590,9 @@ public sealed class AppearanceSettings
 
     /// <summary>
     /// How many of a tab's subagents are running, on its row, the turn over or not; while it shows, the row's count of
-    /// running tasks leaves them out (DESIGN.md §4, "Sidebar").
+    /// running tasks leaves them out (DESIGN.md §4, "Sidebar"). Off by default.
     /// </summary>
-    public bool ShowRunningSubagentsOnTabs { get; set; } = true;
+    public bool ShowRunningSubagentsOnTabs { get; set; }
 
     /// <summary>
     /// Joulene, the app's pixel mascot, standing on the composer and doing little things now and then (DESIGN.md §5,
@@ -610,8 +610,8 @@ public sealed class AppearanceSettings
     public bool JouleneTips { get; set; } = true;
 
     /// <summary>
-    /// Tic-tac-toe, Connect Four, hangman and Minesweeper against Joulene, in the Games tool window (DESIGN.md §18, "Games
-    /// with Joulene"). On by default.
+    /// Tic-tac-toe, Four in a Row, hangman, Minesweeper and Pipeline against Joulene, in the Games tool window (DESIGN.md
+    /// §18, "Games with Joulene"). On by default.
     /// </summary>
     public bool GamesWithJoulene { get; set; } = true;
 

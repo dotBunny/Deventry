@@ -26,12 +26,6 @@ public static class Converters
     /// </summary>
     public static readonly IValueConverter Outset = new FuncValueConverter<Thickness, Thickness>(padding => new Thickness(-padding.Left, -padding.Top, -padding.Right, -padding.Bottom));
 
-    /// <summary>
-    /// As <see cref="Outset"/>, but at the left only just out from the row's content: a subagent's row's wash starts at
-    /// its icon, under its tab's name.
-    /// </summary>
-    public static readonly IValueConverter OutsetFromIcon = new FuncValueConverter<Thickness, Thickness>(padding => new Thickness(-2, -padding.Top, -padding.Right, -padding.Bottom));
-
     /// <summary>Marks a process that left the tab's tree (DESIGN.md §4).</summary>
     public static readonly IValueConverter DetachedText = new FuncValueConverter<bool, string>(detached => detached ? "· detached" : "");
 

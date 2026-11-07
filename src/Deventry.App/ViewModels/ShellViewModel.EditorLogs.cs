@@ -8,7 +8,8 @@ namespace Deventry.App.ViewModels;
 /// Editor logs (DESIGN.md §18, "Editor logs"): while one of a project's engine processes runs, its log is a row under one
 /// of the project's tabs, and a tab of the panes without a composer, as a run's log is. The log goes under the tab whose
 /// own process started it (Claude running a commandlet), else the tab whose launch started it, else the first of the
-/// project's tabs in the sidebar; it stays there while that tab has the project, and moves to the next when it closes.
+/// project's tabs in the sidebar; it stays there while that tab has the project, moves to the next when it no longer
+/// does, and closes with it.
 /// Each file is one log for the whole app, read by <see cref="EditorLogService"/>. A log whose processes move to another
 /// file, as Unity's editor does once it has the project open, stays as it was, saying where, until they end; the other
 /// file is a log of its own under the same tab.
@@ -312,12 +313,30 @@ public sealed partial class ShellViewModel : IEditorLogHost
 
     void IEditorLogHost.DismissLog(EditorLogViewModel log)
     {
+        Dismiss(log);
+        PlaceEditorLogs();
+    }
+
+    /// <summary>
+    /// A tab closing takes its logs with it, as their × would, rather than handing them to another of the project's tabs
+    /// (DESIGN.md §18, "Editor logs", "Which tab").
+    /// </summary>
+    private void CloseEditorLogsOf(TabViewModel tab)
+    {
+        foreach (var log in tab.ProjectTools.Logs.ToArray())
+        {
+            Dismiss(log);
+        }
+    }
+
+    /// <summary>One that has ended is gone; one still being written stays away until new processes write its file.</summary>
+    private void Dismiss(EditorLogViewModel log)
+    {
         if (!log.IsRunning)
         {
             ForgetLog(log);
             return;
         }
         log.IsDismissed = true;
-        PlaceEditorLogs();
     }
 }

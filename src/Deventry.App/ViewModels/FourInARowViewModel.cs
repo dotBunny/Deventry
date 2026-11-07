@@ -4,28 +4,36 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Deventry.App.ViewModels;
 
-/// <summary>Connect Four against Joulene (DESIGN.md §18, "Games with Joulene"): the user's pieces are blue, hers rose.</summary>
-public sealed class ConnectFourViewModel : GameViewModel
+/// <summary>Four in a Row against Joulene (DESIGN.md §18, "Games with Joulene"): the user's pieces are blue, hers rose.</summary>
+public sealed class FourInARowViewModel : GameViewModel
 {
-    private ConnectFour _board = new();
+    private FourInARow _board = new();
 
-    public ConnectFourViewModel(IGameHost host) : base(host, GameKind.ConnectFour)
+    public FourInARowViewModel(IGameHost host) : base(host, GameKind.FourInARow)
     {
-        Columns = [.. Enumerable.Range(0, ConnectFour.Columns).Select(c => new ConnectFourColumn(this, c))];
+        Columns = [.. Enumerable.Range(0, FourInARow.Columns).Select(c => new FourInARowColumn(this, c))];
+        // A column under the pointer shows where the user's piece would land only while they can drop one.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(IsYourTurn))
+            {
+                Refresh();
+            }
+        };
         NewRound();
     }
 
-    public override string Title => "Connect Four";
+    public override string Title => "Four in a Row";
 
     public override IReadOnlyList<GameLevelChoice> Levels { get; } =
         [new(GameLevel.Easy, "Easy"), new(GameLevel.Normal, "Normal"), new(GameLevel.Hard, "Hard")];
 
     /// <summary>The seven columns, left to right.</summary>
-    public IReadOnlyList<ConnectFourColumn> Columns { get; }
+    public IReadOnlyList<FourInARowColumn> Columns { get; }
 
     protected override void StartRound(bool youStart)
     {
-        _board = new ConnectFour();
+        _board = new FourInARow();
         Refresh();
         if (youStart)
         {
@@ -66,7 +74,7 @@ public sealed class ConnectFourViewModel : GameViewModel
     private void HerMove()
     {
         var threat = _board.WinningMove(Player.You);
-        var column = ConnectFourOpponent.Choose(_board, CurrentLevel, Host.Random);
+        var column = FourInARowOpponent.Choose(_board, CurrentLevel, Host.Random);
         _board.Drop(column, Player.Joulene);
         Refresh();
         Host.Announce($"Joulene dropped a piece in column {column + 1}.");
@@ -104,53 +112,54 @@ public sealed class ConnectFourViewModel : GameViewModel
         var winning = _board.WinningCells;
         foreach (var column in Columns)
         {
-            column.Refresh(_board, winning);
+            column.Refresh(_board, winning, IsYourTurn);
         }
     }
 }
 
-/// <summary>A column of the Connect Four board: a click drops a piece in it.</summary>
-public sealed partial class ConnectFourColumn : ObservableObject
+/// <summary>A column of the Four in a Row board: a click drops a piece in it.</summary>
+public sealed partial class FourInARowColumn : ObservableObject
 {
-    private readonly ConnectFourViewModel _game;
+    private readonly FourInARowViewModel _game;
 
-    internal ConnectFourColumn(ConnectFourViewModel game, int index)
+    internal FourInARowColumn(FourInARowViewModel game, int index)
     {
         _game = game;
         Index = index;
-        Cells = [.. Enumerable.Range(0, ConnectFour.Rows).Select(_ => new ConnectFourCell())];
+        Cells = [.. Enumerable.Range(0, FourInARow.Rows).Select(_ => new FourInARowCell())];
     }
 
     public int Index { get; }
 
     /// <summary>Its cells from the top down, as they show.</summary>
-    public IReadOnlyList<ConnectFourCell> Cells { get; }
+    public IReadOnlyList<FourInARowCell> Cells { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Name))]
     public partial int Filled { get; private set; }
 
     /// <summary>"Column 3, 2 of 6 filled", for screen readers.</summary>
-    public string Name => Filled == ConnectFour.Rows ? $"Column {Index + 1}, full" : $"Column {Index + 1}, {Filled} of {ConnectFour.Rows} filled";
+    public string Name => Filled == FourInARow.Rows ? $"Column {Index + 1}, full" : $"Column {Index + 1}, {Filled} of {FourInARow.Rows} filled";
 
     [RelayCommand]
     private void Drop() => _game.Drop(Index);
 
-    internal void Refresh(ConnectFour board, IReadOnlyList<(int Column, int Row)> winning)
+    internal void Refresh(FourInARow board, IReadOnlyList<(int Column, int Row)> winning, bool yourTurn)
     {
         Filled = board.Height(Index);
-        for (var row = 0; row < ConnectFour.Rows; row++)
+        for (var row = 0; row < FourInARow.Rows; row++)
         {
-            var cell = Cells[ConnectFour.Rows - 1 - row];
+            var cell = Cells[FourInARow.Rows - 1 - row];
             cell.Owner = board.At(Index, row);
             cell.IsWinning = winning.Contains((Index, row));
             cell.IsLast = board.LastMove == (Index, row);
+            cell.IsDropSpot = yourTurn && row == Filled;
         }
     }
 }
 
-/// <summary>A place for a piece on the Connect Four board.</summary>
-public sealed partial class ConnectFourCell : ObservableObject
+/// <summary>A place for a piece on the Four in a Row board.</summary>
+public sealed partial class FourInARowCell : ObservableObject
 {
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsYours), nameof(IsHers))]
@@ -160,9 +169,13 @@ public sealed partial class ConnectFourCell : ObservableObject
     [ObservableProperty]
     public partial bool IsWinning { get; internal set; }
 
-    /// <summary>The piece dropped last.</summary>
+    /// <summary>The piece dropped last: it has a dot.</summary>
     [ObservableProperty]
     public partial bool IsLast { get; internal set; }
+
+    /// <summary>Where the user's piece would land in its column, which shows faintly while the column is under the pointer.</summary>
+    [ObservableProperty]
+    public partial bool IsDropSpot { get; internal set; }
 
     public bool IsYours => Owner == Player.You;
 

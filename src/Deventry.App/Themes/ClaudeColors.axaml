@@ -12,6 +12,11 @@
          (#F5F4ED) and selection (#E8E6DC), near-black text (#141413) and warm grey muted text. -->
     <ResourceDictionary x:Key="Light">
       <SolidColorBrush x:Key="FrameBrush" Color="#F0EEE6" />
+      <!-- A game's board (DESIGN.md §18): warm slots in it, white tiles off it -->
+      <SolidColorBrush x:Key="GameSlotBrush" Color="#EAE8DF" />
+      <SolidColorBrush x:Key="GameSlotHotBrush" Color="#E0DDD2" />
+      <SolidColorBrush x:Key="GameTileBrush" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="GameTileHotBrush" Color="#FAF9F5" />
       <SolidColorBrush x:Key="MutedTextBrush" Color="#73726C" />
       <SolidColorBrush x:Key="DividerBrush" Color="#261F1E1D" />
       <SolidColorBrush x:Key="CardBrush" Color="#FFFFFF" />
@@ -77,6 +82,10 @@
          (#1F1E1D), off-white text (#FAF9F5) and warm grey muted text. -->
     <ResourceDictionary x:Key="Dark">
       <SolidColorBrush x:Key="FrameBrush" Color="#1F1E1D" />
+      <SolidColorBrush x:Key="GameSlotBrush" Color="#2A2927" />
+      <SolidColorBrush x:Key="GameSlotHotBrush" Color="#34332F" />
+      <SolidColorBrush x:Key="GameTileBrush" Color="#3A3936" />
+      <SolidColorBrush x:Key="GameTileHotBrush" Color="#46443F" />
       <SolidColorBrush x:Key="ChangeModifiedBrush" Color="#D97757" />
       <SolidColorBrush x:Key="EditorCurrentLineBrush" Color="#0FFAF9F5" />
       <SolidColorBrush x:Key="EditorSelectionBrush" Color="#D97757" Opacity="0.3" />

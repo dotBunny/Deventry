@@ -1,6 +1,6 @@
 ﻿"No D. 5 misses left."
 "A programming word, 9 letters"
-"B _ _ _ _ _ _ _ _"
+"B"
 [button] Letter A: A
 [button] B, in the word: B
 [button] Letter C: C

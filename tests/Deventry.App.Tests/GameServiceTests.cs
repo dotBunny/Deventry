@@ -24,7 +24,7 @@ public class GameServiceTests
         var games = h.ToolWindow(ToolWindowKinds.Games);
         Assert.True(games.IsAvailable);
         Assert.True(h.Services.Games.IsChoosing);
-        Assert.Equal(["Tic-tac-toe", "Connect Four", "Hangman", "Minesweeper"], h.Services.Games.Choices.Select(c => c.Name));
+        Assert.Equal(["Tic-tac-toe", "Four in a Row", "Hangman", "Minesweeper", "Pipeline"], h.Services.Games.Choices.Select(c => c.Name));
         Assert.All(h.Services.Games.Choices, c => Assert.False(c.HasScore));
 
         tab.PlayGame(GameKind.TicTacToe);
@@ -83,6 +83,70 @@ public class GameServiceTests
         await TabTestHarness.Eventually(() => games.IsAvailable, "the icon back");
     }
 
+    /// <summary>
+    /// The board shows where the user's move would go only while it's theirs: an empty square's faint ✕, the place a piece
+    /// would land. The three in a row that win are struck through, end to end.
+    /// </summary>
+    [Fact]
+    public async Task Boards_show_where_a_move_would_go_only_on_the_users_turn_and_strike_through_a_win()
+    {
+        await using var h = new TabTestHarness();
+        h.Services.Random = new Random(2);
+        var tab = await h.OpenTabAsync();
+        h.Services.State.Games.Levels[nameof(GameKind.TicTacToe)] = nameof(GameLevel.Hard);
+        tab.PlayGame(GameKind.TicTacToe);
+        var game = (TicTacToeViewModel)h.Services.Games.Game!;
+        Assert.True(game.IsYourTurn);
+        Assert.All(game.Squares, s => Assert.True(s.CanPlay));
+        Assert.Equal((-1, -1), (game.StrikeFrom, game.StrikeTo));
+
+        game.Squares[0].PlayCommand.Execute(null);
+        Assert.False(game.IsYourTurn);
+        Assert.All(game.Squares, s => Assert.False(s.CanPlay));
+        h.Time.Advance(GameViewModel.LongestThought);
+        Assert.All(game.Squares, s => Assert.Equal(s.Owner == Player.None, s.CanPlay));
+
+        // Played out, the first square free each time: Unbeatable wins, and her three are struck through.
+        PlayOut(h, game);
+        Assert.Equal(GameOutcome.Lost, game.Outcome);
+        var line = game.Squares.Where(s => s.IsWinning).Select(s => s.Index).ToList();
+        Assert.Equal(3, line.Count);
+        Assert.Equal((line.Min(), line.Max()), (game.StrikeFrom, game.StrikeTo));
+        Assert.All(game.Squares, s => Assert.False(s.CanPlay));
+        game.NewRoundCommand.Execute(null);
+        h.Time.Advance(GameViewModel.LongestThought);
+        Assert.Equal((-1, -1), (game.StrikeFrom, game.StrikeTo));
+
+        // In Four in a Row, each column's lowest free place, while the user can drop a piece.
+        tab.PlayGame(GameKind.FourInARow);
+        var four = (FourInARowViewModel)h.Services.Games.Game!;
+        h.Time.Advance(GameViewModel.LongestThought);
+        Assert.True(four.IsYourTurn);
+        Assert.All(four.Columns, c => Assert.Equal(c.Cells[FourInARow.Rows - 1 - c.Filled], Assert.Single(c.Cells, cell => cell.IsDropSpot)));
+        four.Columns[3].DropCommand.Execute(null);
+        Assert.DoesNotContain(four.Columns.SelectMany(c => c.Cells), c => c.IsDropSpot);
+        h.Time.Advance(GameViewModel.LongestThought);
+        Assert.Equal(7, four.Columns.SelectMany(c => c.Cells).Count(c => c.IsDropSpot));
+    }
+
+    /// <summary>Four in a Row was called Connect Four: what was kept under that name carries over.</summary>
+    [Fact]
+    public async Task Four_in_a_row_keeps_the_score_and_level_connect_four_had()
+    {
+        await using var h = new TabTestHarness();
+        var tab = await h.OpenTabAsync();
+        h.Services.State.Games.Scores["ConnectFour"] = new GameScore { Wins = 5, Losses = 3, Draws = 1 };
+        h.Services.State.Games.Levels["ConnectFour"] = nameof(GameLevel.Hard);
+
+        Assert.Equal("You 5 · Joulene 3 · Draws 1", h.Services.Games.Choices.Single(c => c.Kind == GameKind.FourInARow).ScoreText);
+        tab.PlayGame(GameKind.FourInARow);
+        var game = Assert.IsType<FourInARowViewModel>(h.Services.Games.Game);
+        Assert.Equal(GameLevel.Hard, game.Level!.Level);
+        Assert.Equal("You 5 · Joulene 3 · Draws 1", game.ScoreText);
+        Assert.False(h.Services.State.Games.Scores.ContainsKey("ConnectFour"));
+        Assert.False(h.Services.State.Games.Levels.ContainsKey("ConnectFour"));
+    }
+
     [Fact]
     public async Task The_game_is_the_apps_so_every_tab_shows_the_same_one()
     {
@@ -92,7 +156,7 @@ public class GameServiceTests
         h.Shell.Restore(null);
         var (first, second) = (h.Shell.AllTabs.ElementAt(0), h.Shell.AllTabs.ElementAt(1));
 
-        second.PlayGame(GameKind.ConnectFour);
+        second.PlayGame(GameKind.FourInARow);
 
         // Its window shows the same game whichever tab has the focus.
         var games = h.ToolWindow(ToolWindowKinds.Games);
@@ -229,13 +293,13 @@ public class GameServiceTests
     }
 
     [Fact]
-    public async Task Connect_four_drops_by_column_number_and_she_answers()
+    public async Task Four_in_a_row_drops_by_column_number_and_she_answers()
     {
         await using var h = new TabTestHarness();
         h.Services.Random = new Random(2);
         var tab = await h.OpenTabAsync();
-        tab.PlayGame(GameKind.ConnectFour);
-        var game = (ConnectFourViewModel)h.Services.Games.Game!;
+        tab.PlayGame(GameKind.FourInARow);
+        var game = (FourInARowViewModel)h.Services.Games.Game!;
 
         Assert.True(game.Press('4'));
         Assert.False(game.Press('8'));
@@ -341,6 +405,168 @@ public class GameServiceTests
     }
 
     [Fact]
+    public async Task Pipeline_counts_down_to_her_tap_lays_the_next_piece_where_clicked_and_counts_a_spill_as_her_win()
+    {
+        await using var h = new TabTestHarness();
+        h.Services.Random = new Random(5);
+        var tab = await h.OpenTabAsync();
+        var announced = new List<string>();
+        h.Services.Games.Announcer = announced.Add;
+        tab.PlayGame(GameKind.Pipeline);
+        var game = Assert.IsType<PipelineViewModel>(h.Services.Games.Game);
+        Assert.Equal("Joulene's tap opens in 20 seconds. Lay pipe from it to her cup.", game.Status);
+        Assert.True(game.IsRunning);
+        Assert.Equal("Open now", game.HurryText);
+        Assert.False(game.Press('1'));
+        // Her tap and her cup say where they are, which way they open, and what they're for.
+        var tap = game.Squares[game.Board.Tap];
+        Assert.StartsWith($"Row {game.Board.Tap / Pipeline.Columns + 1}, column {game.Board.Tap % Pipeline.Columns + 1}, Joulene's tap, facing ", tap.Name);
+        Assert.Equal("Joulene's tap: the flow starts here, out of its spout", tap.Tip);
+        Assert.Equal(1, tap.Countdown);
+        var cup = game.Squares[game.Board.Cup];
+        Assert.EndsWith($", Joulene's cup, filled from the {game.Board.CupSide.ToString().ToLowerInvariant()}", cup.Name);
+        Assert.Equal("Joulene's cup: get the flow here, in by its open side", cup.Tip);
+        Assert.Null(game.Squares.First(s => s.Piece == PipeKind.Empty).Tip);
+
+        // A click lays the next piece; she hands out another.
+        var square = game.Squares.First(s => s.Piece == PipeKind.Empty);
+        var (next, after) = (game.Next[0].Piece, game.Next[1].Piece);
+        square.LayCommand.Execute(null);
+        Assert.Equal(next, square.Piece);
+        Assert.Equal(after, game.Next[0].Piece);
+        Assert.Equal($"{square.Name}. Next, {PipelineViewModel.Describe(after, PipeSide.Top)}.", announced.Last());
+        Assert.StartsWith("Next: ", game.NextName);
+
+        // Her countdown runs by the clock, and her tap's ring with it.
+        h.Time.Advance(TimeSpan.FromSeconds(5));
+        Assert.Equal("Joulene's tap opens in 15 seconds. Lay pipe from it to her cup.", game.Status);
+        Assert.Equal(0.75, tap.Countdown, 2);
+        h.Time.Advance(TimeSpan.FromSeconds(15));
+        Assert.Equal("Joulene opened her tap.", announced.Last());
+        Assert.True(game.Board.IsFlowing);
+        Assert.Equal("Faster", game.HurryText);
+        Assert.True(tap.HasFlow);
+
+        // Spilling short of her cup, wherever it spills, she wins.
+        h.Time.Advance(TimeSpan.FromSeconds(3) * 40);
+        Assert.Equal(GameOutcome.Lost, game.Outcome);
+        Assert.Matches(@"^It spilled after \d+ pipes?: Joulene wins\.$", game.Status);
+        Assert.False(game.IsRunning);
+        Assert.Null(game.HurryText);
+        Assert.Single(game.Squares, s => s.Spill is not null);
+        Assert.Equal("You 0 · Joulene 1", game.ScoreText);
+        Assert.Equal(1, h.Services.State.Games.Scores["Pipeline"].Losses);
+        // Over, the board takes no more.
+        var empty = game.Squares.First(s => s.Piece == PipeKind.Empty);
+        empty.LayCommand.Execute(null);
+        Assert.Equal(PipeKind.Empty, empty.Piece);
+    }
+
+    [Fact]
+    public async Task Pipeline_opens_her_tap_early_runs_faster_and_counts_the_flow_reaching_her_cup_as_a_win()
+    {
+        await using var h = new TabTestHarness();
+        var tab = await h.OpenTabAsync();
+        var announced = new List<string>();
+        h.Services.Games.Announcer = announced.Add;
+        tab.PlayGame(GameKind.Pipeline);
+        var game = (PipelineViewModel)h.Services.Games.Game!;
+        // Her tap at the second square of the second row, facing right, and her cup in the bottom right corner, open at
+        // its top: along the row, and down the last column into it.
+        var rules = Pipeline.RulesFor(GameLevel.Easy);
+        var board = new Pipeline(rules, new Random(0), tap: 9, tapSide: PipeSide.Right, cup: 63, cupSide: PipeSide.Top);
+        foreach (var square in new[] { 10, 11, 12, 13, 14 })
+        {
+            board.Set(square, PipeKind.Horizontal);
+        }
+        board.Set(15, PipeKind.BottomLeft);
+        foreach (var square in new[] { 23, 31, 39, 47, 55 })
+        {
+            board.Set(square, PipeKind.Vertical);
+        }
+        game.Use(board);
+        Assert.Equal("Joulene's tap opens in 25 seconds. Lay pipe from it to her cup.", game.Status);
+
+        game.HurryCommand.Execute(null);
+
+        Assert.Equal("Joulene opened her tap.", announced.Last());
+        Assert.Equal("The flow is through 0 pipes.", game.Status);
+        h.Time.Advance(rules.PerPipe * 2);
+        Assert.Equal("The flow is through 1 pipe.", game.Status);
+        Assert.Equal([new PipeFlow(PipeSide.Left, PipeSide.Right, 1)], game.Squares[10].Flows);
+        Assert.EndsWith(", straight, left to right, full", game.Squares[10].Name);
+        Assert.EndsWith(", straight, left to right, filling", game.Squares[11].Name);
+
+        game.HurryCommand.Execute(null);
+        Assert.Null(game.HurryText);
+        h.Time.Advance(rules.PerPipe * 2);
+
+        // Eight times as fast: along the row, down the column, and into her cup.
+        Assert.Equal(GameOutcome.Won, game.Outcome);
+        Assert.Equal("It reached her cup through 11 pipes: you win!", game.Status);
+        Assert.Equal("It reached her cup through 11 pipes: you win!", announced.Last());
+        Assert.EndsWith(", Joulene's cup, filled from the top, full", game.Squares[63].Name);
+        Assert.DoesNotContain(game.Squares, s => s.Spill is not null);
+        Assert.Equal(1, h.Services.State.Games.Scores["Pipeline"].Wins);
+    }
+
+    [Fact]
+    public async Task Pipeline_waits_while_its_window_is_hidden_or_Deventry_is_in_the_back()
+    {
+        await using var h = new TabTestHarness();
+        var tab = await h.OpenTabAsync();
+        tab.PlayGame(GameKind.Pipeline);
+        var game = (PipelineViewModel)h.Services.Games.Game!;
+        h.Time.Advance(TimeSpan.FromSeconds(5));
+        Assert.Equal(15, game.Board.SecondsToTap);
+
+        // Another window in the Games window's place: her countdown stops where it is.
+        h.ShowToolWindow(ToolWindowKinds.ScratchPad);
+        Assert.False(game.IsRunning);
+        Assert.Equal("Paused till you come back.", game.Status);
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        Assert.Equal(15, game.Board.SecondsToTap);
+        Assert.False(game.Board.IsFlowing);
+
+        h.ShowToolWindow(ToolWindowKinds.Games);
+        Assert.True(game.IsRunning);
+        Assert.Equal("Joulene's tap opens in 15 seconds. Lay pipe from it to her cup.", game.Status);
+
+        // Deventry in the back, the same; and a game started meanwhile waits too.
+        h.Services.Games.SetAppActive(false);
+        Assert.False(game.IsRunning);
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        Assert.Equal(15, game.Board.SecondsToTap);
+        h.Services.Games.Start(GameKind.TicTacToe);
+        tab.PlayGame(GameKind.Pipeline);
+        game = (PipelineViewModel)h.Services.Games.Game!;
+        Assert.False(game.IsRunning);
+        h.Services.Games.SetAppActive(true);
+        Assert.True(game.IsRunning);
+    }
+
+    [Fact]
+    public async Task Another_level_in_pipeline_is_a_new_board_with_her_cup_further_off_or_nearer()
+    {
+        await using var h = new TabTestHarness();
+        h.Services.Random = new Random(1);
+        var tab = await h.OpenTabAsync();
+        tab.PlayGame(GameKind.Pipeline);
+        var game = (PipelineViewModel)h.Services.Games.Game!;
+        game.Squares.First(s => s.Piece == PipeKind.Empty).LayCommand.Execute(null);
+
+        game.Level = game.Levels.Single(l => l.Level == GameLevel.Hard);
+
+        Assert.Equal("Joulene's tap opens in 15 seconds. Lay pipe from it to her cup.", game.Status);
+        Assert.InRange(game.Board.Distance, 10, 12);
+        Assert.Equal(4, game.Squares.Count(s => s.Piece == PipeKind.Rock));
+        Assert.Equal(Pipeline.Size - 6, game.Squares.Count(s => s.Piece == PipeKind.Empty));
+        Assert.EndsWith(", a rock", game.Squares.First(s => s.Piece == PipeKind.Rock).Name);
+        // The round dropped wasn't counted.
+        Assert.False(h.Services.State.Games.Scores.ContainsKey("Pipeline"));
+    }
+
+    [Fact]
     public async Task While_tabs_wait_on_the_user_a_line_over_the_board_says_where_with_Go_there()
     {
         await using var h = new TabTestHarness();
@@ -401,8 +627,13 @@ public class GameServiceTests
     {
         await using var h = new TabTestHarness();
         var tab = await h.OpenTabAsync();
-        string[] labels = ["Play tic-tac-toe with Joulene", "Play Connect Four with Joulene", "Play hangman with Joulene", "Play Minesweeper with Joulene"];
-        foreach (var (label, type) in labels.Zip(new[] { typeof(TicTacToeViewModel), typeof(ConnectFourViewModel), typeof(HangmanViewModel), typeof(MinesweeperViewModel) }))
+        string[] labels =
+        [
+            "Play tic-tac-toe with Joulene", "Play Four in a Row with Joulene", "Play hangman with Joulene", "Play Minesweeper with Joulene",
+            "Play Pipeline with Joulene",
+        ];
+        Type[] games = [typeof(TicTacToeViewModel), typeof(FourInARowViewModel), typeof(HangmanViewModel), typeof(MinesweeperViewModel), typeof(PipelineViewModel)];
+        foreach (var (label, type) in labels.Zip(games))
         {
             await h.Shell.PaletteEntries().Single(e => e.Label == label).Run();
             Assert.IsType(type, h.Services.Games.Game);
