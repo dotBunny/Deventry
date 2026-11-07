@@ -1689,7 +1689,9 @@ Changed files shows everything since the session started. The **Modified files**
 
 - Each tab's `claude` holds a few hundred MB while it runs, idle or not. Settings → General → **Unload idle tabs to save memory** (off by default) stops the `claude` of a tab left idle for **After being idle for (minutes)** (60 by default), as long as nothing in it would notice: no turn, no prompt waiting, no running tasks or subagents, no process of its own busy, and no connection to the Claude app.
 - Nothing about the tab changes: its row, conversation, draft and marks stay, and a tab Claude finished in unseen keeps its wash. Like a restored tab ("Starting fast"), it starts again on the same session with its next message.
-- The processes Claude started are left running, as closing a tab can leave them.
+- A tab with a process Claude started still running, such as a dev server, stays loaded however idle it is, since once its `claude` is gone the tab could no longer list it or stop it as it closes ([§4](#4-tabs--sessions), "Cleanup"). Its MCP servers don't count: Claude Code stops them as it exits. Looking for them scans the processes as the close confirmation does, off the UI thread, and only for a tab idle long enough.
+- A message sent as a tab unloads waits for its `claude` to stop, then starts a new one. Like a restored tab's first message, it looks at the session library first ([One machine at a time](#session-library-sync-across-machines)), since another machine may have carried the session on while the tab sat unloaded.
+- **How it's built.** `ShellViewModel.Unload.cs` looks once a minute, reading the setting each time; `TabViewModel.Unload.cs` decides (`CanUnload`) and stops the tab's `claude` without interrupting anything (`UnloadAsync`), and a start waits for an unload under way.
 
 ### Starting at login
 
@@ -1886,7 +1888,7 @@ Deventry can host the Claude Code session that works on Deventry's own source. W
   - Every open tab, pinned or not, in order, with its session, name, overrides, whether it syncs, kept suffixes, token stats and reviewed files.
   - The message typed in each tab, with its one-off suffixes and attached images.
   - The selected tab, and the window's position and size.
-  - Tabs whose Claude Code was running start again straight away and resume their sessions. The others start when selected, as on launch.
+  - Tabs whose Claude Code was running start again straight away and resume their sessions. The others start with their first message, as on launch.
   - A tab that was in a turn carries it on. The restart stops its Claude Code without interrupting the turn, so the transcript ends in it, and the tab starts again with `CLAUDE_CODE_RESUME_INTERRUPTED_TURN=1`: Claude Code re-runs the turn by itself, and the conversation says *"Carrying on with the turn the restart cut off."* (the re-run's messages carry `resume_reason`, which by 2.1.300 also marks a turn Claude Code goes on with from its tool calls or a permission prompt rather than running again; the note fits both). Only once, and only within 10 minutes (`CLAUDE_CODE_RESUME_INTERRUPTED_TURN_MAX_AGE_MS`, as long as a snapshot lasts), so a restart taken back a day later after an update doesn't re-run a stale prompt. This is the one time Claude Code works without being asked: only for a restart Deventry made.
   - Processes the tabs started are stopped, as when Deventry closes ([Process monitor](#process-monitor)).
 - **The handover:**

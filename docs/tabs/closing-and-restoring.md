@@ -76,7 +76,7 @@ Closing the Deventry window interrupts running turns and stops each tab's `claud
 ## Settings
 
 - Settings → General → **Also restore unpinned tabs when Deventry starts**: see above.
-- Settings → General → **Unload idle tabs to save memory** (off by default): a tab left idle for **After being idle for (minutes)**, 60 by default, stops its `claude`, giving back the few hundred MB it holds. The tab stays as it is, with its conversation, and your next message starts it again on the same session. A tab isn't unloaded while Claude works or waits for you, while tasks or subagents run in it, or while it's connected to the Claude app.
+- Settings → General → **Unload idle tabs to save memory** (off by default): a tab left idle for **After being idle for (minutes)**, 60 by default, stops its `claude`, giving back the few hundred MB it holds. The tab stays as it is, with its conversation, and your next message starts it again on the same session. A tab isn't unloaded while Claude works or waits for you, while tasks or subagents run in it, while a program Claude started in it is still running, such as a dev server, or while it's connected to the Claude app.
 - Settings → General → **Confirm before closing a tab where Claude is working**: on by default.
 
 ## Shortcuts

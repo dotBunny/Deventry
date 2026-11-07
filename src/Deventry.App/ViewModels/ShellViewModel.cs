@@ -359,7 +359,8 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
             {
                 tab.MarkFolderMissing();
             }
-            // Before the panes show it: showing a tab starts it, and the start reads this.
+            // Before anything starts it, the panes showing a tab connected to the Claude app or the running tabs starting
+            // below: the start reads this.
             if (snapshot?.InterruptedTabIds.Contains(tab.Id) == true)
             {
                 tab.CarryOnInterruptedTurn();

@@ -69,8 +69,8 @@ public sealed record InfoRow(string Label, string Value, bool CanCopy = false);
 
 /// <summary>A row of the token breakdown popover.</summary>
 /// <summary>
-/// One tab: one Claude Code session in a working folder (DESIGN.md §4). Starts its process lazily, when first selected
-/// or sent a message.
+/// One tab: one Claude Code session in a working folder (DESIGN.md §4). Starts its process lazily, with its first
+/// message (DESIGN.md §9, "Starting fast").
 /// </summary>
 public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDisposable
 {
@@ -498,8 +498,8 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
     }
 
     /// <summary>
-    /// On screen, in a pane (DESIGN.md §18, "Split panes"): its session starts, its working line runs and what it shows
-    /// stays fresh, and it isn't unread. The selected tab, or each of the tabs side by side.
+    /// On screen, in a pane (DESIGN.md §18, "Split panes"): its earlier conversation is read, its working line runs and
+    /// what it shows stays fresh, and it isn't unread. The selected tab, or each of the tabs side by side.
     /// </summary>
     [ObservableProperty]
     public partial bool IsShown { get; set; }

@@ -24,7 +24,7 @@ public sealed partial class GeneralPage : SettingsPage, IDisposable
                 "Pinned tabs always come back.", keywords: ["reopen", "session restore"]),
             Setting("sessions.unloadIdleTabs", "Unload idle tabs to save memory", s => s.Sessions.UnloadIdleTabs, (s, v) => s.Sessions.UnloadIdleTabs = v,
                 "A tab left idle stops its Claude Code. Its conversation stays, and your next message starts it again where it was.",
-                "A tab isn't unloaded while Claude works or waits for you, while tasks or subagents run in it, or while it's connected to the Claude app.",
+                "A tab isn't unloaded while Claude works or waits for you, while tasks, subagents or programs Claude started run in it, or while it's connected to the Claude app.",
                 ["memory", "ram", "sleep", "suspend", "idle", "unload"]),
             Setting("sessions.unloadIdleTabsAfterMinutes", "After being idle for (minutes)", s => s.Sessions.UnloadIdleTabsAfterMinutes, (s, v) => s.Sessions.UnloadIdleTabsAfterMinutes = v,
                 keywords: ["memory", "idle", "unload"]),
