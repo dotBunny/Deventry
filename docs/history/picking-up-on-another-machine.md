@@ -35,6 +35,8 @@ Choose **Continue anyway**, or cancel, push or pull the code to get it in step, 
 
 A tab that syncs keeps a small claim on its session in the library, refreshed every minute, so two machines don't write the same session at once. A claim that hasn't been refreshed for 10 minutes counts as stale.
 
+So does a claim Deventry left on this machine when it crashed or was ended: nothing has the session open, so opening it from History carries it on here without asking, and a tab brought back at launch starts as usual.
+
 If you open a session from History that another machine is actively using, Deventry asks *"…" is open on DESKTOP-01*, and offers:
 
 - **Open a copy**, which starts a new session that begins as a copy. Both go their own way.

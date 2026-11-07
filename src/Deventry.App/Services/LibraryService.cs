@@ -88,7 +88,7 @@ public sealed class LibraryService : IDisposable
         _services = services;
         _logger = services.Loggers.CreateLogger<LibraryService>();
         Library = new SessionLibrary(LibraryFolder, services.Time);
-        Leases = new LeaseManager(MachineName, services.Time);
+        Leases = new LeaseManager(MachineName, services.MachineId, services.Time);
         Leases.LeaseLost += (sessionId, machine) => services.Dispatcher.Post(() => LeaseLost?.Invoke(sessionId, machine));
         // Pick up settings changed on other machines.
         _syncTimer = services.Time.CreateTimer(_ => services.Dispatcher.Post(() => _ = SyncSettingsAsync()), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));

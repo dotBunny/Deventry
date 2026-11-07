@@ -135,6 +135,12 @@ public sealed class AppServices : IAsyncDisposable
         _stateStore = new JsonFileStore<AppState>(paths.StateFile, Loggers.CreateLogger("State"));
         Settings = _settingsStore.Load();
         State = _stateStore.Load();
+        if (State.MachineId is not { Length: > 0 })
+        {
+            State.MachineId = Guid.NewGuid().ToString("N");
+            SaveState();
+        }
+        MachineId = State.MachineId;
         _systemMotion = systemMotion ?? new NoSystemMotion();
         Trash = trash ?? new NoTrash();
         ReduceMotion = Motion.Reduce(Settings.Appearance.Motion, false, false);
@@ -468,6 +474,13 @@ public sealed class AppServices : IAsyncDisposable
 
     /// <summary>Saved tabs, recent and favorite folders. Change on the UI thread, then call <see cref="SaveState"/>.</summary>
     public AppState State { get; }
+
+    /// <summary>
+    /// This machine's id in the session library, made up once and kept in the state: its shared usage's file (DESIGN.md
+    /// §6, "Sharing across machines") and its leases, so a lease an earlier run here left is known for one (§9, "One
+    /// machine at a time").
+    /// </summary>
+    public string MachineId { get; }
 
     /// <summary>Raised on the UI thread after settings change.</summary>
     public event EventHandler? SettingsChanged;

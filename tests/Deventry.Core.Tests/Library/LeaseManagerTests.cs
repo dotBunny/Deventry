@@ -8,6 +8,7 @@ namespace Deventry.Core.Tests.Library;
 public sealed class LeaseManagerTests : IDisposable
 {
     private const string Session = "s1";
+    private const string DesktopId = "desktop-id";
 
     private readonly TempFolder _root = new("deventry-lease");
     private readonly FakeTimeProvider _time = new(new DateTimeOffset(2026, 9, 28, 12, 0, 0, TimeSpan.Zero));
@@ -17,8 +18,8 @@ public sealed class LeaseManagerTests : IDisposable
 
     public LeaseManagerTests()
     {
-        _desktop = new LeaseManager("DESKTOP-01", _time);
-        _laptop = new LeaseManager("LAPTOP", _time);
+        _desktop = new LeaseManager("DESKTOP-01", DesktopId, _time);
+        _laptop = new LeaseManager("LAPTOP", "laptop-id", _time);
         _folder = _root.CreateFolder($"sessions/{Session}");
     }
 
@@ -50,18 +51,44 @@ public sealed class LeaseManagerTests : IDisposable
 
         var lease = LeaseFile();
         Assert.Equal("DESKTOP-01", lease["machine"]!.GetValue<string>());
+        Assert.Equal(DesktopId, lease["machineId"]!.GetValue<string>());
         Assert.Equal(_desktop.OwnerId, lease["owner"]!.GetValue<string>());
         Assert.NotNull(lease["updatedAt"]);
         Assert.Empty(Directory.GetFiles(_folder, "*.tmp"));
     }
 
     [Fact]
-    public void Two_runs_on_the_same_machine_are_told_apart()
+    public void Two_Deventries_on_the_same_machine_are_told_apart()
     {
-        using var secondRun = new LeaseManager("DESKTOP-01", _time);
+        // Each data folder has its own machine id: the demo's beside the user's own, say.
+        using var other = new LeaseManager("DESKTOP-01", "demo-id", _time);
         _desktop.TakeOver(Session, _folder);
 
-        Assert.IsType<LeaseStatus.HeldByOther>(secondRun.Check(_folder));
+        Assert.IsType<LeaseStatus.HeldByOther>(other.Check(_folder));
+    }
+
+    [Fact]
+    public void A_lease_an_earlier_run_on_this_machine_left_is_stale_at_once()
+    {
+        // It crashed: nothing released the lease, and nothing refreshes it.
+        var updatedAt = _time.GetUtcNow();
+        File.WriteAllText(LeasePath, $"{{\"machine\":\"DESKTOP-01\",\"machineId\":\"{DesktopId}\",\"updatedAt\":\"{updatedAt:O}\",\"owner\":\"crashed\"}}");
+
+        Assert.Equal(new LeaseStatus.Stale("DESKTOP-01", updatedAt), _desktop.Check(_folder));
+        Assert.Equal(new LeaseStatus.HeldByOther("DESKTOP-01", updatedAt), _laptop.Check(_folder));
+        Assert.True(_desktop.MayWrite(Session, _folder));
+        Assert.True(_desktop.Renew(Session, _folder));
+        Assert.Equal(new LeaseStatus.Mine(), _desktop.Check(_folder));
+    }
+
+    [Fact]
+    public void A_lease_without_a_machine_id_is_only_stale_once_its_time_is_up()
+    {
+        // Written by a Deventry from before leases had machine ids.
+        File.WriteAllText(LeasePath, $"{{\"machine\":\"DESKTOP-01\",\"updatedAt\":\"{_time.GetUtcNow():O}\",\"owner\":\"older\"}}");
+
+        Assert.IsType<LeaseStatus.HeldByOther>(_desktop.Check(_folder));
+        Assert.False(_desktop.Renew(Session, _folder));
     }
 
     [Fact]
@@ -162,7 +189,7 @@ public sealed class LeaseManagerTests : IDisposable
     [Fact]
     public void Dispose_releases_held_leases()
     {
-        var run = new LeaseManager("DESKTOP-01", _time);
+        var run = new LeaseManager("DESKTOP-01", DesktopId, _time);
         run.TakeOver(Session, _folder);
 
         run.Dispose();

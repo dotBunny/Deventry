@@ -507,6 +507,28 @@ public class LibraryAndHistoryTests
     }
 
     [Fact]
+    public async Task A_session_whose_lease_an_earlier_run_here_left_opens_without_asking()
+    {
+        await using var h = new TabTestHarness();
+        h.WriteTranscript("crash-1", UserLine("crash-1", "Add the export button", h.WorkFolder));
+        await SaveToLibraryAsync(h, "crash-1", h.Services.Library.MachineName, lastUsed: DateTimeOffset.Parse("2026-09-28T09:00:00Z", CultureInfo.InvariantCulture));
+        await LeaveLeaseAsync(h, "crash-1");
+        h.OpenHistory();
+        var history = h.Shell.History!;
+        await TabTestHarness.Eventually(() => !history.IsLoading, "History to load");
+
+        await history.OpenCommand.ExecuteAsync(history.Groups.SelectMany(g => g.Entries).Single());
+
+        // Nothing has it open: it isn't open "on" this machine, and opening it takes the lease.
+        Assert.Null(h.Shell.Confirmation);
+        h.Start();
+        await TabTestHarness.Eventually(() => h.Factory.Launches.Count == 1, "the resume");
+        Assert.Equal("crash-1", h.Factory.Launches[0].Resume);
+        Assert.False(h.Factory.Launches[0].ForkSession);
+        Assert.IsType<LeaseStatus.Mine>(h.Services.Library.CheckLease("crash-1"));
+    }
+
+    [Fact]
     public async Task A_session_continued_on_another_machine_opens_from_the_library()
     {
         await using var h = new TabTestHarness();
@@ -542,6 +564,25 @@ public class LibraryAndHistoryTests
 
         Assert.Equal("LAPTOP-02", tab.TakenOverBy);
         Assert.Empty(h.Factory.Launches);
+    }
+
+    [Fact]
+    public async Task A_restored_tab_whose_lease_an_earlier_run_here_left_starts_and_takes_it()
+    {
+        await using var h = new TabTestHarness();
+        h.WriteTranscript("pinned-3", UserLine("pinned-3", "Add the export button", h.WorkFolder));
+        await SaveToLibraryAsync(h, "pinned-3", h.Services.Library.MachineName);
+        await LeaveLeaseAsync(h, "pinned-3");
+        h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true, SessionId = "pinned-3", SyncToLibrary = true }];
+        h.Shell.Restore(null);
+        var tab = h.Shell.AllTabs.Single();
+
+        await tab.EnsureStartedAsync();
+
+        // Not read-only, as if the session had carried on somewhere: it carries on here.
+        Assert.Null(tab.TakenOverBy);
+        Assert.Equal("pinned-3", Assert.Single(h.Factory.Launches).Resume);
+        Assert.IsType<LeaseStatus.Mine>(h.Services.Library.CheckLease("pinned-3"));
     }
 
     [Fact]
@@ -1468,6 +1509,19 @@ public class LibraryAndHistoryTests
         File.WriteAllTextAsync(
             Path.Combine(h.Services.Library.Library.GetSessionFolder(sessionId), LeaseManager.FileName),
             new JsonObject { ["machine"] = machine, ["owner"] = "other", ["updatedAt"] = h.Time.GetUtcNow().ToString("O") }.ToJsonString(),
+            TestContext.Current.CancellationToken);
+
+    /// <summary>An earlier run of Deventry on this machine had the session open and ended without letting it go, as in a crash.</summary>
+    private static Task LeaveLeaseAsync(TabTestHarness h, string sessionId) =>
+        File.WriteAllTextAsync(
+            Path.Combine(h.Services.Library.Library.GetSessionFolder(sessionId), LeaseManager.FileName),
+            new JsonObject
+            {
+                ["machine"] = h.Services.Library.MachineName,
+                ["machineId"] = h.Services.MachineId,
+                ["owner"] = "crashed",
+                ["updatedAt"] = h.Time.GetUtcNow().ToString("O"),
+            }.ToJsonString(),
             TestContext.Current.CancellationToken);
 
     private static async Task SaveToLibraryAsync(TabTestHarness h, string sessionId, string machine, DateTimeOffset? lastUsed = null, TabOverrides? overrides = null,

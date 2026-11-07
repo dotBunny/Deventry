@@ -62,12 +62,7 @@ public sealed class UsageTracker : IAsyncDisposable
             Current = latest.ToSnapshot();
             _poller.Restore(Current);
         }
-        if (services.State.MachineId is not { Length: > 0 } machineId)
-        {
-            machineId = services.State.MachineId = Guid.NewGuid().ToString("N");
-            services.SaveState();
-        }
-        _machineId = machineId;
+        _machineId = services.MachineId;
         // Turns recorded before projects had keys take their folder's, so a project's turns are one row.
         WriteHistory(() =>
         {

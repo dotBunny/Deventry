@@ -148,7 +148,8 @@ public sealed class AppState
 
     /// <summary>
     /// This machine's id in the session library's shared usage (DESIGN.md §6, "Sharing across machines"): made up once, so
-    /// its file keeps its name when the machine's is changed, and two machines with the same name don't share a file.
+    /// its file keeps its name when the machine's is changed, and two machines with the same name don't share a file. Its
+    /// leases carry it too, so a lease an earlier run here left is known for one (§9, "One machine at a time").
     /// </summary>
     public string? MachineId { get; set; }
 

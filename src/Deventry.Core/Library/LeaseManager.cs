@@ -21,10 +21,14 @@ public abstract record LeaseStatus
     /// <summary>This Deventry run holds the lease.</summary>
     public sealed record Mine : LeaseStatus;
 
-    /// <summary>Another machine, or another Deventry run on this one, is actively using the session.</summary>
+    /// <summary>Another machine, or another copy of Deventry on this one (the demo, say), is actively using the session.</summary>
     public sealed record HeldByOther(string Machine, DateTimeOffset UpdatedAt) : LeaseStatus;
 
-    /// <summary>Someone else held it, but hasn't refreshed the lease in <see cref="LeaseManager.StaleAfter"/>.</summary>
+    /// <summary>
+    /// Someone else held it, but no longer has it open: the lease hasn't been refreshed in
+    /// <see cref="LeaseManager.StaleAfter"/>, or an earlier run of Deventry on this machine left it behind (it crashed, or
+    /// was ended), which nobody refreshes either.
+    /// </summary>
     public sealed record Stale(string Machine, DateTimeOffset UpdatedAt) : LeaseStatus;
 
     /// <summary>
@@ -35,8 +39,12 @@ public abstract record LeaseStatus
 }
 
 /// <summary>What <c>lease.json</c> holds.</summary>
+/// <param name="MachineId">
+/// The machine's id, made up once and kept in Deventry's data folder there: the runs of one Deventry on one machine share
+/// it. Null in a lease from before Deventry wrote it.
+/// </param>
 /// <param name="Owner">A random id for one Deventry run, so two runs on the same machine are told apart.</param>
-internal sealed record LeaseInfo(string Machine, DateTimeOffset UpdatedAt, string Owner);
+internal sealed record LeaseInfo(string Machine, string? MachineId, DateTimeOffset UpdatedAt, string Owner);
 
 /// <summary>What reading <c>lease.json</c> found: a lease, no file, or a file that couldn't be read.</summary>
 internal readonly record struct LeaseRead(LeaseInfo? Lease, bool Unreadable)
@@ -49,8 +57,9 @@ internal readonly record struct LeaseRead(LeaseInfo? Lease, bool Unreadable)
 /// <summary>
 /// Keeps a session in the library to one machine at a time (DESIGN.md §9, "One machine at a time"). While a session is
 /// open, a small <c>lease.json</c> next to it says who has it; it's refreshed every minute, and one that hasn't been
-/// refreshed in 10 minutes counts as stale. If another machine takes the session over, the next refresh notices and
-/// raises <see cref="LeaseLost"/>, so that tab can become read-only.
+/// refreshed in 10 minutes counts as stale, as does one an earlier run of Deventry on this machine left. If another
+/// machine takes the session over, the next refresh notices and raises <see cref="LeaseLost"/>, so that tab can become
+/// read-only.
 /// </summary>
 public sealed class LeaseManager : IDisposable
 {
@@ -68,9 +77,14 @@ public sealed class LeaseManager : IDisposable
     private bool _disposed;
 
     /// <param name="machineName">This machine's name as shown in History (Settings → Sessions).</param>
-    public LeaseManager(string machineName, TimeProvider time)
+    /// <param name="machineId">
+    /// This machine's id, which every run of this Deventry here shares, so a lease with it that isn't this run's was left
+    /// by an earlier one.
+    /// </param>
+    public LeaseManager(string machineName, string machineId, TimeProvider time)
     {
         MachineName = machineName;
+        MachineId = machineId;
         _time = time;
         OwnerId = Guid.NewGuid().ToString("N");
         _timer = time.CreateTimer(_ => RefreshAll(), null, RefreshInterval, RefreshInterval);
@@ -80,6 +94,9 @@ public sealed class LeaseManager : IDisposable
     public event Action<string, string>? LeaseLost;
 
     public string MachineName { get; }
+
+    /// <summary>This machine's id in lease files, the same for every run of this Deventry here.</summary>
+    public string MachineId { get; }
 
     /// <summary>Identifies this Deventry run in lease files.</summary>
     public string OwnerId { get; }
@@ -112,10 +129,21 @@ public sealed class LeaseManager : IDisposable
         {
             return new LeaseStatus.Mine();
         }
-        return _time.GetUtcNow() - lease.UpdatedAt >= StaleAfter
+        return IsLeftBehind(lease)
             ? new LeaseStatus.Stale(lease.Machine, lease.UpdatedAt)
             : new LeaseStatus.HeldByOther(lease.Machine, lease.UpdatedAt);
     }
+
+    /// <summary>
+    /// Whether a lease that isn't this run's is no longer in use: it hasn't been refreshed in <see cref="StaleAfter"/>, or
+    /// an earlier run of this Deventry on this machine left it. Only one runs at a time here, and one that hands over to a
+    /// new build or version closes its tabs, releasing their leases, before the next starts; so a lease of this machine's
+    /// that isn't this run's belongs to one that ended without letting go. (A launch that a run which stopped answering
+    /// never let in starts anyway: it takes that run's sessions as <b>Take over</b> would, and that run's tabs go
+    /// read-only if it comes back.)
+    /// </summary>
+    private bool IsLeftBehind(LeaseInfo lease) =>
+        _time.GetUtcNow() - lease.UpdatedAt >= StaleAfter || lease.MachineId is { Length: > 0 } machineId && machineId == MachineId;
 
     /// <summary>
     /// Takes the lease whoever holds it, and keeps it fresh until <see cref="Release"/>: <b>Take over</b>, and opening a
@@ -164,7 +192,7 @@ public sealed class LeaseManager : IDisposable
         }
         var free = read.Lease is not { } lease
             || lease.Owner == OwnerId
-            || !held && _time.GetUtcNow() - lease.UpdatedAt >= StaleAfter;
+            || !held && IsLeftBehind(lease);
         if (free)
         {
             if (write)
@@ -316,7 +344,7 @@ public sealed class LeaseManager : IDisposable
             var updatedAt = lease.GetString("updatedAt") is { } text && DateTimeOffset.TryParse(text, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed)
                 ? parsed
                 : DateTimeOffset.MinValue;
-            return new LeaseRead(new LeaseInfo(lease.GetString("machine") ?? "", updatedAt, lease.GetString("owner") ?? ""), false);
+            return new LeaseRead(new LeaseInfo(lease.GetString("machine") ?? "", lease.GetString("machineId"), updatedAt, lease.GetString("owner") ?? ""), false);
         }
         catch (FileNotFoundException)
         {
@@ -353,7 +381,7 @@ public sealed class LeaseManager : IDisposable
     private void Write(string sessionFolder) =>
         LibraryFiles.WriteText(
             Path.Combine(sessionFolder, FileName),
-            JsonSerializer.Serialize(new LeaseInfo(MachineName, _time.GetUtcNow(), OwnerId), Json));
+            JsonSerializer.Serialize(new LeaseInfo(MachineName, MachineId, _time.GetUtcNow(), OwnerId), Json));
 
     private void DeleteIfMine(string sessionFolder)
     {
