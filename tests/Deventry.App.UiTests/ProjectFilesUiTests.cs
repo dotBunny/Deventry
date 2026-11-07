@@ -6,6 +6,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AvaloniaEdit;
 using Deventry.App.Services;
@@ -14,6 +15,7 @@ using Deventry.App.ViewModels;
 using Deventry.App.Views;
 using Deventry.App.Views.Editor;
 using Deventry.Core.Settings;
+using TextMateSharp.Model;
 
 namespace Deventry.App.UiTests;
 
@@ -598,5 +600,32 @@ public sealed class ProjectFilesUiTests
         var tab = Array.FindIndex(shown, l => l.Contains(h.Shell.AllTabs.Single().DisplayName, StringComparison.Ordinal) && l.Contains('"'));
         Assert.True(files >= 0 && files < tab, string.Join('\n', shown));
         window.Close();
+    }
+
+    /// <summary>
+    /// The tokenizer's changes reach the editor's coloring on the UI thread, so nothing on the tokenizer's own thread asks
+    /// for Avalonia's UI thread: one that asked after its test had ended took the next test's, failing it on CI.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task The_tokenizers_changes_reach_the_coloring_on_the_UI_thread()
+    {
+        var heard = new List<(bool OnUiThread, int Line)>();
+        var relay = new TextMateColoring.OnUiThread(new Heard(e => heard.Add((Dispatcher.UIThread.CheckAccess(), e.Ranges[0].FromLineNumber))));
+
+        await Task.Factory.StartNew(() =>
+        {
+            foreach (var line in new[] { 1, 2, 3 })
+            {
+                relay.ModelTokensChanged(new ModelTokensChangedEvent(new TextMateSharp.Model.Range(line), null!));
+            }
+        }, TestContext.Current.CancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Equal([(true, 1), (true, 2), (true, 3)], heard);
+    }
+
+    private sealed class Heard(Action<ModelTokensChangedEvent> heard) : IModelTokensChangedListener
+    {
+        public void ModelTokensChanged(ModelTokensChangedEvent e) => heard(e);
     }
 }

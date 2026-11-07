@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using Avalonia.Threading;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
@@ -24,6 +26,7 @@ internal sealed class TextMateColoring : IDisposable
     private readonly LimitedColoring _transformer;
     private readonly TextMateLines _lines;
     private readonly TMModel _model;
+    private readonly OnUiThread _changes;
     private bool _dark;
 
     private TextMateColoring(TextView view, TextDocument document, string scope, bool dark)
@@ -40,7 +43,8 @@ internal sealed class TextMateColoring : IDisposable
         _model = new TMModel(_lines);
         _model.SetGrammar(grammar);
         _transformer.SetModel(document, _model);
-        _model.AddModelTokensChangedListener(_transformer);
+        _changes = new OnUiThread(_transformer);
+        _model.AddModelTokensChangedListener(_changes);
         view.LineTransformers.Add(_transformer);
     }
 
@@ -78,11 +82,44 @@ internal sealed class TextMateColoring : IDisposable
     public void Dispose()
     {
         _view.LineTransformers.Remove(_transformer);
-        _model.RemoveModelTokensChangedListener(_transformer);
+        _model.RemoveModelTokensChangedListener(_changes);
         _model.Dispose();
         _lines.Dispose();
         _transformer.SetModel(null, null);
         _transformer.Dispose();
+    }
+
+    /// <summary>
+    /// Hands the tokenizer's changes to the coloring on the UI thread, through the dispatcher of the thread it was made
+    /// on, as many as came since the last time in one go. The tokenizer reports from a thread of its own, and the coloring
+    /// asks for <see cref="Dispatcher.UIThread"/> to redraw the lines that changed: the headless test session resets that
+    /// between tests, and a report after a test ended made it the tokenizer's, failing the next test (as
+    /// <see cref="Services.AvaloniaUiDispatcher"/> says).
+    /// </summary>
+    internal sealed class OnUiThread(IModelTokensChangedListener coloring) : IModelTokensChangedListener
+    {
+        private readonly Dispatcher _dispatcher = Dispatcher.UIThread;
+        private readonly ConcurrentQueue<ModelTokensChangedEvent> _pending = new();
+        private int _posted;
+
+        public void ModelTokensChanged(ModelTokensChangedEvent e)
+        {
+            _pending.Enqueue(e);
+            if (Interlocked.Exchange(ref _posted, 1) == 0)
+            {
+                _dispatcher.Post(Deliver);
+            }
+        }
+
+        private void Deliver()
+        {
+            // Before taking them, so one that comes meanwhile is posted again rather than left waiting.
+            Volatile.Write(ref _posted, 0);
+            while (_pending.TryDequeue(out var e))
+            {
+                coloring.ModelTokensChanged(e);
+            }
+        }
     }
 
     /// <summary>TextMate's coloring, leaving lines over <see cref="LongLine"/> in the default color.</summary>

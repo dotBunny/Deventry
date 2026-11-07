@@ -27,6 +27,13 @@ public class PinnedGroupsTests
         return (b, c);
     }
 
+    /// <summary>
+    /// Restores as the app does, on the UI thread, so the read of Claude Code's sessions lays the groups out and orders
+    /// them under the harness's lock after it: started from the test's thread instead, the wait for three groups could
+    /// see the third before they were put in order.
+    /// </summary>
+    private static void Restore(TabTestHarness h) => InlineDispatcher.Run(() => h.Shell.Restore(null));
+
     private static string[] Folders(TabTestHarness h) => InlineDispatcher.Read(() => h.Shell.Groups.Select(g => g.Folder).ToArray());
 
     /// <summary>Each group's place in the band, in order: P pinned, L the last pinned, D the divider over it, - none.</summary>
@@ -39,7 +46,7 @@ public class PinnedGroupsTests
         await using var h = new TabTestHarness(s => s.Sidebar.ShowClaudeProjects = true);
         h.Services.State.ClaudeProjectsOffered = true;
         var (b, c) = WriteProjects(h);
-        h.Shell.Restore(null);
+        Restore(h);
         await TabTestHarness.Eventually(() => InlineDispatcher.Read(() => h.Shell.Groups.Count == 3), "three projects");
         Assert.Equal([c, b, h.WorkFolder], Folders(h));
         // No pins, no band and no divider.
@@ -81,7 +88,7 @@ public class PinnedGroupsTests
         h.Services.State.ClaudeProjectsOffered = true;
         var (b, c) = WriteProjects(h);
         h.Services.State.PinnedGroups = [b];
-        h.Shell.Restore(null);
+        Restore(h);
         await TabTestHarness.Eventually(() => InlineDispatcher.Read(() => h.Shell.Groups.Count == 3), "three projects");
         Assert.Equal([b, c, h.WorkFolder], Folders(h));
         var group = InlineDispatcher.Read(() => h.Shell.Groups[0]);
