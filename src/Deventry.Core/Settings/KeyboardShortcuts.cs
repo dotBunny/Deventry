@@ -177,6 +177,7 @@ public static class KeyboardShortcuts
     public const string RunProjectAction = "project.runMain";
     public const string NextTabNeedingInput = "tabs.nextNeedingInput";
     public const string CommandPalette = "palette.open";
+    public const string FindTab = "tabs.find";
     public const string Find = "conversation.find";
     public const string PreviousMessage = "conversation.previousMessage";
     public const string NextMessage = "conversation.nextMessage";
@@ -208,6 +209,7 @@ public static class KeyboardShortcuts
         new(RunProjectAction, "Run the project's main action", Chord("Primary+Shift+E")),
         new(NextTabNeedingInput, "Go to the next tab waiting for you", Chord("Primary+J")),
         new(CommandPalette, "Command palette", Chord("Primary+Shift+P")),
+        new(FindTab, "Find a tab", Chord("Primary+K")),
         new(Find, "Find in the conversation", Chord("Primary+F")),
         new(PreviousMessage, "Previous message in the conversation", Chord("F3")),
         new(NextMessage, "Next message in the conversation", Chord("F4")),

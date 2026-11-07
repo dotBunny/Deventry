@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Deventry.App.ViewModels"
+             x:Class="Deventry.App.Views.TabSearchView"
+             x:DataType="vm:TabSearchViewModel">
+  <UserControl.Styles>
+    <!-- A tab's project: its group's color, then its name, quiet beside the tab's. -->
+    <Style Selector="Border.tabsearchdot">
+      <Setter Property="Width" Value="8" />
+      <Setter Property="Height" Value="8" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.tabsearchbranch">
+      <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="5,0" />
+      <Setter Property="MaxWidth" Value="140" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+
+  <!-- Find a tab (DESIGN.md §4, "Find a tab"): the open tabs, by pieces of their names, projects, folders and branches -->
+  <Border Classes="dialog" Width="620" Padding="12">
+    <DockPanel>
+      <TextBox x:Name="QueryBox" DockPanel.Dock="Top" Text="{Binding Query}" PlaceholderText="Type part of a tab's name, its project, folder or branch"
+               AutomationProperties.Name="Find a tab" Margin="0,0,0,8" />
+      <TextBlock DockPanel.Dock="Bottom" Classes="muted small" Margin="0,8,0,0" Text="Enter goes to the tab · ↑↓ choose · Esc closes" />
+      <StackPanel>
+        <TextBlock Classes="muted small" Text="No tab has that." IsVisible="{Binding HasNoMatches}" Margin="4,12" />
+        <TextBlock Classes="muted small" Text="No tabs are open." IsVisible="{Binding HasNoTabs}" Margin="4,12" />
+        <ListBox x:Name="Results" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected}" MaxHeight="420"
+                 IsVisible="{Binding HasResults}" Tapped="OnResultTapped">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:TabSearchEntry">
+              <Grid ColumnDefinitions="14,*,Auto" ColumnSpacing="8" Background="Transparent">
+                <TextBlock Classes="status" Classes.busy="{Binding Tab.IsBusyStatus}" Classes.alert="{Binding Tab.IsAlertStatus}"
+                           Classes.failed="{Binding Tab.IsErrorStatus}" Classes.unread="{Binding Tab.IsUnread}"
+                           Text="{Binding Tab.StatusGlyph}" ToolTip.Tip="{Binding Tab.StatusTip}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <DockPanel Grid.Column="1">
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" Margin="10,0,0,0">
+                    <Border Classes="tabsearchdot" Background="{Binding ProjectBrush}" />
+                    <TextBlock Classes="muted small" Text="{Binding Project}" VerticalAlignment="Center" MaxWidth="180" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+                <Border Grid.Column="2" Classes="tabsearchbranch" IsVisible="{Binding HasBranch}" ToolTip.Tip="{Binding Folder}">
+                  <TextBlock Classes="muted small" Text="{Binding Branch}" TextTrimming="CharacterEllipsis" />
+                </Border>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
+    </DockPanel>
+  </Border>
+</UserControl>

@@ -1359,6 +1359,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         SaveTabs();
         _services.EditorLogs.Follow([], []);
         FindInFiles?.Dispose();
+        _attentionWait?.Dispose();
         FindResults.Dispose();
         ToolWindows.Dispose();
         IdleUnloadTicker.Stop();

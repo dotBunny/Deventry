@@ -48,6 +48,56 @@ public class CommandPaletteUiTests
     }
 
     [AvaloniaFact]
+    public async Task Find_a_tab_opens_from_its_shortcut_and_Enter_goes_to_the_tab_found_its_row_picked_out()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var first = await h.OpenTabAsync();
+        first.State.UserName = "Fix login bug";
+        var second = await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell }, 1100, 800);
+        Assert.Same(second, h.Shell.SelectedTab);
+        // The sidebar's magnifier opens it too (DESIGN.md §4, "Find a tab").
+        Assert.NotNull(window.GetVisualDescendants().OfType<Button>().SingleOrDefault(b => b.Name == "FindTabButton" && b.IsEffectivelyVisible));
+
+        Press(window, PhysicalKey.K, Primary);
+        Assert.True(h.Shell.IsTabSearchOpen);
+        var box = window.GetVisualDescendants().OfType<TextBox>().Single(b => b.Name == "QueryBox");
+        Assert.True(box.IsFocused);
+
+        window.KeyTextInput("login");
+        UiText.Settle(window);
+        Assert.Equal("Fix login bug", h.Shell.TabSearch!.Selected!.Name);
+        Press(window, PhysicalKey.Enter);
+
+        Assert.False(h.Shell.IsTabSearchOpen);
+        Assert.Same(first, h.Shell.SelectedTab);
+        var glow = window.GetVisualDescendants().OfType<Border>()
+            .First(b => b.Classes.Contains("attentionglow") && ReferenceEquals(b.DataContext, first) && b.IsEffectivelyVisible);
+        Assert.Contains("attention", glow.Classes);
+
+        Press(window, PhysicalKey.K, Primary);
+        Press(window, PhysicalKey.Escape);
+        Assert.False(h.Shell.IsTabSearchOpen);
+    }
+
+    [AvaloniaFact]
+    public async Task Esc_closes_Find_a_tab_before_the_dialog_under_it()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell }, 1100, 800);
+        h.Shell.OpenNewProjectCommand.Execute(null);
+        UiText.Settle(window);
+
+        Press(window, PhysicalKey.K, Primary);
+        Assert.True(h.Shell.IsTabSearchOpen);
+        Press(window, PhysicalKey.Escape);
+
+        Assert.False(h.Shell.IsTabSearchOpen);
+        Assert.True(h.Shell.IsCloneOpen);
+    }
+
+    [AvaloniaFact]
     public async Task The_new_tab_picker_opens_from_its_shortcut_with_its_search_box_taking_the_keyboard()
     {
         await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());

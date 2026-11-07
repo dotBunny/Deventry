@@ -1,6 +1,7 @@
 using System.Collections.Specialized;
 using System.ComponentModel;
 using Deventry.App.Conversation;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Deventry.App.ViewModels;
@@ -62,6 +63,13 @@ internal static class RowUrgencies
 /// </summary>
 public sealed partial class TabViewModel
 {
+    /// <summary>
+    /// The row is picked out for a moment, having just been found with <b>Find a tab</b> (DESIGN.md §4, "Find a tab"):
+    /// a few soft pulses of the accent behind it, or with motion reduced a still highlight that fades.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsDrawingAttention { get; set; }
+
     /// <summary>The fold had rows to hide, so it goes once the last of them does.</summary>
     private bool _hadRowsUnder;
 

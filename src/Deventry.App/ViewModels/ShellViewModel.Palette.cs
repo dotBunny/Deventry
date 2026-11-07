@@ -71,6 +71,11 @@ public sealed partial class ShellViewModel
         Command("New project…", OpenNewProject);
         Command("Clone a repository…", OpenClone);
         Command("Open from History…", OpenHistory, KeyboardShortcuts.History);
+        // DESIGN.md §4, "Find a tab".
+        if (Groups.Any(g => g.Tabs.Count > 0))
+        {
+            Command("Find a tab…", OpenTabSearch, KeyboardShortcuts.FindTab);
+        }
         AsyncCommand("Settings", OpenSettingsAsync, KeyboardShortcuts.Settings);
         Command(Layout.IsSidebarCollapsed ? "Expand the sidebar" : "Collapse the sidebar", () => Layout.ToggleSidebarCommand.Execute(null), KeyboardShortcuts.ToggleSidebar);
         var zoom = _services.Settings.Appearance.Zoom;

@@ -109,6 +109,9 @@ public sealed class ShortcutTips(AppSettings settings) : ObservableObject
 
     public string History => Tip("Resume a past session", KeyboardShortcuts.History);
 
+    /// <summary>The sidebar's magnifier (DESIGN.md §4, "Find a tab").</summary>
+    public string FindTab => Tip("Find a tab", KeyboardShortcuts.FindTab);
+
     public string Suffixes => Tip("Quick suffixes", KeyboardShortcuts.Suffixes);
 
     public string Stop => Tip("Stop", KeyboardShortcuts.Stop);

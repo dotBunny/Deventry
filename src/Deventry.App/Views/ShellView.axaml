@@ -433,19 +433,24 @@
         <!-- New tab, History and collapsing: the sidebar's head, over a line (DESIGN.md §4, "Sidebar") -->
         <Border Grid.Row="0" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,0,0,1" Padding="6,8,6,6">
           <Panel>
-            <Grid ColumnDefinitions="*,Auto,Auto" IsVisible="{Binding Layout.IsSidebarExpanded}">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto" IsVisible="{Binding Layout.IsSidebarExpanded}">
               <Button Classes="flat side" Command="{Binding NewTabCommand}" ToolTip.Tip="{Binding Tips.NewTab}" AutomationProperties.Name="New tab">
                 <StackPanel Orientation="Horizontal" Spacing="10">
                   <Path Classes="icon" Data="{StaticResource IconPlus}" />
                   <TextBlock Text="New tab" VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
+              <!-- Find a tab (DESIGN.md §4, "Find a tab") -->
+              <Button x:Name="FindTabButton" Grid.Column="1" Classes="flat" Padding="8" Command="{Binding OpenTabSearchCommand}" ToolTip.Tip="{Binding Tips.FindTab}"
+                      AutomationProperties.Name="Find a tab">
+                <Path Data="{StaticResource IconToolSearch}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.4" Width="13" Height="13" Stretch="Uniform" />
+              </Button>
               <!-- History (DESIGN.md §9) -->
-              <Button Grid.Column="1" Classes="flat" Padding="8" Command="{Binding OpenHistoryCommand}" ToolTip.Tip="{Binding Tips.History}"
+              <Button Grid.Column="2" Classes="flat" Padding="8" Command="{Binding OpenHistoryCommand}" ToolTip.Tip="{Binding Tips.History}"
                       AutomationProperties.Name="History">
                 <Path Data="{StaticResource IconHistory}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.4" Width="13" Height="13" Stretch="Uniform" />
               </Button>
-              <Button Grid.Column="2" Classes="flat" Padding="8" Command="{Binding Layout.ToggleSidebarCommand}"
+              <Button Grid.Column="3" Classes="flat" Padding="8" Command="{Binding Layout.ToggleSidebarCommand}"
                       ToolTip.Tip="{Binding Tips.CollapseSidebar}" AutomationProperties.Name="Collapse the sidebar">
                 <Path Data="{StaticResource IconSidebar}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.4" Width="13" Height="13" Stretch="Uniform" />
               </Button>
@@ -459,6 +464,9 @@
               </Button>
               <Button Classes="flat side" Command="{Binding OpenHistoryCommand}" ToolTip.Tip="{Binding Tips.History}" ToolTip.Placement="Right" AutomationProperties.Name="History">
                 <Path Classes="icon" Data="{StaticResource IconHistory}" />
+              </Button>
+              <Button Classes="flat side" Command="{Binding OpenTabSearchCommand}" ToolTip.Tip="{Binding Tips.FindTab}" ToolTip.Placement="Right" AutomationProperties.Name="Find a tab">
+                <Path Classes="icon" Data="{StaticResource IconToolSearch}" />
               </Button>
             </StackPanel>
           </Panel>
@@ -627,6 +635,8 @@
                                 <Border Classes="rowglow waitglow" IsVisible="{Binding ShowsWaitBlink}" />
                                 <Border Classes="rowglow doneglow" IsVisible="{Binding ShowsDoneBar}" />
                                 <Border Classes="rowglow errorglow" IsVisible="{Binding ShowsErrorBar}" />
+                                <!-- Just found with Find a tab (DESIGN.md §4, "Find a tab"): a few soft pulses of the accent -->
+                                <Border Classes="rowglow attentionglow" Classes.attention="{Binding IsDrawingAttention}" />
                                 <Grid ColumnSpacing="{Binding RowLeadSpacing}" RowDefinitions="Auto,Auto" RowSpacing="1">
                                   <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="{Binding RowLeadWidth}" />
@@ -1272,6 +1282,7 @@
                             <ContentControl Content="{Binding}" ContentTemplate="{StaticResource InfoCard}" />
                           </ToolTip.Tip>
                           <Panel>
+                            <Border Classes="rowglow attentionglow" Classes.attention="{Binding IsDrawingAttention}" />
                             <TextBlock Text="{Binding DisplayName, Converter={x:Static vm:Converters.Initial}}" FontWeight="SemiBold"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
                             <TextBlock Classes="status small" Classes.busy="{Binding IsBusyStatus}" Classes.alert="{Binding IsAlertStatus}"
@@ -1746,6 +1757,17 @@
         <ContentControl.DataTemplates>
           <DataTemplate DataType="vm:CommandPaletteViewModel">
             <views:CommandPaletteView />
+          </DataTemplate>
+        </ContentControl.DataTemplates>
+      </ContentControl>
+    </Border>
+
+    <!-- Find a tab (DESIGN.md §4, "Find a tab") -->
+    <Border Grid.ColumnSpan="2" Classes="overlay" IsVisible="{Binding IsTabSearchOpen}" PointerPressed="OnTabSearchOverlayPressed">
+      <ContentControl Content="{Binding TabSearch}" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,70,0,0">
+        <ContentControl.DataTemplates>
+          <DataTemplate DataType="vm:TabSearchViewModel">
+            <views:TabSearchView />
           </DataTemplate>
         </ContentControl.DataTemplates>
       </ContentControl>
