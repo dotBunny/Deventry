@@ -4,7 +4,7 @@ namespace Deventry.App.Games;
 public enum GameKind
 {
     TicTacToe,
-    ConnectFour,
+    FourInARow,
     Hangman,
     Minesweeper,
     Pipeline,

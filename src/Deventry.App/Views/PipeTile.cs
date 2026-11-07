@@ -8,9 +8,11 @@ namespace Deventry.App.Views;
 /// <summary>
 /// A square of the pipeline, drawn (DESIGN.md §18, "Games with Joulene"): a slot in the board, its piece of pipe along the
 /// square's middle, a straight one across it and a corner as a quarter circle round the corner its sides share, and the
-/// flow in it as far as it's got from the side it came in by. The squares touch, so pipes side by side join. Joulene's tap
-/// is a ring whose rim runs down as her countdown does, then fills as the flow starts, with a spout to the side it faces;
-/// a rock is a pebble. Under the pointer, a square the next piece can go on shows it faintly.
+/// flow in it as far as it's got from the side it came in by. The squares touch, so pipes side by side join. Joulene's tap,
+/// where the flow starts, is a ring in her colour whose rim runs down as her countdown does, then fills as the flow
+/// starts, with a spout to the side it faces and an arrow out of it; her cup, where it has to get to, is a basin in gold,
+/// with an arrow into its open side, which fills when it does. Both their squares are tinted, so the two ends stand out.
+/// A rock is a pebble. Under the pointer, a square the next piece can go on shows it faintly.
 /// </summary>
 public sealed class PipeTile : Control
 {
@@ -33,11 +35,15 @@ public sealed class PipeTile : Control
 
     public static readonly StyledProperty<IBrush?> SlotBrushProperty = AvaloniaProperty.Register<PipeTile, IBrush?>(nameof(SlotBrush));
 
+    public static readonly StyledProperty<IBrush?> SlotHotBrushProperty = AvaloniaProperty.Register<PipeTile, IBrush?>(nameof(SlotHotBrush));
+
     public static readonly StyledProperty<IBrush?> PipeBrushProperty = AvaloniaProperty.Register<PipeTile, IBrush?>(nameof(PipeBrush));
 
     public static readonly StyledProperty<IBrush?> FlowBrushProperty = AvaloniaProperty.Register<PipeTile, IBrush?>(nameof(FlowBrush));
 
     public static readonly StyledProperty<IBrush?> RockBrushProperty = AvaloniaProperty.Register<PipeTile, IBrush?>(nameof(RockBrush));
+
+    public static readonly StyledProperty<IBrush?> GoalBrushProperty = AvaloniaProperty.Register<PipeTile, IBrush?>(nameof(GoalBrush));
 
     /// <summary>How strongly a laid pipe shows, so the flow in it stands out.</summary>
     private const double PipeOpacity = 0.5;
@@ -45,7 +51,7 @@ public sealed class PipeTile : Control
     static PipeTile()
     {
         AffectsRender<PipeTile>(PieceProperty, OpeningProperty, FlowsProperty, SpillProperty, CountdownProperty, GhostProperty, IsHotProperty,
-            ShowsSlotProperty, SlotBrushProperty, PipeBrushProperty, FlowBrushProperty, RockBrushProperty);
+            ShowsSlotProperty, SlotBrushProperty, SlotHotBrushProperty, PipeBrushProperty, FlowBrushProperty, RockBrushProperty, GoalBrushProperty);
     }
 
     public PipeKind Piece
@@ -108,6 +114,13 @@ public sealed class PipeTile : Control
         set => SetValue(SlotBrushProperty, value);
     }
 
+    /// <summary>Its slot under the pointer, or with the keyboard's focus.</summary>
+    public IBrush? SlotHotBrush
+    {
+        get => GetValue(SlotHotBrushProperty);
+        set => SetValue(SlotHotBrushProperty, value);
+    }
+
     /// <summary>The pipes' colour, which they're drawn in faintly, so the flow shows in them.</summary>
     public IBrush? PipeBrush
     {
@@ -128,6 +141,13 @@ public sealed class PipeTile : Control
         set => SetValue(RockBrushProperty, value);
     }
 
+    /// <summary>Her cup's colour: where the flow has to get to.</summary>
+    public IBrush? GoalBrush
+    {
+        get => GetValue(GoalBrushProperty);
+        set => SetValue(GoalBrushProperty, value);
+    }
+
     public override void Render(DrawingContext context)
     {
         var size = Math.Min(Bounds.Width, Bounds.Height);
@@ -137,12 +157,18 @@ public sealed class PipeTile : Control
         }
         using var _ = context.PushTransform(Matrix.CreateTranslation((Bounds.Width - size) / 2, (Bounds.Height - size) / 2));
         var flows = Flows ?? [];
-        var ghost = IsHot && Ghost != PipeKind.Empty && flows.Count == 0 && Piece is not (PipeKind.Tap or PipeKind.Rock);
+        var ghost = IsHot && Ghost != PipeKind.Empty && flows.Count == 0 && Piece is not (PipeKind.Tap or PipeKind.Cup or PipeKind.Rock);
         if (ShowsSlot)
         {
-            using (context.PushOpacity(IsHot ? 1 : 0.6))
+            var slot = new Rect(1, 1, size - 2, size - 2);
+            context.DrawRectangle(IsHot ? SlotHotBrush : SlotBrush, null, slot, size * 0.14, size * 0.14);
+            // Her tap's square and her cup's, tinted in their colours.
+            if (Piece is PipeKind.Tap or PipeKind.Cup)
             {
-                context.DrawRectangle(SlotBrush, null, new Rect(1, 1, size - 2, size - 2), size * 0.14, size * 0.14);
+                using (context.PushOpacity(0.2))
+                {
+                    context.DrawRectangle(Piece == PipeKind.Tap ? FlowBrush : GoalBrush, null, slot, size * 0.14, size * 0.14);
+                }
             }
         }
         switch (Piece)
@@ -152,6 +178,9 @@ public sealed class PipeTile : Control
                 return;
             case PipeKind.Tap:
                 DrawTap(context, size, flows);
+                break;
+            case PipeKind.Cup:
+                DrawCup(context, size, flows);
                 break;
             default:
                 // The piece a click would put in its place shows over it, which fades.
@@ -170,9 +199,9 @@ public sealed class PipeTile : Control
         }
         foreach (var flow in flows)
         {
-            if (flow.From is { } from && flow.Fill > 0)
+            if (flow is { From: { } from, To: { } to, Fill: > 0 })
             {
-                context.DrawGeometry(null, FlowPen(size), Path(size, from, flow.To, flow.Fill));
+                context.DrawGeometry(null, FlowPen(size), Path(size, from, to, flow.Fill));
             }
         }
         if (Spill is { } spill)
@@ -216,6 +245,7 @@ public sealed class PipeTile : Control
         {
             context.DrawLine(new Pen(FlowBrush, size * 0.42, lineCap: PenLineCap.Flat), center, edge);
         }
+        DrawArrow(context, size, Opening, outward: true, FlowBrush);
         var radius = size * 0.25;
         var rim = new Pen(FlowBrush, size * 0.1, lineCap: PenLineCap.Round);
         if (flows is [var flow, ..])
@@ -249,6 +279,58 @@ public sealed class PipeTile : Control
             }
             context.DrawGeometry(null, rim, geometry);
         }
+    }
+
+    /// <summary>
+    /// Her cup: a basin in the middle, with an inlet to its open side and an arrow into it. The flow runs down the inlet,
+    /// then fills the basin.
+    /// </summary>
+    private void DrawCup(DrawingContext context, double size, IReadOnlyList<PipeFlow> flows)
+    {
+        var basin = new Rect(size * 0.24, size * 0.24, size * 0.52, size * 0.52);
+        var edge = Mid(size, Opening);
+        var mouth = new Point(size / 2, size / 2) + (edge - new Point(size / 2, size / 2)) * (0.24 / 0.5);
+        using (context.PushOpacity(0.35))
+        {
+            context.DrawLine(new Pen(GoalBrush, size * 0.42, lineCap: PenLineCap.Flat), edge, mouth);
+        }
+        var fill = flows is [var flow, ..] ? flow.Fill : 0;
+        if (fill > 0)
+        {
+            // The first half of its time down the inlet, the second filling the basin.
+            context.DrawLine(FlowPen(size), edge, edge + (mouth - edge) * Math.Min(fill * 2, 1));
+            if (fill > 0.5)
+            {
+                using (context.PushOpacity(Math.Min((fill - 0.5) * 2, 1)))
+                {
+                    context.DrawRectangle(FlowBrush, null, basin, size * 0.1, size * 0.1);
+                }
+            }
+        }
+        context.DrawRectangle(null, new Pen(GoalBrush, size * 0.09), basin, size * 0.1, size * 0.1);
+        if (fill == 0)
+        {
+            DrawArrow(context, size, Opening, outward: false, GoalBrush);
+        }
+    }
+
+    /// <summary>A chevron on the way through <paramref name="side"/>: out of her tap's spout, or into her cup's inlet.</summary>
+    private static void DrawArrow(DrawingContext context, double size, PipeSide side, bool outward, IBrush? brush)
+    {
+        var direction = outward ? Outward(side) : -Outward(side);
+        var across = new Vector(direction.Y, direction.X);
+        // Between the middle and the edge, nearer the edge.
+        var tip = new Point(size / 2, size / 2) + Outward(side) * (size * (outward ? 0.47 : 0.33));
+        var back = tip - direction * (size * 0.12);
+        var geometry = new StreamGeometry();
+        using (var g = geometry.Open())
+        {
+            g.BeginFigure(back + across * (size * 0.12), false);
+            g.LineTo(tip);
+            g.LineTo(back - across * (size * 0.12));
+            g.EndFigure(false);
+        }
+        context.DrawGeometry(null, new Pen(brush, size * 0.07, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), geometry);
     }
 
     private void DrawRock(DrawingContext context, double size)

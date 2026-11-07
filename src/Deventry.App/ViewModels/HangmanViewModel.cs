@@ -33,6 +33,10 @@ public sealed partial class HangmanViewModel : GameViewModel
     [ObservableProperty]
     public partial string? Hint { get; private set; }
 
+    /// <summary>The word a letter at a time, each on its line: blank till it's guessed, and once she's won, the rest in her colour.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<HangmanSlot> Slots { get; private set; } = [];
+
     /// <summary>The word, for screen readers: "8 letters: C, blank, M, P, blank, L, blank, R".</summary>
     [ObservableProperty]
     public partial string? PatternName { get; private set; }
@@ -69,6 +73,7 @@ public sealed partial class HangmanViewModel : GameViewModel
         Pattern = "";
         Hint = null;
         PatternName = null;
+        Slots = [];
         RefreshLetters();
         HerTurn(ThinkOfWord, "Joulene is thinking of a word…");
     }
@@ -102,6 +107,7 @@ public sealed partial class HangmanViewModel : GameViewModel
         {
             Pattern = Spaced(round.Word);
             PatternName = $"{round.Word.Length} letters: {string.Join(", ", round.Word.ToCharArray())}";
+            Slots = [.. round.Word.Zip(round.Pattern, (letter, shown) => new HangmanSlot(letter.ToString(), Missed: shown == '_'))];
             Finish(GameOutcome.Lost, $"Joulene wins! It was {round.Word}.");
             return;
         }
@@ -139,6 +145,7 @@ public sealed partial class HangmanViewModel : GameViewModel
         }
         Misses = round.Misses;
         Pattern = Spaced(round.Pattern);
+        Slots = [.. round.Pattern.Select(c => new HangmanSlot(c == '_' ? "" : c.ToString(), Missed: false))];
         PatternName = $"{round.Word.Length} letters: {string.Join(", ", round.Pattern.Select(c => c == '_' ? "blank" : c.ToString()))}";
         RefreshLetters();
     }
@@ -157,6 +164,9 @@ public sealed partial class HangmanViewModel : GameViewModel
     /// <summary>"an" before a letter whose name starts with a vowel sound (an F, an R), "a" otherwise.</summary>
     private static string Article(char letter) => "AEFHILMNORSX".Contains(letter) ? "an" : "a";
 }
+
+/// <summary>A letter of the word: blank till it's guessed; <paramref name="Missed"/>, one she showed once she'd won.</summary>
+public sealed record HangmanSlot(string Letter, bool Missed);
 
 public enum HangmanLetterState
 {

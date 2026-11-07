@@ -35,7 +35,7 @@ public sealed partial class GameService : ObservableObject, IGameHost, IDisposab
 
     /// <summary>The game open, or null.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOpen), nameof(IsChoosing), nameof(Choices), nameof(IsTicTacToe), nameof(IsConnectFour), nameof(IsHangman), nameof(IsMinesweeper), nameof(IsPipeline))]
+    [NotifyPropertyChangedFor(nameof(IsOpen), nameof(IsChoosing), nameof(Choices), nameof(IsTicTacToe), nameof(IsFourInARow), nameof(IsHangman), nameof(IsMinesweeper), nameof(IsPipeline))]
     public partial GameViewModel? Game { get; private set; }
 
     public bool IsOpen => Game is not null;
@@ -47,7 +47,7 @@ public sealed partial class GameService : ObservableObject, IGameHost, IDisposab
     public IReadOnlyList<GameChoice> Choices =>
     [
         Choice(GameKind.TicTacToe, "Tic-tac-toe", "Three in a row on a board of three by three.", draws: true),
-        Choice(GameKind.ConnectFour, "Connect Four", "Four in a row, dropping pieces into seven columns.", draws: true),
+        Choice(GameKind.FourInARow, "Four in a Row", "Line up four of your pieces, dropped into seven columns.", draws: true),
         Choice(GameKind.Hangman, "Hangman", "Guess the word Joulene thought of, a letter at a time.", draws: false),
         Choice(GameKind.Minesweeper, "Minesweeper", "Open every square without one of Joulene's mines.", draws: false),
         Choice(GameKind.Pipeline, "Pipeline", "Lay pipe from Joulene's tap, ahead of her flow.", draws: false),
@@ -68,7 +68,7 @@ public sealed partial class GameService : ObservableObject, IGameHost, IDisposab
 
     public bool IsTicTacToe => Game?.Kind == GameKind.TicTacToe;
 
-    public bool IsConnectFour => Game?.Kind == GameKind.ConnectFour;
+    public bool IsFourInARow => Game?.Kind == GameKind.FourInARow;
 
     public bool IsHangman => Game?.Kind == GameKind.Hangman;
 
@@ -97,7 +97,7 @@ public sealed partial class GameService : ObservableObject, IGameHost, IDisposab
         var old = Game;
         Game = kind switch
         {
-            GameKind.ConnectFour => new ConnectFourViewModel(this),
+            GameKind.FourInARow => new FourInARowViewModel(this),
             GameKind.Hangman => new HangmanViewModel(this),
             GameKind.Minesweeper => new MinesweeperViewModel(this),
             GameKind.Pipeline => new PipelineViewModel(this),
@@ -202,7 +202,16 @@ public sealed partial class GameService : ObservableObject, IGameHost, IDisposab
     // Read each time: tests set it after the services are made.
     public Random Random => _services.Random;
 
-    private GamesState State => _services.State.Games;
+    private GamesState State
+    {
+        get
+        {
+            var state = _services.State.Games;
+            // Four in a Row was called Connect Four: its score and level carry over.
+            state.Rename("ConnectFour", nameof(GameKind.FourInARow));
+            return state;
+        }
+    }
 
     public GameScore Score(GameKind kind) => State.Scores.TryGetValue(kind.ToString(), out var score) ? score : new GameScore();
 

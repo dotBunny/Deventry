@@ -6,9 +6,9 @@ namespace Deventry.App.ViewModels;
 
 /// <summary>
 /// Pipeline against Joulene (DESIGN.md §18, "Games with Joulene"): she hands out pieces of pipe and the user lays them
-/// from her tap; once it opens, her flow follows them until it spills, and it has to have gone through as many pipes as
-/// the level asks by then. A click lays the next piece; <b>Open now</b> opens her tap early, and <b>Faster</b> hurries
-/// the flow. The flow runs by the injected clock, and only while the user can see the board.
+/// from her tap to her cup; once her tap opens, her flow follows them, and reaching her cup before it spills wins. A click
+/// lays the next piece; <b>Open now</b> opens her tap early, and <b>Faster</b> hurries the flow. The flow runs by the
+/// injected clock, and only while the user can see the board.
 /// </summary>
 public sealed partial class PipelineViewModel : GameViewModel
 {
@@ -52,7 +52,7 @@ public sealed partial class PipelineViewModel : GameViewModel
 
     public bool CanHurry => HurryText is not null;
 
-    public string HurryTip => _board.IsFlowing ? "Let the flow run fast till it spills" : "Joulene opens her tap now, without waiting";
+    public string HurryTip => _board.IsFlowing ? "Let the flow run fast till the round ends" : "Joulene opens her tap now, without waiting";
 
     /// <summary>The board, for tests.</summary>
     internal Pipeline Board => _board;
@@ -62,7 +62,7 @@ public sealed partial class PipelineViewModel : GameViewModel
 
     protected override void StartRound(bool youStart)
     {
-        // Her tap and rocks are where she puts them; who starts doesn't apply.
+        // Her tap, cup and rocks are where she puts them; who starts doesn't apply.
         _board = new Pipeline(Pipeline.RulesFor(CurrentLevel), Host.Random);
         _closeCall = false;
         Refresh();
@@ -83,7 +83,7 @@ public sealed partial class PipelineViewModel : GameViewModel
         }
     }
 
-    /// <summary>The user lays the next piece on <paramref name="square"/>. Nothing happens where the flow has been, on her tap or rocks, or once the round is over.</summary>
+    /// <summary>The user lays the next piece on <paramref name="square"/>. Nothing happens where the flow has been, on her tap, cup or rocks, or once the round is over.</summary>
     public void Lay(int square)
     {
         if (!_board.Lay(square, Host.Random))
@@ -129,19 +129,15 @@ public sealed partial class PipelineViewModel : GameViewModel
             _closeCall = true;
             Host.CloseCall();
         }
-        if (happened.HasFlag(PipelineEvents.ReachedGoal) && !_board.IsOver)
-        {
-            Host.Announce($"That's {_board.Goal} pipes: you've beaten her. See how far it goes.");
-        }
         switch (_board.Outcome)
         {
             case GameOutcome.Won:
                 Run();
-                Finish(GameOutcome.Won, $"It spilled after {_board.Filled} pipes: you win!");
+                Finish(GameOutcome.Won, $"It reached her cup through {Pipes(_board.Filled)}: you win!");
                 return;
             case GameOutcome.Lost:
                 Run();
-                Finish(GameOutcome.Lost, $"It spilled after {_board.Filled} of {_board.Goal} pipes: Joulene wins.");
+                Finish(GameOutcome.Lost, $"It spilled after {Pipes(_board.Filled)}: Joulene wins.");
                 return;
         }
         Status = Progress();
@@ -153,14 +149,14 @@ public sealed partial class PipelineViewModel : GameViewModel
         if (!_board.IsFlowing)
         {
             var seconds = _board.SecondsToTap;
-            return $"Joulene's tap opens in {seconds} {(seconds == 1 ? "second" : "seconds")}. Lay {_board.Goal} pipes from it.";
+            return $"Joulene's tap opens in {seconds} {(seconds == 1 ? "second" : "seconds")}. Lay pipe from it to her cup.";
         }
-        return _board.Filled < _board.Goal
-            ? $"The flow is through {_board.Filled} of {_board.Goal} pipes."
-            : $"The flow is through {_board.Filled} pipes: that beats her {_board.Goal}.";
+        return $"The flow is through {Pipes(_board.Filled)}.";
     }
 
-    /// <summary>Plays <paramref name="board"/> from here, for tests: her tap and the pipes where a test wants them.</summary>
+    private static string Pipes(int count) => count == 1 ? "1 pipe" : $"{count} pipes";
+
+    /// <summary>Plays <paramref name="board"/> from here, for tests: her tap, her cup and the pipes where a test wants them.</summary>
     internal void Use(Pipeline board)
     {
         _board = board;
@@ -180,7 +176,7 @@ public sealed partial class PipelineViewModel : GameViewModel
         {
             var at = square.Index;
             square.Piece = _board.PieceAt(at);
-            square.Opening = _board.TapSide;
+            square.Opening = at == _board.Cup ? _board.CupSide : _board.TapSide;
             var flows = _board.FlowsAt(at);
             if (!square.Flows.SequenceEqual(flows))
             {
@@ -208,6 +204,7 @@ public sealed partial class PipelineViewModel : GameViewModel
         PipeKind.LeftTop => "corner, left to top",
         PipeKind.Cross => "crossing",
         PipeKind.Tap => $"Joulene's tap, facing {opening switch { PipeSide.Top => "up", PipeSide.Bottom => "down", _ => opening.ToString().ToLowerInvariant() }}",
+        PipeKind.Cup => $"Joulene's cup, filled from the {opening.ToString().ToLowerInvariant()}",
         PipeKind.Rock => "a rock",
         _ => "empty",
     };
@@ -228,10 +225,10 @@ public sealed partial class PipeSquare(PipelineViewModel game, int index) : Obse
     public int Index => index;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(What), nameof(Name))]
+    [NotifyPropertyChangedFor(nameof(What), nameof(Name), nameof(Tip))]
     public partial PipeKind Piece { get; internal set; }
 
-    /// <summary>The side her tap opens on, which only her tap's square draws.</summary>
+    /// <summary>The side her tap or cup opens on, which only their squares draw.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(What), nameof(Name))]
     public partial PipeSide Opening { get; internal set; }
@@ -251,6 +248,14 @@ public sealed partial class PipeSquare(PipelineViewModel game, int index) : Obse
     public partial double Countdown { get; internal set; }
 
     public bool HasFlow => Flows.Count > 0;
+
+    /// <summary>What her tap and cup are for, as their tips; null on the other squares.</summary>
+    public string? Tip => Piece switch
+    {
+        PipeKind.Tap => "Joulene's tap: the flow starts here, out of its spout",
+        PipeKind.Cup => "Joulene's cup: get the flow here, in by its open side",
+        _ => null,
+    };
 
     /// <summary>What's on it: "corner, top to right, full".</summary>
     public string What

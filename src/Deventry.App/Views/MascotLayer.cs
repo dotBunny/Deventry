@@ -179,7 +179,7 @@ public sealed class MascotLayer : Control
             // A game against her (DESIGN.md §18, "Games with Joulene"), while they're on.
             foreach (var (header, kind) in new[]
             {
-                ("Play tic-tac-toe", GameKind.TicTacToe), ("Play Connect Four", GameKind.ConnectFour), ("Play hangman", GameKind.Hangman),
+                ("Play tic-tac-toe", GameKind.TicTacToe), ("Play Four in a Row", GameKind.FourInARow), ("Play hangman", GameKind.Hangman),
                 ("Play Minesweeper", GameKind.Minesweeper), ("Play Pipeline", GameKind.Pipeline),
             })
             {

@@ -84,14 +84,18 @@ public abstract partial class GameViewModel : ObservableObject, IDisposable
     public partial string Status { get; protected set; } = "";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOver), nameof(NewRoundText))]
+    [NotifyPropertyChangedFor(nameof(IsOver), nameof(NewRoundText), nameof(IsYourTurn))]
     public partial GameOutcome Outcome { get; protected set; }
 
     public bool IsOver => Outcome != GameOutcome.Playing;
 
     /// <summary>Joulene is thinking about her move: the user's moves wait.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsYourTurn))]
     public partial bool IsHerTurn { get; private set; }
+
+    /// <summary>The user can move: it isn't her turn, and the round goes on. The board shows where a move would go.</summary>
+    public bool IsYourTurn => !IsHerTurn && !IsOver;
 
     /// <summary><b>Play again</b> once a round is over; <b>New game</b> during one, which drops it uncounted.</summary>
     public string NewRoundText => IsOver ? "Play again" : "New game";

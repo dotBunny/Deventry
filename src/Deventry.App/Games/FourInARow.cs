@@ -1,10 +1,10 @@
 namespace Deventry.App.Games;
 
 /// <summary>
-/// Connect Four's board (DESIGN.md §18, "Games with Joulene"): seven columns of six, filled from the bottom (row 0).
+/// Four in a Row's board (DESIGN.md §18, "Games with Joulene"): seven columns of six, filled from the bottom (row 0).
 /// Four in a row across, up or on a diagonal wins.
 /// </summary>
-public sealed class ConnectFour
+public sealed class FourInARow
 {
     public const int Columns = 7;
     public const int Rows = 6;

@@ -11,7 +11,7 @@ public enum PipeSide
 
 /// <summary>
 /// What's on a square of the pipeline: nothing, a piece of pipe (named by where it opens, a corner by its two sides
-/// clockwise), Joulene's tap, or one of her rocks.
+/// clockwise), Joulene's tap, where the flow starts, her cup, where it has to get to, or one of her rocks.
 /// </summary>
 public enum PipeKind
 {
@@ -25,19 +25,23 @@ public enum PipeKind
     Cross,
     Tap,
     Rock,
+    Cup,
 }
 
 /// <summary>
-/// The flow through a square: the side it came in by (null in the tap, where it starts), the side it goes out by, and
-/// how full the way between them is, from 0 to 1.
+/// The flow through a square: the side it came in by (null in the tap, where it starts), the side it goes out by (null in
+/// the cup, where it ends), and how full the way between them is, from 0 to 1.
 /// </summary>
-public readonly record struct PipeFlow(PipeSide? From, PipeSide To, double Fill)
+public readonly record struct PipeFlow(PipeSide? From, PipeSide? To, double Fill)
 {
     public bool IsFull => Fill >= 1;
 }
 
-/// <summary>A level's pipeline: the pipes the flow has to go through, her rocks, the wait before her tap opens, and how long each pipe takes to fill.</summary>
-public sealed record PipelineRules(int Goal, int Rocks, TimeSpan Wait, TimeSpan PerPipe)
+/// <summary>
+/// A level's pipeline: the fewest pipes between her tap and her cup, her rocks, the wait before her tap opens, and how long
+/// each pipe takes to fill.
+/// </summary>
+public sealed record PipelineRules(int Distance, int Rocks, TimeSpan Wait, TimeSpan PerPipe)
 {
     public int WaitSteps => (int)(Wait / Pipeline.Step);
 
@@ -52,20 +56,20 @@ public enum PipelineEvents
     TapOpened = 1,
     /// <summary>It went on into another pipe.</summary>
     Entered = 2,
-    /// <summary>It's been through as many pipes as the goal.</summary>
-    ReachedGoal = 4,
+    /// <summary>It filled her cup: the round is won.</summary>
+    Reached = 4,
     /// <summary>The pipe it went into was laid only just before.</summary>
     JustInTime = 8,
-    /// <summary>It came to an open end, the edge, a rock or a pipe that doesn't take it: the round is over.</summary>
+    /// <summary>It came to an open end, the edge, a rock or a pipe that doesn't take it: the round is lost.</summary>
     Spilled = 16,
 }
 
 /// <summary>
 /// The pipeline (DESIGN.md §18, "Games with Joulene"): eight squares by eight, row by row from the top left, with
-/// Joulene's tap on one and her rocks on some. The user lays the pieces she hands out, the next first, on any square the
-/// flow hasn't reached, in place of what's there. Once her tap opens, the flow goes from pipe to pipe until it spills;
-/// it has to have gone through as many as the goal by then to win. A crossing takes it twice, once each way. Time is in
-/// steps of <see cref="Step"/>, which the caller ticks.
+/// Joulene's tap on one, her cup on another, and her rocks on some. The user lays the pieces she hands out, the next first,
+/// on any square the flow hasn't reached, in place of what's there. Once her tap opens, the flow goes from pipe to pipe:
+/// into her cup, by its open side, wins; spilling first loses. A crossing takes it twice, once each way. Time is in steps
+/// of <see cref="Step"/>, which the caller ticks.
 /// </summary>
 public sealed class Pipeline
 {
@@ -81,6 +85,9 @@ public sealed class Pipeline
 
     /// <summary>How much faster the flow goes once the user hurries it.</summary>
     public const int FastFactor = 8;
+
+    /// <summary>How many places for her tap she tries for one with her cup far enough off; past that, the furthest she found.</summary>
+    private const int Tries = 40;
 
     private readonly PipeKind[] _pieces = new PipeKind[Size];
     private readonly List<PipeFlow>[] _flows = [.. Enumerable.Range(0, Size).Select(_ => new List<PipeFlow>())];
@@ -99,44 +106,47 @@ public sealed class Pipeline
     {
         Rules = rules;
         _waitLeft = rules.WaitSteps;
-        // Her tap is off the edge, so the square it opens onto is on the board.
-        Tap = (1 + random.Next(Rows - 2)) * Columns + 1 + random.Next(Columns - 2);
-        TapSide = (PipeSide)random.Next(4);
-        _pieces[Tap] = PipeKind.Tap;
-        PlaceRocks(random);
+        Place(random);
         Deal(random);
     }
 
-    /// <summary>A pipeline with her tap where a test wants it, and no rocks.</summary>
-    internal Pipeline(PipelineRules rules, Random random, int tap, PipeSide tapSide)
+    /// <summary>A pipeline with her tap and cup where a test wants them, and no rocks.</summary>
+    internal Pipeline(PipelineRules rules, Random random, int tap, PipeSide tapSide, int cup, PipeSide cupSide)
     {
         Rules = rules;
         _waitLeft = rules.WaitSteps;
-        Tap = tap;
-        TapSide = tapSide;
+        (Tap, TapSide, Cup, CupSide) = (tap, tapSide, cup, cupSide);
         _pieces[Tap] = PipeKind.Tap;
+        _pieces[Cup] = PipeKind.Cup;
+        Distance = Shortest(Beside(Tap, TapSide)!.Value, Cup)[Beside(Cup, CupSide)!.Value] + 1;
         Deal(random);
     }
 
     /// <summary>
-    /// Each level's pipeline: how far the flow has to go, how many rocks she puts in the way, how long until her tap opens
-    /// and how long a pipe takes to fill.
+    /// Each level's pipeline: how far her cup is from her tap, how many rocks she puts in the way, how long until her tap
+    /// opens and how long a pipe takes to fill.
     /// </summary>
     public static PipelineRules RulesFor(GameLevel level) => level switch
     {
-        GameLevel.Easy => new(Goal: 10, Rocks: 0, Wait: TimeSpan.FromSeconds(25), PerPipe: TimeSpan.FromSeconds(4)),
-        GameLevel.Hard => new(Goal: 18, Rocks: 4, Wait: TimeSpan.FromSeconds(15), PerPipe: TimeSpan.FromSeconds(2.4)),
-        _ => new(Goal: 14, Rocks: 2, Wait: TimeSpan.FromSeconds(20), PerPipe: TimeSpan.FromSeconds(3)),
+        GameLevel.Easy => new(Distance: 5, Rocks: 0, Wait: TimeSpan.FromSeconds(25), PerPipe: TimeSpan.FromSeconds(4)),
+        GameLevel.Hard => new(Distance: 10, Rocks: 4, Wait: TimeSpan.FromSeconds(15), PerPipe: TimeSpan.FromSeconds(2.4)),
+        _ => new(Distance: 8, Rocks: 2, Wait: TimeSpan.FromSeconds(20), PerPipe: TimeSpan.FromSeconds(3)),
     };
 
     public PipelineRules Rules { get; }
 
-    public int Goal => Rules.Goal;
-
-    public int Tap { get; }
+    public int Tap { get; private set; }
 
     /// <summary>The side her tap opens on.</summary>
-    public PipeSide TapSide { get; }
+    public PipeSide TapSide { get; private set; }
+
+    public int Cup { get; private set; }
+
+    /// <summary>The side her cup takes the flow in by.</summary>
+    public PipeSide CupSide { get; private set; }
+
+    /// <summary>The fewest pipes that join her tap to her cup, round her rocks.</summary>
+    public int Distance { get; private set; }
 
     /// <summary>The pieces she'll hand out, the next first.</summary>
     public IReadOnlyList<PipeKind> Next => _next;
@@ -144,19 +154,22 @@ public sealed class Pipeline
     /// <summary>Her tap is open: the flow is on its way.</summary>
     public bool IsFlowing => _front is not null;
 
-    /// <summary>The user hurried the flow: it runs <see cref="FastFactor"/> times as fast till it spills.</summary>
+    /// <summary>The user hurried the flow: it runs <see cref="FastFactor"/> times as fast till the round ends.</summary>
     public bool IsFast { get; private set; }
 
-    /// <summary>The pipes the flow has been through, a crossing once each way; her tap isn't one.</summary>
+    /// <summary>The pipes the flow has been through, a crossing once each way; her tap and cup aren't.</summary>
     public int Filled { get; private set; }
+
+    /// <summary>The flow filled her cup.</summary>
+    public bool IsReached { get; private set; }
 
     /// <summary>Where the flow spilled: the square it left and the side it left by.</summary>
     public (int Square, PipeSide Side)? Spill { get; private set; }
 
-    /// <summary>The square the flow is filling, until it spills.</summary>
-    public int? Front => Spill is null ? _front?.Square : null;
+    /// <summary>The square the flow is filling, until the round ends.</summary>
+    public int? Front => IsOver ? null : _front?.Square;
 
-    public GameOutcome Outcome => Spill is null ? GameOutcome.Playing : Filled >= Goal ? GameOutcome.Won : GameOutcome.Lost;
+    public GameOutcome Outcome => IsReached ? GameOutcome.Won : Spill is not null ? GameOutcome.Lost : GameOutcome.Playing;
 
     public bool IsOver => Outcome != GameOutcome.Playing;
 
@@ -187,7 +200,7 @@ public sealed class Pipeline
 
     public static PipeSide Opposite(PipeSide side) => (PipeSide)(((int)side + 2) % 4);
 
-    /// <summary>The sides <paramref name="kind"/> opens on.</summary>
+    /// <summary>The sides a piece of pipe opens on; none for her tap and cup, which open where each faces.</summary>
     public static IReadOnlyList<PipeSide> Openings(PipeKind kind) => kind switch
     {
         PipeKind.Horizontal => [PipeSide.Left, PipeSide.Right],
@@ -200,7 +213,7 @@ public sealed class Pipeline
         _ => [],
     };
 
-    /// <summary>The side the flow leaves <paramref name="kind"/> by, coming in by <paramref name="from"/>; null when it doesn't take it there.</summary>
+    /// <summary>The side the flow leaves a piece of pipe by, coming in by <paramref name="from"/>; null when it doesn't take it there.</summary>
     public static PipeSide? Through(PipeKind kind, PipeSide from)
     {
         if (kind == PipeKind.Cross)
@@ -213,7 +226,7 @@ public sealed class Pipeline
 
     /// <summary>Whether the next piece can go on <paramref name="square"/>: the round goes on, and it's neither hers nor reached by the flow.</summary>
     public bool CanLay(int square) =>
-        !IsOver && square is >= 0 and < Size && _pieces[square] is not (PipeKind.Tap or PipeKind.Rock) && _flows[square].Count == 0;
+        !IsOver && square is >= 0 and < Size && _pieces[square] is not (PipeKind.Tap or PipeKind.Cup or PipeKind.Rock) && _flows[square].Count == 0;
 
     /// <summary>Lays the next piece on <paramref name="square"/>, in place of what's there; she hands out another. False when it can't go there.</summary>
     public bool Lay(int square, Random random)
@@ -230,8 +243,8 @@ public sealed class Pipeline
     }
 
     /// <summary>
-    /// <b>Open now</b> before her tap opens, which opens it; <b>Faster</b> after, which hurries the flow till it spills.
-    /// False when there's nothing to hurry.
+    /// <b>Open now</b> before her tap opens, which opens it; <b>Faster</b> after, which hurries the flow till the round
+    /// ends. False when there's nothing to hurry.
     /// </summary>
     public bool Hurry()
     {
@@ -293,17 +306,18 @@ public sealed class Pipeline
             {
                 break;
             }
+            if (flow.To is not { } to)
+            {
+                IsReached = true;
+                return happened | PipelineEvents.Reached;
+            }
             if (square != Tap)
             {
                 Filled++;
-                if (Filled == Goal)
-                {
-                    happened |= PipelineEvents.ReachedGoal;
-                }
             }
-            if (Into(square, flow.To) is not { } next)
+            if (Into(square, to) is not { } next)
             {
-                Spill = (square, flow.To);
+                Spill = (square, to);
                 return happened | PipelineEvents.Spilled;
             }
             happened |= PipelineEvents.Entered;
@@ -319,17 +333,22 @@ public sealed class Pipeline
 
     /// <summary>
     /// Where the flow goes leaving <paramref name="square"/> by <paramref name="side"/>: the square beside it, the side it
-    /// comes in by and the side it'll leave by. Null when it spills there: at the edge, a rock, her tap, or a square with no
-    /// pipe open on that side. It never comes back into a pipe it's been through the same way: each side the pipe opens
-    /// on leads to a pipe the flow has been through on that side already, and only a crossing takes it twice, once each way.
+    /// comes in by and the side it'll leave by, none in her cup. Null when it spills there: at the edge, a rock, her tap, her
+    /// cup but for its open side, or a square with no pipe open on that side. It never comes back into a pipe it's been
+    /// through the same way: each side the pipe opens on leads to a pipe the flow has been through on that side already,
+    /// and only a crossing takes it twice, once each way.
     /// </summary>
-    private (int Square, PipeSide From, PipeSide To)? Into(int square, PipeSide side)
+    private (int Square, PipeSide From, PipeSide? To)? Into(int square, PipeSide side)
     {
         if (Beside(square, side) is not { } next)
         {
             return null;
         }
         var from = Opposite(side);
+        if (next == Cup)
+        {
+            return from == CupSide ? (next, from, null) : null;
+        }
         return Through(_pieces[next], from) is { } to ? (next, from, to) : null;
     }
 
@@ -340,22 +359,118 @@ public sealed class Pipeline
     }
 
     /// <summary>
-    /// Her rocks, two squares or more from her tap every way, so the flow always has room to start. There's always room
-    /// for them: nine squares are kept clear of the 64.
+    /// Puts her tap off the edge, facing onto the board; her rocks two squares or more from it every way, so the flow
+    /// always has room to start; and her cup where the fewest pipes that join them, round the rocks, are as many as the
+    /// level asks or a couple more. A tap near the middle may have no square that far off, so she tries other places for
+    /// it, and past <see cref="Tries"/> takes the furthest cup she found.
     /// </summary>
-    private void PlaceRocks(Random random)
+    private void Place(Random random)
     {
-        var (tapRow, tapColumn) = (Tap / Columns, Tap % Columns);
+        (int Tap, PipeSide TapSide, int[] Rocks, int Cup, PipeSide CupSide, int Distance)? best = null;
+        for (var attempt = 0; attempt < Tries; attempt++)
+        {
+            var tap = (1 + random.Next(Rows - 2)) * Columns + 1 + random.Next(Columns - 2);
+            var tapSide = (PipeSide)random.Next(4);
+            var rocks = RockPlaces(tap, random);
+            var cups = Cups(tap, tapSide, rocks);
+            var far = cups.Where(c => c.Distance >= Rules.Distance).ToList();
+            if (far.Count > 0)
+            {
+                var near = far.Where(c => c.Distance <= Rules.Distance + 2).ToList();
+                var pick = near.Count > 0 ? near[random.Next(near.Count)] : far.MinBy(c => c.Distance);
+                best = (tap, tapSide, rocks, pick.Cup, pick.Side, pick.Distance);
+                break;
+            }
+            if (cups.Count > 0 && cups.MaxBy(c => c.Distance) is var furthest && (best is null || furthest.Distance > best.Value.Distance))
+            {
+                best = (tap, tapSide, rocks, furthest.Cup, furthest.Side, furthest.Distance);
+            }
+        }
+        var laid = best!.Value;
+        (Tap, TapSide, Cup, CupSide, Distance) = (laid.Tap, laid.TapSide, laid.Cup, laid.CupSide, laid.Distance);
+        _pieces[Tap] = PipeKind.Tap;
+        _pieces[Cup] = PipeKind.Cup;
+        foreach (var rock in laid.Rocks)
+        {
+            _pieces[rock] = PipeKind.Rock;
+        }
+    }
+
+    /// <summary>Her rocks, the first few of a shuffle of the squares two or more from her tap every way.</summary>
+    private int[] RockPlaces(int tap, Random random)
+    {
+        var (tapRow, tapColumn) = (tap / Columns, tap % Columns);
         var places = Enumerable.Range(0, Size)
             .Where(s => Math.Max(Math.Abs(s / Columns - tapRow), Math.Abs(s % Columns - tapColumn)) >= 2)
             .ToArray();
-        // The first few of a shuffle.
         for (var i = 0; i < Rules.Rocks; i++)
         {
             var pick = i + random.Next(places.Length - i);
             (places[i], places[pick]) = (places[pick], places[i]);
-            _pieces[places[i]] = PipeKind.Rock;
         }
+        return places[..Rules.Rocks];
+    }
+
+    /// <summary>
+    /// Every place for her cup and the side it opens on, with the fewest pipes that join her tap to it: from the square her
+    /// tap faces to the one beside the cup's open side, both counted, round her rocks and the cup itself.
+    /// </summary>
+    private List<(int Cup, PipeSide Side, int Distance)> Cups(int tap, PipeSide tapSide, int[] rocks)
+    {
+        var start = Beside(tap, tapSide)!.Value;
+        var blocked = new bool[Size];
+        blocked[tap] = true;
+        foreach (var rock in rocks)
+        {
+            blocked[rock] = true;
+        }
+        var cups = new List<(int, PipeSide, int)>();
+        for (var cup = 0; cup < Size; cup++)
+        {
+            if (blocked[cup] || cup == start)
+            {
+                continue;
+            }
+            blocked[cup] = true;
+            var distances = Shortest(start, blocked);
+            blocked[cup] = false;
+            foreach (var side in Enum.GetValues<PipeSide>())
+            {
+                if (Beside(cup, side) is { } inlet && distances[inlet] >= 0)
+                {
+                    cups.Add((cup, side, distances[inlet] + 1));
+                }
+            }
+        }
+        return cups;
+    }
+
+    /// <summary>How many steps each square is from <paramref name="start"/>, around her tap, rocks and <paramref name="cup"/>; -1 where it can't be reached.</summary>
+    private int[] Shortest(int start, int cup)
+    {
+        var blocked = _pieces.Select(p => p is PipeKind.Tap or PipeKind.Rock).ToArray();
+        blocked[cup] = true;
+        return Shortest(start, blocked);
+    }
+
+    /// <summary>How many steps each square is from <paramref name="start"/>, around the squares <paramref name="blocked"/>; -1 where it can't be reached.</summary>
+    private static int[] Shortest(int start, bool[] blocked)
+    {
+        var distances = Enumerable.Repeat(-1, Size).ToArray();
+        distances[start] = 0;
+        var queue = new Queue<int>([start]);
+        while (queue.TryDequeue(out var at))
+        {
+            foreach (var side in Enum.GetValues<PipeSide>())
+            {
+                if (Beside(at, side) is { } next && !blocked[next] && distances[next] < 0)
+                {
+                    distances[next] = distances[at] + 1;
+                    queue.Enqueue(next);
+                }
+            }
+        }
+        return distances;
     }
 
     /// <summary>Tops up the pieces to come: a corner six times in ten, a straight piece three, a crossing now and then.</summary>

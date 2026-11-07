@@ -96,6 +96,12 @@ public class GamesUiTests
         Assert.Equal("", tab.ComposerText ?? "");
         Assert.Equal($"{miss}, not in the word", AutomationProperties.GetName(Letter(page, miss)));
         Assert.Equal("The gallows, 1 of 6 misses drawn", AutomationProperties.GetName(page.GetVisualDescendants().OfType<Canvas>().Single()));
+        // The word on its lines, a letter each, the one guessed on its line; the keys guessed sink.
+        var lines = page.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("wordslot")).ToList();
+        Assert.Equal(game.Word.Length, lines.Count);
+        Assert.Equal(hit.ToString(), lines[0].GetVisualDescendants().OfType<TextBlock>().Single().Text);
+        Assert.Contains("guessed", Letter(page, miss).Classes);
+        Assert.DoesNotContain("guessed", Letter(page, Enumerable.Range('A', 26).Select(c => (char)c).First(c => c != hit && c != miss)).Classes);
         var shown = UiText.Describe(page, (game.Word, "WORD"));
         window.Close();
 
@@ -104,17 +110,17 @@ public class GamesUiTests
         static PhysicalKey Physical(char letter) => PhysicalKey.A + (letter - 'A');
 
         static Button Letter(GamesView page, char letter) =>
-            page.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("gameletter") && b.Content as string == letter.ToString());
+            page.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("gameletter") && (b.DataContext as HangmanLetter)?.Letter == letter);
     }
 
     [AvaloniaFact]
-    public async Task Connect_four_drops_a_piece_in_the_column_clicked()
+    public async Task Four_in_a_row_drops_a_piece_in_the_column_clicked()
     {
         await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
         h.Services.Random = new Random(6);
         var tab = await h.OpenTabAsync();
         var window = UiText.Show(new ShellView { DataContext = h.Shell });
-        tab.PlayGame(GameKind.ConnectFour);
+        tab.PlayGame(GameKind.FourInARow);
         UiText.Settle(window);
         var page = window.GetVisualDescendants().OfType<GamesView>().Single();
         var columns = page.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("gamecolumn")).ToList();
@@ -126,9 +132,13 @@ public class GamesUiTests
         UiText.Settle(window);
 
         Assert.Equal("Column 3, 1 of 6 filled", AutomationProperties.GetName(columns[2]));
-        var pieces = columns[2].GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().ToList();
+        var pieces = Pieces(columns[2]);
         Assert.Contains("yours", pieces[^1].Classes);
-        Assert.Single(page.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>(), e => e.Classes.Contains("hers"));
+        Assert.Single(Pieces(page), e => e.Classes.Contains("hers"));
+        // Her piece, dropped last, has its dot; the next place up in the column the user's would land in.
+        Assert.Single(page.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>(), e => e.Classes.Contains("lastdot") && e.IsVisible);
+        Assert.Contains("drop", pieces[^2].Classes);
+        Assert.Equal(7, Pieces(page).Count(e => e.Classes.Contains("drop")));
         var shown = UiText.Describe(page);
         window.Close();
 
@@ -151,11 +161,11 @@ public class GamesUiTests
         var header = choice.GetVisualAncestors().OfType<Grid>().First(g => g.Classes.Contains("toolheader"));
         Assert.Contains(header.GetVisualDescendants().OfType<TextBlock>(), t => t.Classes.Contains("tooltitle") && t.Text == "Games");
         var page = window.GetVisualDescendants().OfType<GamesView>().Single();
-        Assert.DoesNotContain(page.GetVisualDescendants().OfType<Button>(), b => b.Content is "Connect Four" or TextBlock { Text: "Connect Four" });
+        Assert.DoesNotContain(page.GetVisualDescendants().OfType<Button>(), b => b.Content is "Four in a Row" or TextBlock { Text: "Four in a Row" });
 
         var menu = Assert.IsType<MenuFlyout>(choice.Flyout);
         var items = menu.Items.OfType<MenuItem>().ToList();
-        Assert.Equal(["Tic-tac-toe", "Connect Four", "Hangman", "Minesweeper", "Pipeline"], items.Select(i => i.Header as string));
+        Assert.Equal(["Tic-tac-toe", "Four in a Row", "Hangman", "Minesweeper", "Pipeline"], items.Select(i => i.Header as string));
         menu.ShowAt(choice);
         await UiText.SettleUntilAsync(window, () => items[0].IsEffectivelyVisible, "the open menu");
         Assert.Equal([true, false, false, false, false], items.Select(i => i.IsChecked));
@@ -308,12 +318,12 @@ public class GamesUiTests
         var window = UiText.Show(new ShellView { DataContext = h.Shell });
         var layer = window.GetVisualDescendants().OfType<MascotLayer>().Single(l => !l.IsFront);
         var menu = layer.Figure.ContextMenu!;
-        Assert.Equal(["Play tic-tac-toe", "Play Connect Four", "Play hangman", "Play Minesweeper", "Play Pipeline", "Hide Joulene", "Joulene settings…"],
+        Assert.Equal(["Play tic-tac-toe", "Play Four in a Row", "Play hangman", "Play Minesweeper", "Play Pipeline", "Hide Joulene", "Joulene settings…"],
             menu.Items.OfType<MenuItem>().Where(i => i.IsVisible).Select(i => i.Header as string));
 
-        menu.Items.OfType<MenuItem>().Single(i => i.Header as string == "Play Connect Four").Command!.Execute(GameKind.ConnectFour);
+        menu.Items.OfType<MenuItem>().Single(i => i.Header as string == "Play Four in a Row").Command!.Execute(GameKind.FourInARow);
         UiText.Settle(window);
-        Assert.IsType<ConnectFourViewModel>(h.Services.Games.Game);
+        Assert.IsType<FourInARowViewModel>(h.Services.Games.Game);
         Assert.True(h.IsShowing(ToolWindowKinds.Games));
 
         h.Services.Settings.Appearance.GamesWithJoulene = false;
@@ -335,7 +345,7 @@ public class GamesUiTests
     {
         await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
         await h.OpenTabAsync();
-        h.Services.State.Games.Scores[nameof(GameKind.ConnectFour)] = new Core.Settings.GameScore { Wins = 2, Losses = 1 };
+        h.Services.State.Games.Scores[nameof(GameKind.FourInARow)] = new Core.Settings.GameScore { Wins = 2, Losses = 1 };
         var window = UiText.Show(new ShellView { DataContext = h.Shell });
 
         h.ShowToolWindow(ToolWindowKinds.Games);
@@ -343,7 +353,7 @@ public class GamesUiTests
 
         var page = window.GetVisualDescendants().OfType<GamesView>().Single();
         var choices = page.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("gamechoice")).ToList();
-        Assert.Equal(["Play Tic-tac-toe", "Play Connect Four: You 2 · Joulene 1 · Draws 0", "Play Hangman", "Play Minesweeper", "Play Pipeline"],
+        Assert.Equal(["Play Tic-tac-toe", "Play Four in a Row: You 2 · Joulene 1 · Draws 0", "Play Hangman", "Play Minesweeper", "Play Pipeline"],
             choices.Select(b => AutomationProperties.GetName(b)));
         Assert.DoesNotContain(window.GetVisualDescendants().OfType<Button>(), b => b.Classes.Contains("toolchoice") && b.IsEffectivelyVisible);
         var shown = UiText.Describe(page);
@@ -366,6 +376,10 @@ public class GamesUiTests
     private static List<Button> MineSquares(Control page) => [.. page.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("minesquare"))];
 
     private static List<Button> PipeSquares(Control page) => [.. page.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("pipesquare"))];
+
+    /// <summary>Four in a Row's holes, each with its piece or none, from the top of each column.</summary>
+    private static List<Avalonia.Controls.Shapes.Ellipse> Pieces(Control under) =>
+        [.. under.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().Where(e => e.Classes.Contains("gamepiece"))];
 
     /// <summary>The game's menu in the Games window's header.</summary>
     private static Button GameChoice(Window window) =>

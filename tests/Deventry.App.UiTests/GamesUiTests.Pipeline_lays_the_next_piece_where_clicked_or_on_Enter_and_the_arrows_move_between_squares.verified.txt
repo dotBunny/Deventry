@@ -1,7 +1,7 @@
-﻿"The flow is through 0 of 14 pipes."
+﻿"The flow is through 0 pipes."
 [choice] "Normal"
 [button] Faster
-[button] Row 1, column 1, crossing
+[button] Row 1, column 1, straight, left to right
 [button] Row 1, column 2, empty
 [button] Row 1, column 3, empty
 [button] Row 1, column 4, empty
@@ -10,7 +10,7 @@
 [button] Row 1, column 7, empty
 [button] Row 1, column 8, empty
 [button] Row 2, column 1, empty
-[button] Row 2, column 2, straight, left to right
+[button] Row 2, column 2, crossing
 [button] Row 2, column 3, empty
 [button] Row 2, column 4, empty
 [button] Row 2, column 5, empty
@@ -64,6 +64,6 @@
 [button] Row 8, column 5, empty
 [button] Row 8, column 6, empty
 [button] Row 8, column 7, empty
-[button] Row 8, column 8, empty
+[button] Row 8, column 8, Joulene's cup, filled from the top
 [button] New game
 [button] Done playing

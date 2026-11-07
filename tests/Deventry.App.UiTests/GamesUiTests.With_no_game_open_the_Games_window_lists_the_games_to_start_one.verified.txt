@@ -2,9 +2,9 @@
 [button] Play Tic-tac-toe
   "Tic-tac-toe"
   "Three in a row on a board of three by three."
-[button] Play Connect Four: You 2 · Joulene 1 · Draws 0
-  "Connect Four"
-  "Four in a row, dropping pieces into seven columns."
+[button] Play Four in a Row: You 2 · Joulene 1 · Draws 0
+  "Four in a Row"
+  "Line up four of your pieces, dropped into seven columns."
   "You 2 · Joulene 1 · Draws 0"
 [button] Play Hangman
   "Hangman"

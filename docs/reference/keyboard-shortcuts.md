@@ -118,7 +118,7 @@ These aren't in the list of rebindable shortcuts.
 
 ### Games
 
-While the Games page has the focus, the number keys play tic-tac-toe's squares (1 to 9 from the top left) and Connect Four's columns (1 to 7), and the letters guess in hangman. In Minesweeper, the arrow keys move between the squares, `Space` or `Enter` opens one and `F` flags it. In Pipeline, the arrow keys move between the squares and `Space` or `Enter` lays the next piece. None of it reaches the message box. See [Games with Joulene](../joulene/games-with-joulene.md).
+While the Games page has the focus, the number keys play tic-tac-toe's squares (1 to 9 from the top left) and Four in a Row's columns (1 to 7), and the letters guess in hangman. In Minesweeper, the arrow keys move between the squares, `Space` or `Enter` opens one and `F` flags it. In Pipeline, the arrow keys move between the squares and `Space` or `Enter` lays the next piece. None of it reaches the message box. See [Games with Joulene](../joulene/games-with-joulene.md).
 
 ## See also
 

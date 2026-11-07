@@ -58,61 +58,81 @@
       <StackPanel>
         <ContentControl Content="{Binding Game}">
           <ContentControl.DataTemplates>
-            <!-- Tic-tac-toe: three by three, the user ✕ and Joulene ○ -->
+            <!-- Tic-tac-toe: three by three on one board, the user ✕ and Joulene ○. An empty square under the pointer shows a
+                 faint ✕ while it's the user's move, and the three in a row that win are struck through. -->
             <DataTemplate DataType="vm:TicTacToeViewModel">
               <StackPanel Classes="gameboard">
-                <ItemsControl ItemsSource="{Binding Squares}" HorizontalAlignment="Left">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <UniformGrid Columns="3" Rows="3" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="vm:TicTacToeSquare">
-                      <Button Classes="gamesquare" Classes.winning="{Binding IsWinning}" Command="{Binding PlayCommand}" AutomationProperties.Name="{Binding Name}">
-                        <Panel>
-                          <Path Classes="gamex" Data="{StaticResource IconClose}" IsVisible="{Binding IsYours}" />
-                          <Ellipse Classes="gameo" IsVisible="{Binding IsHers}" />
-                        </Panel>
-                      </Button>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <Border Classes="gamesurface">
+                  <Panel>
+                    <ItemsControl ItemsSource="{Binding Squares}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <UniformGrid Columns="3" Rows="3" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:TicTacToeSquare">
+                          <Button Classes="boardcell gamesquare" Classes.winning="{Binding IsWinning}" Command="{Binding PlayCommand}"
+                                  AutomationProperties.Name="{Binding Name}">
+                            <Border Classes="slot">
+                              <Panel>
+                                <Path Classes="gamex" Data="{StaticResource IconClose}" IsVisible="{Binding IsYours}" />
+                                <Ellipse Classes="gameo" IsVisible="{Binding IsHers}" />
+                                <Path Classes="gamex ghost" Data="{StaticResource IconClose}" IsVisible="{Binding CanPlay}" />
+                              </Panel>
+                            </Border>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <views:GameStrike Classes="strike" Columns="3" Rows="3" From="{Binding StrikeFrom}" To="{Binding StrikeTo}" />
+                  </Panel>
+                </Border>
               </StackPanel>
             </DataTemplate>
-  
-            <!-- Connect Four: seven columns of six; a column is a button that drops a piece in it -->
-            <DataTemplate DataType="vm:ConnectFourViewModel">
+
+            <!-- Four in a Row: seven columns of six holes in one board. A column is a button that drops a piece in it; under
+                 the pointer it lights up and shows where the user's piece would land. The last piece dropped has a dot. -->
+            <DataTemplate DataType="vm:FourInARowViewModel">
               <StackPanel Classes="gameboard">
-                <ItemsControl ItemsSource="{Binding Columns}" HorizontalAlignment="Left">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <StackPanel Orientation="Horizontal" Spacing="2" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="vm:ConnectFourColumn">
-                      <Button Classes="gamecolumn" Command="{Binding DropCommand}" AutomationProperties.Name="{Binding Name}">
-                        <ItemsControl ItemsSource="{Binding Cells}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                              <StackPanel Spacing="3" />
-                            </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="vm:ConnectFourCell">
-                              <Ellipse Classes="gamepiece" Classes.yours="{Binding IsYours}" Classes.hers="{Binding IsHers}" Classes.winning="{Binding IsWinning}" />
-                            </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                      </Button>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <Border Classes="gamesurface">
+                  <ItemsControl ItemsSource="{Binding Columns}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:FourInARowColumn">
+                        <Button Classes="boardcell gamecolumn" Command="{Binding DropCommand}" AutomationProperties.Name="{Binding Name}">
+                          <Border Classes="lane">
+                            <ItemsControl ItemsSource="{Binding Cells}">
+                              <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                  <StackPanel Spacing="4" />
+                                </ItemsPanelTemplate>
+                              </ItemsControl.ItemsPanel>
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:FourInARowCell">
+                                  <Panel>
+                                    <Ellipse Classes="gamepiece" Classes.yours="{Binding IsYours}" Classes.hers="{Binding IsHers}"
+                                             Classes.winning="{Binding IsWinning}" Classes.drop="{Binding IsDropSpot}" />
+                                    <Ellipse Classes="lastdot" IsVisible="{Binding IsLast}" />
+                                  </Panel>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                          </Border>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
               </StackPanel>
             </DataTemplate>
-  
-            <!-- Hangman: the gallows, what she said about the word, the word so far, and the letters -->
+
+            <!-- Hangman: the gallows and what she said about the word, the word a letter at a time on its lines, and the
+                 letters as keys on a board, which sink once guessed -->
             <DataTemplate DataType="vm:HangmanViewModel">
               <StackPanel Classes="gameboard">
                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
@@ -131,53 +151,77 @@
                   </Canvas>
                   <TextBlock Grid.Column="1" Classes="muted small" Text="{Binding Hint}" TextWrapping="Wrap" VerticalAlignment="Bottom" />
                 </Grid>
-                <TextBlock Classes="hangmanword" Text="{Binding Pattern}" AutomationProperties.Name="{Binding PatternName}" />
-                <ItemsControl ItemsSource="{Binding Letters}">
+                <ItemsControl Classes="hangmanword" ItemsSource="{Binding Slots}" AutomationProperties.Name="{Binding PatternName}">
                   <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                      <WrapPanel ItemSpacing="3" LineSpacing="3" />
+                      <WrapPanel ItemSpacing="4" LineSpacing="8" />
                     </ItemsPanelTemplate>
                   </ItemsControl.ItemsPanel>
                   <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="vm:HangmanLetter">
-                      <Button Classes="gameletter" Classes.found="{Binding IsFound}" Classes.missed="{Binding IsMissed}" Content="{Binding Text}"
-                              Command="{Binding GuessCommand}" AutomationProperties.Name="{Binding Name}" />
+                    <DataTemplate DataType="vm:HangmanSlot">
+                      <Border Classes="wordslot" Classes.missed="{Binding Missed}">
+                        <TextBlock Text="{Binding Letter}" />
+                      </Border>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <Border Classes="gamesurface">
+                  <ItemsControl ItemsSource="{Binding Letters}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:HangmanLetter">
+                        <Button Classes="boardcell gameletter" Classes.guessed="{Binding IsGuessed}" Classes.found="{Binding IsFound}"
+                                Classes.missed="{Binding IsMissed}" Command="{Binding GuessCommand}" AutomationProperties.Name="{Binding Name}">
+                          <Border Classes="key">
+                            <TextBlock Text="{Binding Text}" />
+                          </Border>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
               </StackPanel>
             </DataTemplate>
 
-            <!-- Minesweeper: nine by nine; a click opens a square, a right-click or F flags it (GamesView.axaml.cs). Tab
-                 goes into the field once, and the arrow keys move between its squares. -->
+            <!-- Minesweeper: nine by nine on one board, the squares still shut raised off it and those open sunk into it; a
+                 click opens a square, a right-click or F flags it (GamesView.axaml.cs). Tab goes into the field once, and the
+                 arrow keys move between its squares. -->
             <DataTemplate DataType="vm:MinesweeperViewModel">
               <StackPanel Classes="gameboard">
-                <ItemsControl ItemsSource="{Binding Squares}" HorizontalAlignment="Left" AutomationProperties.Name="Minefield"
-                              XYFocus.NavigationModes="Keyboard" KeyboardNavigation.TabNavigation="Once">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <UniformGrid Columns="{x:Static games:Minesweeper.Columns}" Rows="{x:Static games:Minesweeper.Rows}" />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="vm:MinesweeperSquare">
-                      <Button Classes="minesquare" Classes.open="{Binding IsOpen}" Classes.exploded="{Binding IsExploded}"
-                              Classes.n1="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}"
-                              Classes.n2="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}"
-                              Classes.n3="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}"
-                              Classes.n4="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}"
-                              Classes.n5="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=5}"
-                              Command="{Binding OpenCommand}" AutomationProperties.Name="{Binding Name}">
-                        <Panel>
-                          <TextBlock Text="{Binding Text}" />
-                          <Path Classes="mineflag" Data="{StaticResource IconMarkFlag}" IsVisible="{Binding ShowsFlag}" />
-                          <Path Classes="minewrong" Data="{StaticResource IconClose}" IsVisible="{Binding IsWrongFlag}" />
-                          <Ellipse Classes="mine" IsVisible="{Binding ShowsMine}" />
-                        </Panel>
-                      </Button>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <Border Classes="gamesurface">
+                  <ItemsControl ItemsSource="{Binding Squares}" AutomationProperties.Name="Minefield"
+                                XYFocus.NavigationModes="Keyboard" KeyboardNavigation.TabNavigation="Once">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <UniformGrid Columns="{x:Static games:Minesweeper.Columns}" Rows="{x:Static games:Minesweeper.Rows}" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:MinesweeperSquare">
+                        <Button Classes="boardcell minesquare" Classes.open="{Binding IsOpen}" Classes.exploded="{Binding IsExploded}"
+                                Classes.n1="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=1}"
+                                Classes.n2="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=2}"
+                                Classes.n3="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=3}"
+                                Classes.n4="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=4}"
+                                Classes.n5="{Binding Text, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=5}"
+                                Command="{Binding OpenCommand}" AutomationProperties.Name="{Binding Name}">
+                          <Border Classes="minecell">
+                            <Panel>
+                              <TextBlock Text="{Binding Text}" />
+                              <Path Classes="mineflag" Data="{StaticResource IconMarkFlag}" IsVisible="{Binding ShowsFlag}" />
+                              <Path Classes="minewrong" Data="{StaticResource IconClose}" IsVisible="{Binding IsWrongFlag}" />
+                              <Ellipse Classes="mine" IsVisible="{Binding ShowsMine}" />
+                            </Panel>
+                          </Border>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Border>
               </StackPanel>
             </DataTemplate>
 
@@ -205,7 +249,7 @@
                           ToolTip.Tip="{Binding HurryTip}" VerticalAlignment="Center" />
                 </Grid>
                 <!-- The squares touch, so pipes side by side join; under the pointer, one shows the piece a click would lay -->
-                <Border Classes="pipeboard">
+                <Border Classes="gamesurface pipeboard">
                   <ItemsControl ItemsSource="{Binding Squares}" AutomationProperties.Name="Pipeline"
                                 XYFocus.NavigationModes="Keyboard" KeyboardNavigation.TabNavigation="Once">
                     <ItemsControl.ItemsPanel>
@@ -215,7 +259,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                       <DataTemplate DataType="vm:PipeSquare">
-                        <Button Classes="pipesquare" Command="{Binding LayCommand}" AutomationProperties.Name="{Binding Name}">
+                        <Button Classes="boardcell pipesquare" Command="{Binding LayCommand}" AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Tip}">
                           <views:PipeTile Classes="pipe" Piece="{Binding Piece}" Opening="{Binding Opening}" Flows="{Binding Flows}" Spill="{Binding Spill}"
                                           Countdown="{Binding Countdown}"
                                           Ghost="{Binding $parent[ItemsControl].((vm:PipelineViewModel)DataContext).Next[0].Piece, FallbackValue={x:Static games:PipeKind.Empty}}" />

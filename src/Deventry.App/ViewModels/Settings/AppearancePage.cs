@@ -112,9 +112,9 @@ public sealed class AppearancePage : SettingsPage
                 "Now and then she holds up a tip, such as a shortcut you might not know.",
                 "At most every ten minutes, and never while you're typing.", ["joulene", "hints"]),
             Setting("appearance.gamesWithJoulene", "Games with Joulene", s => s.Appearance.GamesWithJoulene, (s, v) => s.Appearance.GamesWithJoulene = v,
-                "Tic-tac-toe, Connect Four, hangman, Minesweeper or Pipeline against her while Claude works.",
+                "Tic-tac-toe, Four in a Row, hangman, Minesweeper or Pipeline against her while Claude works.",
                 "Or while a usage limit holds a task. Start one by right-clicking her, from the command palette, or from the usage limit bar; it opens in the Games tool window. She plays whether or not she's on the composer.",
-                ["play", "tic-tac-toe", "connect four", "hangman", "minesweeper", "pipeline", "pipes"]),
+                ["play", "tic-tac-toe", "four in a row", "hangman", "minesweeper", "pipeline", "pipes"]),
         ]);
         context.SettingsSaved += OnPreviewSettingsSaved;
         context.AllPagesChanged += OnPreviewSettingsSaved;
@@ -300,7 +300,7 @@ public sealed class AppearancePage : SettingsPage
         set => Set(value, v => Settings.Appearance.JouleneTips = v);
     }
 
-    /// <summary>Tic-tac-toe, Connect Four, hangman, Minesweeper and Pipeline against her (DESIGN.md §18, "Games with Joulene").</summary>
+    /// <summary>Tic-tac-toe, Four in a Row, hangman, Minesweeper and Pipeline against her (DESIGN.md §18, "Games with Joulene").</summary>
     public bool GamesWithJoulene
     {
         get => Settings.Appearance.GamesWithJoulene;
