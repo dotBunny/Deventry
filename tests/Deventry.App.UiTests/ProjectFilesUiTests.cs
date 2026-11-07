@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using AvaloniaEdit;
 using Deventry.App.Services;
@@ -182,6 +183,27 @@ public sealed class ProjectFilesUiTests
         Assert.Equal(File.ReadAllText(player), Editor(window).Document.Text);
         window.Close();
         await Verify(shown);
+    }
+
+    /// <summary>
+    /// The preview tab's name is in italics (DESIGN.md §18, "Preview"), and whole (#126): Inter has no italic face, so its
+    /// italics are Inter slanted, whose tall letters lean past the name's width, and the label clipped there, cutting the
+    /// top off the d of the-crawl.md. Headless drawing has no slant to see, so this checks that the label doesn't clip.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task The_preview_tabs_name_is_in_italics_that_draw_past_its_width()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var (_, files, _, window) = await ShowAsync(h);
+        var crawl = Write(Path.Combine(h.WorkFolder, "the-crawl.md"), "# The crawl\n");
+
+        var file = await files.OpenFileAsync(crawl, preview: true);
+        UiText.Settle(window);
+
+        Assert.True(file.IsPreview);
+        var label = View(window).GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("tablabel") && t.Text == "the-crawl.md");
+        Assert.Equal((FontStyle.Italic, false), (label.FontStyle, label.ClipToBounds));
+        window.Close();
     }
 
     [AvaloniaFact]

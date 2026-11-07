@@ -392,6 +392,22 @@
     <Style Selector="controls|AppearanceScope.claude Border.rowbadge">
       <Setter Property="CornerRadius" Value="8" />
     </Style>
+    <!-- Subagents running: the chip in the accent, as their rows' highlight is -->
+    <Style Selector="Border.rowbadge.agents">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentStatusBrush}" />
+    </Style>
+    <Style Selector="TextBlock.agentsbadge">
+      <Setter Property="Foreground" Value="{DynamicResource AccentStatusBrush}" />
+    </Style>
+    <Style Selector="Path.agentsbadgeicon">
+      <Setter Property="Stroke" Value="{DynamicResource AccentStatusBrush}" />
+      <Setter Property="StrokeThickness" Value="1.1" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="Width" Value="8" />
+      <Setter Property="Height" Value="8" />
+      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
   </UserControl.Styles>
 
   <!-- Settings → Appearance → Density (DESIGN.md §14): "compact" tightens the rows, the conversation and the composer,
@@ -672,7 +688,7 @@
                                       <!-- Tasks still running once the turn is over (DESIGN.md §4, "Sidebar"; §5, "Running tasks") -->
                                       <Border x:Name="TaskBadge" DockPanel.Dock="Left" Classes="taskbadge" IsVisible="{Binding ShowTaskBadge}" VerticalAlignment="Center" Margin="0,0,5,0"
                                               ToolTip.Tip="{Binding TaskBadgeTip}" AutomationProperties.Name="{Binding TaskBadgeTip}">
-                                        <TextBlock Text="{Binding RunningTaskCount}" />
+                                        <TextBlock Text="{Binding RowTaskCount}" />
                                       </Border>
                                       <!-- What the collapsed row hides: how many rows, and the most urgent of them (DESIGN.md §4, "Sidebar") -->
                                       <Border x:Name="FoldBadge" DockPanel.Dock="Right" Classes="foldbadge" Margin="5,0,0,0" VerticalAlignment="Center" IsVisible="{Binding AreRowsCollapsed}"
@@ -710,6 +726,16 @@
                                   <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto">
                                     <DockPanel>
                                       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" Margin="6,0,0,0">
+                                        <!-- Subagents still running, the turn over or not (DESIGN.md §4, "Sidebar"): shows them -->
+                                        <Button x:Name="AgentsBadge" Classes="flat rowbadge" IsVisible="{Binding ShowsAgentsBadge}" Command="{Binding ShowAgentsFromRowCommand}"
+                                                ToolTip.Tip="{Binding AgentsBadgeTip}" AutomationProperties.Name="{Binding AgentsBadgeTip}">
+                                          <Border Classes="rowbadge agents">
+                                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                              <Path Classes="agentsbadgeicon" Data="{StaticResource IconToolAgent}" />
+                                              <TextBlock Classes="small agentsbadge" Text="{Binding AgentsBadge}" />
+                                            </StackPanel>
+                                          </Border>
+                                        </Button>
                                         <!-- How far Claude's tasks have got (DESIGN.md §5, "Tasks"): selects the tab and opens the Tasks page -->
                                         <Button x:Name="TaskProgressBadge" Classes="flat rowbadge" IsVisible="{Binding ShowTaskProgressBadge}" Command="{Binding ShowTasksFromRowCommand}"
                                                 ToolTip.Tip="{Binding TodoList.ProgressTip}" AutomationProperties.Name="{Binding TodoList.ProgressTip}">
@@ -922,10 +948,10 @@
                                             ToolTip.Tip="{Binding Tip}" ToolTip.Placement="Right" AutomationProperties.Name="{Binding Node.Title}">
                                       <Panel>
                                       <!-- With Tab activity's colored rows, the tab row's washes for the subagent (DESIGN.md §4, "Sidebar") -->
-                                      <controls:WorkBar Classes="rowglow agentglow" IsVisible="{Binding ShowsWorkBar}" BarBrush="{DynamicResource AccentStatusBrush}" />
-                                      <Border Classes="rowglow agentglow waitglow" IsVisible="{Binding ShowsWaitBlink}" />
-                                      <Border Classes="rowglow agentglow doneglow" IsVisible="{Binding ShowsDoneBar}" />
-                                      <Border Classes="rowglow agentglow errorglow" IsVisible="{Binding ShowsErrorBar}" />
+                                      <controls:WorkBar Classes="rowglow" IsVisible="{Binding ShowsWorkBar}" BarBrush="{DynamicResource AccentStatusBrush}" />
+                                      <Border Classes="rowglow waitglow" IsVisible="{Binding ShowsWaitBlink}" />
+                                      <Border Classes="rowglow doneglow" IsVisible="{Binding ShowsDoneBar}" />
+                                      <Border Classes="rowglow errorglow" IsVisible="{Binding ShowsErrorBar}" />
                                       <Grid ColumnSpacing="{Binding GlyphSpacing}">
                                         <Grid.ColumnDefinitions>
                                           <ColumnDefinition Width="{Binding GlyphWidth}" />
@@ -942,6 +968,7 @@
                                             <TextBlock Classes="runname" Text="{Binding Node.Title}" TextTrimming="CharacterEllipsis" />
                                           </DockPanel>
                                           <TextBlock Classes="muted rundetail" Classes.warning="{Binding Node.IsWaiting}" Classes.error="{Binding Node.IsFailed}"
+                                                     Classes.running="{Binding Node.IsRunning}" Classes.done="{Binding Node.IsDone}"
                                                      Text="{Binding Node.Subtitle}" TextTrimming="CharacterEllipsis" />
                                         </StackPanel>
                                         <Panel Grid.Column="2" VerticalAlignment="Top">

@@ -266,6 +266,22 @@ public sealed class GamesState
 
     /// <summary>The level chosen for each game that has levels, by name.</summary>
     public Dictionary<string, string> Levels { get; set; } = [];
+
+    /// <summary>
+    /// A game's score and level kept under <paramref name="from"/>, a name it no longer has, move to <paramref name="to"/>;
+    /// unless it has some there already, which stay.
+    /// </summary>
+    public void Rename(string from, string to)
+    {
+        if (Scores.Remove(from, out var score))
+        {
+            Scores.TryAdd(to, score);
+        }
+        if (Levels.Remove(from, out var level))
+        {
+            Levels.TryAdd(to, level);
+        }
+    }
 }
 
 /// <summary>A game's rounds so far against Joulene, from the user's side.</summary>

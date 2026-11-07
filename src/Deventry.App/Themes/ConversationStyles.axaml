@@ -5,6 +5,7 @@
         xmlns:ae="using:AvaloniaEdit"
         xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
         xmlns:controls="using:Deventry.App.Controls"
+        xmlns:views="using:Deventry.App.Views"
         xmlns:vm="using:Deventry.App.ViewModels">
   <!-- "Jump to latest" (DESIGN.md §5): an accent pill lifted off the conversation. A plain button's fill is see-through
        in the dark theme, so the text under it showed through and it was hard to find. -->
@@ -403,6 +404,12 @@
     <Setter Property="Margin" Value="0,4,0,0" />
     <Setter Property="Padding" Value="0,4,0,0" />
   </Style>
+  <!-- What Claude thought, in a thinking card or a step's line: in italics, which lean past the text's width (Inter has
+       no italic face, so they're Inter slanted) and would lose a tall last letter's top if the text clipped there. -->
+  <Style Selector="SelectableTextBlock.thought">
+    <Setter Property="FontStyle" Value="Italic" />
+    <Setter Property="ClipToBounds" Value="False" />
+  </Style>
   <!-- A thinking card's or a hook's row that opens it, and a subagent's. -->
   <Style Selector="controls|AppearanceScope.compact controls|ConversationPanel.conversation Button.row">
     <Setter Property="Padding" Value="4,0" />
@@ -550,8 +557,10 @@
   <Style Selector="controls|AppearanceScope.claude TextBox.scratchpad">
     <Setter Property="CornerRadius" Value="10" />
   </Style>
-  <!-- Games with Joulene (DESIGN.md §18): the boards, the gallows, the letters and the minefield. The user's marks,
-       pieces and flags are blue, hers rose, as her mines are; the pieces that win are ringed in gold. -->
+  <!-- Games with Joulene (DESIGN.md §18). Each board is one surface, its squares buttons with no look of their own: a slot
+       sunk into the board for a square to play on, a tile raised off it for a key or a square still shut, each lighter
+       under the pointer or the keyboard's focus. The user's marks, pieces and flags are blue, hers berry, as her mines are;
+       what wins is gold, struck through or ringed. -->
   <Style Selector="StackPanel.gameheader">
     <Setter Property="Margin" Value="12,10,12,8" />
     <Setter Property="Spacing" Value="8" />
@@ -564,47 +573,87 @@
     <Setter Property="Margin" Value="12,14,16,12" />
     <Setter Property="Spacing" Value="6" />
   </Style>
-  <Style Selector="Button.gamesquare">
-    <Setter Property="Width" Value="64" />
-    <Setter Property="Height" Value="64" />
-    <Setter Property="Margin" Value="2" />
+  <Style Selector="Border.gamesurface">
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Padding" Value="3" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{DynamicResource SubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.gamesurface">
+    <Setter Property="CornerRadius" Value="14" />
+  </Style>
+  <Style Selector="Button.boardcell">
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Margin" Value="0" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
   </Style>
-  <Style Selector="controls|AppearanceScope.claude Button.gamesquare">
-    <Setter Property="CornerRadius" Value="12" />
+  <Style Selector="Button.boardcell /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
   </Style>
-  <Style Selector="Button.gamesquare.winning">
-    <Setter Property="Background" Value="{DynamicResource SelectedRowBrush}" />
+  <Style Selector="Border.slot">
+    <Setter Property="Margin" Value="2" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="Background" Value="{DynamicResource GameSlotBrush}" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.slot">
+    <Setter Property="CornerRadius" Value="11" />
+  </Style>
+  <Style Selector="Button.boardcell:pointerover Border.slot, Button.boardcell:focus-visible Border.slot">
+    <Setter Property="Background" Value="{DynamicResource GameSlotHotBrush}" />
+  </Style>
+  <!-- Tic-tac-toe: three slots of 72 by three, which fits the right side at its narrowest; a faint ✕ in an empty one under
+       the pointer while it's the user's move -->
+  <Style Selector="Button.gamesquare">
+    <Setter Property="Width" Value="72" />
+    <Setter Property="Height" Value="72" />
   </Style>
   <Style Selector="Path.gamex">
     <Setter Property="Stroke" Value="{DynamicResource GameYouBrush}" />
-    <Setter Property="StrokeThickness" Value="3.5" />
+    <Setter Property="StrokeThickness" Value="5" />
     <Setter Property="StrokeLineCap" Value="Round" />
-    <Setter Property="Width" Value="26" />
-    <Setter Property="Height" Value="26" />
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
     <Setter Property="Stretch" Value="Uniform" />
+  </Style>
+  <Style Selector="Path.gamex.ghost">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="Button.gamesquare:pointerover Path.gamex.ghost, Button.gamesquare:focus-visible Path.gamex.ghost">
+    <Setter Property="Opacity" Value="0.3" />
   </Style>
   <Style Selector="Ellipse.gameo">
     <Setter Property="Stroke" Value="{DynamicResource GameJouleneBrush}" />
-    <Setter Property="StrokeThickness" Value="3.5" />
-    <Setter Property="Width" Value="28" />
-    <Setter Property="Height" Value="28" />
+    <Setter Property="StrokeThickness" Value="5" />
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
   </Style>
-  <Style Selector="Button.gamecolumn">
+  <Style Selector="views|GameStrike.strike">
+    <Setter Property="Brush" Value="{DynamicResource MarkStarBrush}" />
+    <Setter Property="Thickness" Value="6" />
+  </Style>
+  <!-- Four in a Row: seven lanes of six holes; a lane under the pointer lights up, with the user's piece faint where it
+       would land -->
+  <Style Selector="Border.lane">
     <Setter Property="Padding" Value="3" />
-    <Setter Property="MinWidth" Value="0" />
-    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="CornerRadius" Value="8" />
   </Style>
-  <Style Selector="controls|AppearanceScope.claude Button.gamecolumn">
-    <Setter Property="CornerRadius" Value="14" />
+  <Style Selector="controls|AppearanceScope.claude Border.lane">
+    <Setter Property="CornerRadius" Value="15" />
+  </Style>
+  <Style Selector="Button.gamecolumn:pointerover Border.lane, Button.gamecolumn:focus-visible Border.lane">
+    <Setter Property="Background" Value="{DynamicResource GameSlotHotBrush}" />
   </Style>
   <Style Selector="Ellipse.gamepiece">
     <Setter Property="Width" Value="24" />
     <Setter Property="Height" Value="24" />
-    <Setter Property="Fill" Value="{DynamicResource DividerBrush}" />
+    <Setter Property="Fill" Value="{DynamicResource GameSlotBrush}" />
   </Style>
   <Style Selector="Ellipse.gamepiece.yours">
     <Setter Property="Fill" Value="{DynamicResource GameYouBrush}" />
@@ -612,10 +661,21 @@
   <Style Selector="Ellipse.gamepiece.hers">
     <Setter Property="Fill" Value="{DynamicResource GameJouleneBrush}" />
   </Style>
+  <Style Selector="Button.gamecolumn:pointerover Ellipse.gamepiece.drop, Button.gamecolumn:focus-visible Ellipse.gamepiece.drop">
+    <Setter Property="Fill" Value="{DynamicResource GameYouBrush}" />
+    <Setter Property="Opacity" Value="0.35" />
+  </Style>
   <Style Selector="Ellipse.gamepiece.winning">
     <Setter Property="Stroke" Value="{DynamicResource MarkStarBrush}" />
     <Setter Property="StrokeThickness" Value="3" />
   </Style>
+  <Style Selector="Ellipse.lastdot">
+    <Setter Property="Width" Value="7" />
+    <Setter Property="Height" Value="7" />
+    <Setter Property="Fill" Value="{DynamicResource SubtleBrush}" />
+  </Style>
+  <!-- Hangman: the gallows; the word a letter at a time on its lines, and once she's won the letters not guessed in her
+       colour; the letters to guess with as keys raised off a board, sunk once guessed, green in the word and faded not -->
   <Style Selector="Line.gallows">
     <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="StrokeThickness" Value="3" />
@@ -626,56 +686,91 @@
     <Setter Property="StrokeThickness" Value="2.5" />
     <Setter Property="StrokeLineCap" Value="Round" />
   </Style>
-  <Style Selector="TextBlock.hangmanword">
+  <Style Selector="Border.wordslot">
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="BorderThickness" Value="0,0,0,2" />
+    <Setter Property="BorderBrush" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+  <Style Selector="Border.wordslot > TextBlock">
     <Setter Property="FontFamily" Value="{DynamicResource MonoFont}" />
     <Setter Property="FontSize" Value="20" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Bottom" />
+  </Style>
+  <Style Selector="Border.wordslot.missed > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource GameJouleneBrush}" />
   </Style>
   <Style Selector="Button.gameletter">
     <Setter Property="Width" Value="28" />
-    <Setter Property="Height" Value="30" />
-    <Setter Property="MinWidth" Value="0" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Height" Value="32" />
     <Setter Property="FontFamily" Value="{DynamicResource MonoFont}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
-  <Style Selector="controls|AppearanceScope.claude Button.gameletter">
+  <Style Selector="Border.key">
+    <Setter Property="Margin" Value="2" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Background" Value="{DynamicResource GameTileBrush}" />
+    <Setter Property="BoxShadow" Value="0 1 1 0 #33000000" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.key">
     <Setter Property="CornerRadius" Value="8" />
   </Style>
-  <Style Selector="Button.gameletter.found">
+  <Style Selector="Border.key > TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.gameletter:pointerover Border.key, Button.gameletter:focus-visible Border.key">
+    <Setter Property="Background" Value="{DynamicResource GameTileHotBrush}" />
+  </Style>
+  <Style Selector="Button.gameletter.guessed">
+    <Setter Property="Cursor" Value="Arrow" />
+  </Style>
+  <Style Selector="Button.gameletter.guessed Border.key">
+    <Setter Property="Background" Value="{DynamicResource GameSlotBrush}" />
+    <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+  </Style>
+  <Style Selector="Button.gameletter.found Border.key > TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource OkTextBrush}" />
     <Setter Property="FontWeight" Value="Bold" />
   </Style>
-  <Style Selector="Button.gameletter.missed">
+  <Style Selector="Button.gameletter.missed Border.key > TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
-    <Setter Property="Opacity" Value="0.55" />
+    <Setter Property="Opacity" Value="0.5" />
   </Style>
-  <!-- Minesweeper: the squares shut are buttons, those open lie flat, their numbers in the classic colors -->
-  <!-- Nine of them fit the right side at its narrowest -->
+  <!-- Minesweeper: nine squares of 24 by nine, which fits the right side at its narrowest; still shut, raised off the
+       board, and open, sunk into it, their numbers in the classic colors -->
   <Style Selector="Button.minesquare">
-    <Setter Property="Width" Value="22" />
-    <Setter Property="Height" Value="22" />
-    <Setter Property="MinWidth" Value="0" />
-    <Setter Property="MinHeight" Value="0" />
-    <Setter Property="Margin" Value="1" />
-    <Setter Property="Padding" Value="0" />
-    <Setter Property="CornerRadius" Value="4" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
     <Setter Property="FontFamily" Value="{DynamicResource MonoFont}" />
     <Setter Property="FontWeight" Value="Bold" />
   </Style>
-  <Style Selector="controls|AppearanceScope.claude Button.minesquare">
+  <Style Selector="Border.minecell">
+    <Setter Property="Margin" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="{DynamicResource GameTileBrush}" />
+    <Setter Property="BoxShadow" Value="0 1 1 0 #33000000" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.minecell">
     <Setter Property="CornerRadius" Value="7" />
   </Style>
-  <Style Selector="Button.minesquare.open /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Background" Value="{DynamicResource SubtleBrush}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
-    <Setter Property="BorderThickness" Value="1" />
+  <Style Selector="Border.minecell > Panel">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <Style Selector="Button.minesquare.exploded /template/ ContentPresenter#PART_ContentPresenter">
+  <Style Selector="Button.minesquare:pointerover Border.minecell, Button.minesquare:focus-visible Border.minecell">
+    <Setter Property="Background" Value="{DynamicResource GameTileHotBrush}" />
+  </Style>
+  <Style Selector="Button.minesquare.open Border.minecell">
+    <Setter Property="Background" Value="{DynamicResource GameSlotBrush}" />
+    <Setter Property="BoxShadow" Value="0 0 0 0 #00000000" />
+  </Style>
+  <Style Selector="Button.minesquare.open:pointerover Border.minecell, Button.minesquare.open:focus-visible Border.minecell">
+    <Setter Property="Background" Value="{DynamicResource GameSlotHotBrush}" />
+  </Style>
+  <Style Selector="Button.minesquare.exploded Border.minecell">
     <Setter Property="Background" Value="{DynamicResource DiffRemovedBrush}" />
   </Style>
   <Style Selector="Button.minesquare.n1 /template/ ContentPresenter#PART_ContentPresenter">
@@ -714,6 +809,52 @@
     <Setter Property="Width" Value="11" />
     <Setter Property="Height" Value="11" />
     <Setter Property="Fill" Value="{DynamicResource GameJouleneBrush}" />
+  </Style>
+  <!-- Pipeline: eight squares by eight, which fits the right side at its narrowest. The squares touch, each drawing its
+       slot, so pipes side by side join; one under the pointer lights its slot and shows the next piece. The pipes are the
+       user's blue; the flow and her tap are hers, her cup gold. -->
+  <Style Selector="Border.pipeboard">
+    <Setter Property="Padding" Value="2" />
+  </Style>
+  <Style Selector="Button.pipesquare">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+  </Style>
+  <Style Selector="Button.pipesquare:pointerover views|PipeTile, Button.pipesquare:focus-visible views|PipeTile">
+    <Setter Property="IsHot" Value="True" />
+  </Style>
+  <Style Selector="views|PipeTile.pipe">
+    <Setter Property="SlotBrush" Value="{DynamicResource GameSlotBrush}" />
+    <Setter Property="SlotHotBrush" Value="{DynamicResource GameSlotHotBrush}" />
+    <Setter Property="PipeBrush" Value="{DynamicResource GameYouBrush}" />
+    <Setter Property="FlowBrush" Value="{DynamicResource GameJouleneBrush}" />
+    <Setter Property="RockBrush" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="GoalBrush" Value="{DynamicResource MarkStarBrush}" />
+  </Style>
+  <!-- The pieces to come, the next larger and ringed in the accent -->
+  <Style Selector="Border.pipepiece">
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="20" />
+    <Setter Property="Padding" Value="1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource SubtleBrush}" />
+  </Style>
+  <Style Selector="Border.pipepiece.next">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="Padding" Value="2" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="1.5" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentStatusBrush}" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.pipepiece">
+    <Setter Property="CornerRadius" Value="6" />
+  </Style>
+  <Style Selector="controls|AppearanceScope.claude Border.pipepiece.next">
+    <Setter Property="CornerRadius" Value="9" />
   </Style>
   <!-- A code block's Add to scratch pad: in a tab, not in the agent map's own window, which has no pad -->
   <Style Selector="md|CodeBlock /template/ Button#AddToScratchPadButton">

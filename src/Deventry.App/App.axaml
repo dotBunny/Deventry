@@ -44,9 +44,13 @@
     <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
     <!-- LiveMarkdown brings its own fonts (Arial for text, Consolas for code); use the conversation's and code's from
          Settings → Appearance instead. Later styles win, so these follow the include. -->
-    <!-- Claude's replies: the conversation font, or a serif in the Claude style (DESIGN.md §3, "Visual style"). -->
+    <!-- Claude's replies: the conversation font, or a serif in the Claude style (DESIGN.md §3, "Visual style"). Italics
+         lean past the width the text was measured at, Inter's most, which has no italic face and is slanted, so the text
+         doesn't clip there: a table's cell is as wide as its text, and *optional* in one lost its l's top. Text wraps to
+         its block, so nothing else draws past it; a code block's scroll viewer clips its code. -->
     <Style Selector="md|MarkdownTextBlock">
       <Setter Property="FontFamily" Value="{DynamicResource ReplyFont}" />
+      <Setter Property="ClipToBounds" Value="False" />
     </Style>
     <!-- Syntax colors for the theme: LiveMarkdown's default is DarkPlus, in light mode too. Set through
          views:CodeBlockTheme, which re-highlights a block that's already shown without losing its code. -->
@@ -279,10 +283,6 @@
       <Setter Property="Border.CornerRadius" Value="{Binding $parent[Button].CornerRadius}" />
       <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
-    <!-- A subagent's row: the wash starts at its icon, under its tab's name, rather than out in the row's padding -->
-    <Style Selector="controls|WorkBar.agentglow, Border.agentglow">
-      <Setter Property="Margin" Value="{Binding $parent[Button].Padding, Converter={x:Static vm:Converters.OutsetFromIcon}}" />
-    </Style>
     <Style Selector=":is(Window).reducemotion controls|WorkBar">
       <Setter Property="IsStill" Value="True" />
     </Style>
@@ -355,6 +355,13 @@
     </Style>
     <Style Selector="TextBlock.rundetail">
       <Setter Property="FontSize" Value="11" />
+    </Style>
+    <!-- A subagent's row says what it's doing in the accent while it runs, and how it ended in green once it's done -->
+    <Style Selector="TextBlock.rundetail.running">
+      <Setter Property="Foreground" Value="{DynamicResource AccentStatusBrush}" />
+    </Style>
+    <Style Selector="TextBlock.rundetail.done">
+      <Setter Property="Foreground" Value="{DynamicResource OkTextBrush}" />
     </Style>
     <!-- A tab's editor logs, under its row before its runs (DESIGN.md §18, "Editor logs"): rows as runs have, with the log
          icon in the accent while its process runs, and muted once it has ended. -->
@@ -463,12 +470,13 @@
       <Setter Property="FontWeight" Value="Bold" />
     </Style>
 
-    <!-- A tab's mark (DESIGN.md §4, "Marks"), drawn by MarkIcon: each in its own color. The check, cross and question
-         mark are lines; the star, flag and pause sign are filled. -->
+    <!-- A tab's mark (DESIGN.md §4, "Marks"), drawn by MarkIcon: each in its own color, all at one scale from the grid
+         their icons are drawn on, which MarkIcon fits to the box, so none is stretched taller than the others. The check,
+         cross and question mark are lines; the star, flag and pause sign are filled. -->
     <Style Selector="Path.mark">
       <Setter Property="Width" Value="10" />
       <Setter Property="Height" Value="10" />
-      <Setter Property="Stretch" Value="Uniform" />
+      <Setter Property="Stretch" Value="None" />
       <Setter Property="StrokeThickness" Value="1.5" />
       <Setter Property="StrokeLineCap" Value="Round" />
       <Setter Property="StrokeJoin" Value="Round" />
@@ -801,6 +809,11 @@
           <!-- Games with Joulene (DESIGN.md §18): the user's marks and pieces blue, hers in her rose. -->
           <SolidColorBrush x:Key="GameYouBrush" Color="#2A78D6" />
           <SolidColorBrush x:Key="GameJouleneBrush" Color="#A85E74" />
+          <!-- A game's board: its slots sunk into it, its keys and shut squares raised off it, each lighter under the pointer. -->
+          <SolidColorBrush x:Key="GameSlotBrush" Color="#E9EBEE" />
+          <SolidColorBrush x:Key="GameSlotHotBrush" Color="#DFE1E5" />
+          <SolidColorBrush x:Key="GameTileBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="GameTileHotBrush" Color="#F1F3F6" />
           <SolidColorBrush x:Key="AccentStatusBrush" Color="#3574F0" />
           <SolidColorBrush x:Key="CautionBorderBrush" Color="#D9A400" />
           <SolidColorBrush x:Key="CautionBackgroundBrush" Color="#FFF6D6" />
@@ -931,6 +944,10 @@
           <SolidColorBrush x:Key="MarkStarBrush" Color="#F5B83D" />
           <SolidColorBrush x:Key="GameYouBrush" Color="#5B9BD5" />
           <SolidColorBrush x:Key="GameJouleneBrush" Color="#E29AAE" />
+          <SolidColorBrush x:Key="GameSlotBrush" Color="#26282B" />
+          <SolidColorBrush x:Key="GameSlotHotBrush" Color="#303236" />
+          <SolidColorBrush x:Key="GameTileBrush" Color="#393B40" />
+          <SolidColorBrush x:Key="GameTileHotBrush" Color="#45474D" />
           <SolidColorBrush x:Key="AccentStatusBrush" Color="#548AF7" />
           <SolidColorBrush x:Key="CautionBorderBrush" Color="#8A6D00" />
           <SolidColorBrush x:Key="CautionBackgroundBrush" Color="#2B2610" />

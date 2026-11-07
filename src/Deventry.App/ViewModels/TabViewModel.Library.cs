@@ -244,13 +244,17 @@ public sealed partial class TabViewModel
     /// never write the same session (DESIGN.md §9, "One machine at a time").
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsReadOnly), nameof(CanSyncNow), nameof(SyncNowTip))]
-    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(SyncNowCommand))]
+    [NotifyPropertyChangedFor(nameof(IsReadOnly), nameof(CanSyncNow), nameof(SyncNowTip), nameof(CanRestart))]
+    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(SyncNowCommand), nameof(RestartCommand))]
     public partial string? TakenOverBy { get; set; }
 
     public bool IsReadOnly => TakenOverBy is not null;
 
-    public string ReadOnlyText => $"This session continued on {TakenOverBy}. The tab is read-only here; open it again from History to continue on this machine.";
+    /// <summary>
+    /// The banner in place of the composer. History only selects a tab already open on the session, so carrying it on here
+    /// takes closing this one first.
+    /// </summary>
+    public string ReadOnlyText => $"This session continued on {TakenOverBy}. The tab is read-only here; to continue on this machine, close it and open the session again from History.";
 
     public Task OnTakenOverAsync(string machine) => BecomeReadOnlyAsync(machine, $"This session was taken over by {machine}.");
 

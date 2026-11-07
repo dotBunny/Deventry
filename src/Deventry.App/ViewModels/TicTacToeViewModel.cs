@@ -4,8 +4,11 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Deventry.App.ViewModels;
 
-/// <summary>Tic-tac-toe against Joulene (DESIGN.md §18, "Games with Joulene"): the user is ✕, she's ○.</summary>
-public sealed class TicTacToeViewModel : GameViewModel
+/// <summary>
+/// Tic-tac-toe against Joulene (DESIGN.md §18, "Games with Joulene"): the user is ✕, she's ○. The three in a row that
+/// win are struck through.
+/// </summary>
+public sealed partial class TicTacToeViewModel : GameViewModel
 {
     private static readonly string[] SquareNames =
         ["top left", "top middle", "top right", "middle left", "middle", "middle right", "bottom left", "bottom middle", "bottom right"];
@@ -15,6 +18,17 @@ public sealed class TicTacToeViewModel : GameViewModel
     public TicTacToeViewModel(IGameHost host) : base(host, GameKind.TicTacToe)
     {
         Squares = [.. Enumerable.Range(0, TicTacToe.Size).Select(i => new TicTacToeSquare(this, i))];
+        // An empty square shows a faint ✕ under the pointer only while the user can play it.
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(IsYourTurn))
+            {
+                foreach (var square in Squares)
+                {
+                    square.OnTurnChanged();
+                }
+            }
+        };
         NewRound();
     }
 
@@ -25,6 +39,15 @@ public sealed class TicTacToeViewModel : GameViewModel
 
     /// <summary>The nine squares, row by row from the top left.</summary>
     public IReadOnlyList<TicTacToeSquare> Squares { get; }
+
+    /// <summary>The first square of the three in a row that won, which the strike starts at; -1 till someone has.</summary>
+    [ObservableProperty]
+    public partial int StrikeFrom { get; private set; } = -1;
+
+    /// <summary>The last of them, which the strike ends at.</summary>
+    [ObservableProperty]
+    public partial int StrikeTo { get; private set; } = -1;
+
 
     /// <summary>"the top left", for her moves and the squares' names.</summary>
     public static string SquareName(int square) => SquareNames[square];
@@ -114,6 +137,7 @@ public sealed class TicTacToeViewModel : GameViewModel
             square.Owner = _board[square.Index];
             square.IsWinning = line.Contains(square.Index);
         }
+        (StrikeFrom, StrikeTo) = line.Length > 0 ? (line[0], line[^1]) : (-1, -1);
     }
 }
 
@@ -123,8 +147,13 @@ public sealed partial class TicTacToeSquare(TicTacToeViewModel game, int index) 
     public int Index => index;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsYours), nameof(IsHers), nameof(Name))]
+    [NotifyPropertyChangedFor(nameof(IsYours), nameof(IsHers), nameof(Name), nameof(CanPlay))]
     public partial Player Owner { get; internal set; }
+
+    /// <summary>It's empty and the user can play: under the pointer it shows a faint ✕.</summary>
+    public bool CanPlay => Owner == Player.None && game.IsYourTurn;
+
+    internal void OnTurnChanged() => OnPropertyChanged(nameof(CanPlay));
 
     /// <summary>One of the three in a row that won.</summary>
     [ObservableProperty]

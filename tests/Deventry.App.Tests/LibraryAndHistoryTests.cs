@@ -622,6 +622,26 @@ public class LibraryAndHistoryTests
     }
 
     [Fact]
+    public async Task A_tab_whose_turns_were_kept_apart_never_starts_again()
+    {
+        await using var h = new TabTestHarness();
+        var first = UserLine("pin-7", "Add the export button", h.WorkFolder);
+        h.WriteTranscript("pin-7", first, UserLine("pin-7", "Here, on the desktop", h.WorkFolder, "2026-09-28T11:00:00Z"));
+        await CarriedOnElsewhereAsync(h, "pin-7", first, UserLine("pin-7", "There, on the laptop", h.WorkFolder, "2026-09-28T12:00:00Z"));
+        var tab = RestorePinned(h, "pin-7");
+        await tab.EnsureStartedAsync();
+        Assert.True(tab.IsReadOnly);
+
+        // Shown again, which starts a tab whose Claude Code isn't running: it stays read-only, offers no Restart, and
+        // leaves the lease for the laptop.
+        await tab.EnsureStartedAsync();
+
+        Assert.False(tab.CanRestart);
+        Assert.Empty(h.Factory.Launches);
+        Assert.IsType<LeaseStatus.Free>(h.Services.Library.CheckLease("pin-7"));
+    }
+
+    [Fact]
     public async Task Turns_that_reach_the_library_after_the_tab_started_are_picked_up_while_it_waits()
     {
         await using var h = new TabTestHarness();

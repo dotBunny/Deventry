@@ -55,7 +55,30 @@ public sealed class MarkIcon : Path
         }
         Classes.Set("reviewed", IsReviewed);
         var key = IsReviewed ? "IconMarkReviewed" : shown is { } chosen ? $"IconMark{chosen}" : null;
-        Data = key is not null && Application.Current?.TryFindResource(key, out var icon) == true ? icon as Geometry : null;
+        Data = key is not null && Application.Current?.TryFindResource(key, out var icon) == true && icon is Geometry geometry ? OnGrid(geometry) : null;
         IsVisible = key is not null;
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == WidthProperty || change.Property == HeightProperty)
+        {
+            Show();
+        }
+    }
+
+    /// <summary>
+    /// The icon drawn at one scale for every mark, its 12×12 grid to the box's size (the <c>Path.mark</c> styles don't
+    /// stretch it): stretched to fill the box instead, a tall, narrow question mark stood taller than the others, and the
+    /// cross larger. The stroke keeps its thickness.
+    /// </summary>
+    private Geometry OnGrid(Geometry icon)
+    {
+        var size = Math.Min(Width, Height);
+        var scale = double.IsNaN(size) ? 1 : size / 12;
+        var drawn = icon.Clone();
+        drawn.Transform = new ScaleTransform(scale, scale);
+        return drawn;
     }
 }

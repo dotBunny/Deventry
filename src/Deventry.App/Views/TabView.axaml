@@ -246,7 +246,7 @@
             </StackPanel>
           </DockPanel>
         </Button>
-        <SelectableTextBlock Classes="muted" FontStyle="Italic" TextWrapping="Wrap" Margin="26,2,6,6" Text="{Binding ThoughtText}" IsVisible="{Binding ShowsThought}" />
+        <SelectableTextBlock Classes="muted thought" TextWrapping="Wrap" Margin="26,2,6,6" Text="{Binding ThoughtText}" IsVisible="{Binding ShowsThought}" />
         <Border Classes="tiledetail" Margin="26,2,6,6" IsVisible="{Binding ShowsTool}">
           <ContentControl Content="{Binding Tool}" ContentTemplate="{StaticResource ToolDetail}" />
         </Border>
@@ -369,7 +369,7 @@
             </ContextMenu>
           </Button.ContextMenu>
         </Button>
-        <SelectableTextBlock Classes="muted" FontStyle="Italic" TextWrapping="Wrap" Margin="22,4,0,2"
+        <SelectableTextBlock Classes="muted thought" TextWrapping="Wrap" Margin="22,4,0,2"
                              Text="{Binding ShownText}" IsVisible="{Binding IsExpanded}" />
       </StackPanel>
       </controls:Card>

@@ -734,8 +734,8 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         var ordered = AllTabs.ToList();
         var index = ordered.IndexOf(tab);
         var group = Groups.FirstOrDefault(g => g.Tabs.Contains(tab));
-        // Its runs' logs go with it (DESIGN.md §18, "Project tools").
-        IShellTab[] going = [tab, .. tab.ProjectTools.Runs.Items];
+        // Its runs' logs go with it (DESIGN.md §18, "Project tools"), and its editor logs (DESIGN.md §18, "Editor logs").
+        IShellTab[] going = [tab, .. tab.ProjectTools.Runs.Items, .. tab.ProjectTools.Logs];
         var hadFocus = Selected is { } focused && going.Contains(focused);
         group?.Tabs.Remove(tab);
         foreach (var gone in going)
@@ -743,7 +743,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
             OpenTabs.Remove(gone);
         }
         RemoveGroupIfEmpty(group);
-        // Its editor logs move to another of the project's tabs, or go (DESIGN.md §18, "Editor logs").
+        CloseEditorLogsOf(tab);
         FollowEditorLogs();
         // A pane closes with its tab; the one beside it takes the focus if it had it (DESIGN.md §18, "Split panes").
         var at = _panes.IndexOf(hadFocus ? Selected! : tab);

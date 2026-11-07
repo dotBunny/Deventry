@@ -561,6 +561,71 @@ public sealed class ConversationCardsUiTests
         window.Close();
     }
 
+    /// <summary>
+    /// Italics aren't cut off at the text's edge (#126). Inter has no italic face, so its italics are Inter slanted, and a
+    /// tall letter's top leans past the width the text was measured at, where a text block clips. Headless drawing has no
+    /// slant to see, so this checks that the thinking's text doesn't clip.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task Thinking_is_in_italics_that_draw_past_the_texts_width()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var tab = await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell });
+        var thinking = new ThinkingItem { IsExpanded = true };
+        thinking.Append("Check the crawl");
+        thinking.IsStreaming = false;
+        tab.Items.Add(thinking);
+        UiText.Settle(window);
+
+        var text = Named(window, "thinking").Single().GetVisualDescendants().OfType<SelectableTextBlock>().Single(b => b.Text == "Check the crawl");
+        Assert.Equal((FontStyle.Italic, false), (text.FontStyle, text.ClipToBounds));
+        window.Close();
+    }
+
+    /// <summary>
+    /// A reply's emphasis and a step's thinking in a folded chain draw past their text's width too (#126), as the
+    /// thinking does: a table's cell is as wide as its text, so <c>*optional*</c> in one lost the top of its l every time.
+    /// Unclipped, nothing may be wider than its block, or it would draw over the next: a long cell wraps.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task A_replys_emphasis_and_a_steps_thinking_draw_past_their_width_and_a_long_cell_still_wraps()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var tab = await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell }, width: 900);
+        h.Services.Settings.Appearance.FoldChains = true;
+        h.Services.SaveSettings();
+        h.Transport.Emit("""{"type":"assistant","message":{"content":[{"type":"thinking","thinking":"One."},{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"a.cs"}}]}}""");
+        h.Transport.Emit("""{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"x"}]}}""");
+        h.Transport.EmitTurn("Done, with *one flag* left to add\n\n| Flag | Use |\n|---|---|\n| `-q` | *optional* |\n| `-v` | "
+            + string.Concat(Enumerable.Repeat("only when the log would otherwise be too long to read through, ", 4)) + "*if ever* |");
+        await UiText.SettleUntilAsync(window, () => Replies(window).Count == 1 && tab.Items.OfType<StepsMarkerItem>().SingleOrDefault() is { IsFolded: true },
+            "the reply, carrying the steps");
+        var card = Replies(window)[0];
+        await UiText.SettleUntilAsync(window, () => Blocks(card).Count >= 7, "the reply's paragraph and the table's cells");
+
+        Assert.All(Blocks(card), b =>
+        {
+            Assert.False(b.ClipToBounds, $"\"{b.LayoutText}\" clips");
+            Assert.True(b.TextLayout.Width <= b.Bounds.Width - b.Padding.Left - b.Padding.Right + 0.5,
+                $"\"{b.LayoutText}\" is {b.TextLayout.Width} wide in a block of {b.Bounds.Width}");
+        });
+
+        var marker = tab.Items.OfType<StepsMarkerItem>().Single();
+        marker.ToggleCommand.Execute(null);
+        UiText.Settle(window);
+        marker.Rows[0].ToggleCommand.Execute(null);
+        UiText.Settle(window);
+        var thought = card.GetVisualDescendants().OfType<SelectableTextBlock>().Single(b => b.Text == "One." && b.IsEffectivelyVisible);
+        Assert.Equal((FontStyle.Italic, false), (thought.FontStyle, thought.ClipToBounds));
+        window.Close();
+
+        static List<LiveMarkdown.Avalonia.MarkdownTextBlock> Blocks(Card card) =>
+            [.. card.GetVisualDescendants().OfType<LiveMarkdown.Avalonia.MarkdownRenderer>().Single()
+                .GetVisualDescendants().OfType<LiveMarkdown.Avalonia.MarkdownTextBlock>().Where(b => b.IsEffectivelyVisible)];
+    }
+
     private static bool IsAtTheTop(Control container, TabView view)
     {
         var scroll = view.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Name == "ConversationScroll");

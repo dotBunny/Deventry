@@ -81,6 +81,9 @@
       <c:SettingRow Key="appearance.showTaskProgressOnTabs">
         <ToggleSwitch IsChecked="{Binding ShowTaskProgressOnTabs}" />
       </c:SettingRow>
+      <c:SettingRow Key="appearance.showRunningSubagentsOnTabs">
+        <ToggleSwitch IsChecked="{Binding ShowRunningSubagentsOnTabs}" />
+      </c:SettingRow>
     </c:SettingsSection>
   </StackPanel>
 </UserControl>

@@ -89,6 +89,10 @@ public sealed class ConversationPage : SettingsPage
             Setting("appearance.showTaskProgressOnTabs", "Show task progress", s => s.Appearance.ShowTaskProgressOnTabs, (s, v) => s.Appearance.ShowTaskProgressOnTabs = v,
                 "How many of Claude's tasks are done, such as “3/7”.",
                 "At the right of the row's second line, and the task Claude is working on in place of the model while it works.", ["tasks", "to-do", "sidebar"]),
+            Setting("appearance.showRunningSubagentsOnTabs", "Show running subagents", s => s.Appearance.ShowRunningSubagentsOnTabs, (s, v) => s.Appearance.ShowRunningSubagentsOnTabs = v,
+                "How many of the tab's subagents are running, such as “2 running”.",
+                "At the right of the row's second line, while the turn goes on and after it, for subagents Claude runs in the background. Click it to see them. While it shows, the count of tasks still running after the turn leaves them out.",
+                ["subagents", "agents", "background", "sidebar"]),
         ], description: "What each tab's row in the sidebar shows besides its name. The git branch is on Git.");
     }
 
@@ -264,5 +268,12 @@ public sealed class ConversationPage : SettingsPage
     {
         get => Settings.Appearance.ShowTaskProgressOnTabs;
         set => Set(value, v => Settings.Appearance.ShowTaskProgressOnTabs = v);
+    }
+
+    /// <summary>How many of a tab's subagents are running, on its row (DESIGN.md §4, "Sidebar").</summary>
+    public bool ShowRunningSubagentsOnTabs
+    {
+        get => Settings.Appearance.ShowRunningSubagentsOnTabs;
+        set => Set(value, v => Settings.Appearance.ShowRunningSubagentsOnTabs = v);
     }
 }

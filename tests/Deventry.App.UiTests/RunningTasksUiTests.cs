@@ -121,11 +121,22 @@ public class RunningTasksUiTests
         h.Transport.Emit(TurnResult);
         await UiText.SettleUntilAsync(window, () => !tab.IsWorking, "the end of the turn");
 
-        // The row counts the subagent too: nothing else on it says work goes on.
+        // Without the subagents' chip, off by default, the count has the subagent: nothing else on the row says it works.
+        var agentsChip = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "AgentsBadge");
+        Assert.False(agentsChip.IsEffectivelyVisible);
         Assert.True(badge.IsEffectivelyVisible);
         Assert.Equal("1 agent and 2 tasks still running", ToolTip.GetTip(badge));
-        Assert.Equal("1 agent and 2 tasks still running", AutomationProperties.GetName(badge));
         Assert.Equal("\"3\"", UiText.Describe(badge).Trim());
+
+        // With it on, the subagent has its chip on the second line, so the row's count leaves it out.
+        h.Services.Settings.Appearance.ShowRunningSubagentsOnTabs = true;
+        h.Services.SaveSettings();
+        await UiText.SettleUntilAsync(window, () => agentsChip.IsEffectivelyVisible, "the chip to show");
+        Assert.Equal("1 subagent running. Click to see it.", AutomationProperties.GetName(agentsChip));
+        Assert.True(badge.IsEffectivelyVisible);
+        Assert.Equal("2 tasks still running", ToolTip.GetTip(badge));
+        Assert.Equal("2 tasks still running", AutomationProperties.GetName(badge));
+        Assert.Equal("\"2\"", UiText.Describe(badge).Trim());
         // No taller than the name beside it, so the row keeps its height; and a small mark, like the row's icons.
         Assert.Equal(height, row.Bounds.Height, precision: 3);
         Assert.True(badge.Bounds.Width <= 20, $"The badge is {badge.Bounds.Width} px wide.");

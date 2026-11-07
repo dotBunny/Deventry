@@ -19,7 +19,7 @@ With Settings → Conversation → **Show subagents' work** set to **In the conv
 
 ## Subagents that run in the background
 
-A subagent Claude doesn't wait for runs in the background. Its card says it is running until the subagent finishes, and the **Agents** button in the composer bar counts it. The tab's row in the sidebar keeps showing that work is going on after the turn is over.
+A subagent Claude doesn't wait for runs in the background. Its card says it is running until the subagent finishes, and the **Agents** button in the composer bar counts it. The tab's row in the sidebar keeps showing that work is going on after the turn is over, and its count of tasks still running has the subagents in it. With Settings → Conversation → Tab rows → **Show running subagents** on, a chip at the right of its second line says how many subagents are still running instead, such as **2 running**, during the turn too. Click it to see them: their rows come out from under a collapsed tab, or, with their work shown in the conversation, the Agents window opens.
 
 To stop a subagent, use the **■** on its row in [the agent map](../plans/the-agent-map.md). The running tasks chip leaves subagents out ([The working line and running tasks](the-working-line-and-running-tasks.md)).
 
@@ -27,7 +27,7 @@ To stop a subagent, use the **■** on its row in [the agent map](../plans/the-a
 
 Each subagent Claude starts has a row of its own under its tab in the sidebar, the way a thread's sub-threads sit under it. To open subagents' cards in the conversation instead, with no rows, set Settings → Conversation → **Show subagents' work** to **In the conversation**. It applies at once, to every tab.
 
-A subagent's row has the agents icon and its task, how long it has run, and under them its type and what it's doing, or how it ended. A subagent another one started sits under it, further in. Its status mark is the one [the agent map](../plans/the-agent-map.md) uses: a pulsing dot while it runs, `!` while it waits on you, and a dot, ✕ or ■ once it's done, failed or stopped.
+A subagent's row has the agents icon and its task, how long it has run, and under them its type and what it's doing, in the accent color, or how it ended, in green once it's done. A subagent another one started sits under it, further in. Its status mark is the one [the agent map](../plans/the-agent-map.md) uses: a pulsing dot while it runs, `!` while it waits on you, and a dot, ✕ or ■ once it's done, failed or stopped.
 
 To see what a subagent did:
 

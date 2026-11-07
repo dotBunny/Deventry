@@ -328,6 +328,21 @@ public sealed class RunningTasks
         Update(notify: true);
     }
 
+    /// <summary>
+    /// Claude stopped a task with <c>TaskStop</c> and Claude Code said it did: the task is over, whether or not a
+    /// <c>task_notification</c> follows, which Claude Code doesn't always send for one stopped this way.
+    /// </summary>
+    internal void OnStoppedByClaude(string taskId)
+    {
+        if (_byId.GetValueOrDefault(taskId) is not { IsEnded: false } task)
+        {
+            return;
+        }
+        task.End();
+        _open.Remove(task);
+        Update(notify: true);
+    }
+
     /// <summary>A tool call appeared in the conversation: the card for a task that started before it showed.</summary>
     internal void OnToolUse(ToolUseItem item)
     {

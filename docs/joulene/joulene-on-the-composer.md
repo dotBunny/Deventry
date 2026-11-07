@@ -82,7 +82,7 @@ The gem in her circlet is the color of the tab's folder group in the sidebar, an
 
 ## Games
 
-The right-click menu also has **Play tic-tac-toe**, **Play Connect Four**, **Play hangman** and **Play Minesweeper**. See [Games with Joulene](games-with-joulene.md).
+The right-click menu also has **Play tic-tac-toe**, **Play Four in a Row**, **Play hangman**, **Play Minesweeper** and **Play Pipeline**. See [Games with Joulene](games-with-joulene.md).
 
 ## Hide her, and bring her back
 

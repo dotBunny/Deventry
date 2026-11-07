@@ -58,7 +58,7 @@ When the tab's `claude` exits or restarts, its tasks go with it and the count cl
 
 ### Elsewhere
 
-After the turn is over, the tab's row in the sidebar counts every kind of background work, subagents too, since nothing else on the row says work goes on. Its tooltip tells them apart (*1 agent and 2 tasks still running*). The tab's info card has a *Running tasks* row. The [Processes](../tabs/processes.md) page's **Stop** finds a process's task the same way.
+After the turn is over, the tab's row in the sidebar counts the background work still going, subagents with it, and its tooltip tells them apart (*1 agent and 2 tasks still running*). With Settings → Conversation → Tab rows → **Show running subagents** on, subagents have a chip of their own on the row, such as **2 running**, so the count leaves them out. The tab's info card has a *Running tasks* row. The [Processes](../tabs/processes.md) page's **Stop** finds a process's task the same way.
 
 ## Settings
 

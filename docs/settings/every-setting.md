@@ -84,6 +84,7 @@ The page starts with a preview that shows your choices as you make them.
 | **Suggest my next prompt** | Message box | Off | No | No | [Prompt suggestions](../composer/prompt-suggestions.md) |
 | **Show context** | Tab rows | On | Yes | No | [Styles and themes](styles-and-themes.md#what-the-tab-rows-show) |
 | **Show task progress** | Tab rows | On | Yes | No | [Styles and themes](styles-and-themes.md#what-the-tab-rows-show) |
+| **Show running subagents** | Tab rows | Off | Yes | No | [Styles and themes](styles-and-themes.md#what-the-tab-rows-show) |
 
 ## Notifications
 

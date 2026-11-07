@@ -31,15 +31,21 @@ public sealed partial class TabViewModel
     /// <summary>"1 running task", "3 running tasks": the chip, and the head of its list.</summary>
     public string RunningTasksText => Tasks.Listed.Count == 1 ? "1 running task" : $"{Tasks.Listed.Count} running tasks";
 
+    /// <summary>
+    /// The row's count once the turn is over: every running task, less the subagents while their own chip counts them
+    /// (DESIGN.md §4, "Sidebar").
+    /// </summary>
+    public int RowTaskCount => ShowsAgentsBadge ? Tasks.Listed.Count : Tasks.Count;
+
     /// <summary>The turn is over but tasks are still running: the tab's row shows how many, from any tab.</summary>
-    public bool ShowTaskBadge => Tasks.Count > 0 && !IsWorking;
+    public bool ShowTaskBadge => RowTaskCount > 0 && !IsWorking;
 
     /// <summary>"2 agents and 1 task still running": the row's count, subagents told apart.</summary>
     public string TaskBadgeTip
     {
         get
         {
-            var (agents, others) = (Tasks.AgentCount, Tasks.Listed.Count);
+            var (agents, others) = (ShowsAgentsBadge ? 0 : Tasks.AgentCount, Tasks.Listed.Count);
             var parts = new List<string>(2);
             if (agents > 0)
             {
@@ -125,13 +131,20 @@ public sealed partial class TabViewModel
             });
     }
 
+    /// <summary>The row's count and its tip, which leave subagents out while their chip shows.</summary>
+    private void OnRowTasksChanged()
+    {
+        OnPropertyChanged(nameof(RowTaskCount));
+        OnPropertyChanged(nameof(ShowTaskBadge));
+        OnPropertyChanged(nameof(TaskBadgeTip));
+    }
+
     private void OnTasksChanged()
     {
         OnPropertyChanged(nameof(RunningTaskCount));
         OnPropertyChanged(nameof(HasRunningTasks));
         OnPropertyChanged(nameof(RunningTasksText));
-        OnPropertyChanged(nameof(ShowTaskBadge));
-        OnPropertyChanged(nameof(TaskBadgeTip));
+        OnRowTasksChanged();
         OnPropertyChanged(nameof(InfoRows));
         UpdateTaskTicker();
         // Work going on in the background can keep the computer awake (DESIGN.md §9, "Keeping the computer awake").

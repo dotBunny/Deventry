@@ -219,9 +219,11 @@
   <Style Selector="Button.filetab:not(.showing) TextBlock.tablabel">
     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
   </Style>
-  <!-- The preview tab, in italics: the next file opened from the explorer takes its place. -->
+  <!-- The preview tab, in italics: the next file opened from the explorer takes its place. Inter has no italic face, so
+       they're Inter slanted, whose tall letters lean past the name's width: unclipped, a last d keeps its top. -->
   <Style Selector="Button.filetab.preview TextBlock.tablabel">
     <Setter Property="FontStyle" Value="Italic" />
+    <Setter Property="ClipToBounds" Value="False" />
   </Style>
   <Style Selector="Button.filetab Button.closefile">
     <Setter Property="Opacity" Value="0" />

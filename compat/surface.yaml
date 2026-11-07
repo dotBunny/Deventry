@@ -2320,6 +2320,13 @@ items:
     test: HookCallbackTests
     fallback: Sent when the turn is interrupted or the hook times out. Without it, a hook callback that's still waiting finishes and its answer is ignored.
 
+  - id: "TaskStop's task_id ends a background task without a task_notification"
+    kind: behavior
+    status: undocumented
+    usedIn: src/Deventry.App/Conversation/ConversationBuilder.cs, src/Deventry.App/Conversation/RunningTasks.cs
+    test: AgentMapTests
+    fallback: "Claude stops a background task, a subagent among them, with the TaskStop tool (KillShell for a shell); its input's task_id (shell_id) names the task, and a result that isn't an error means it stopped. A subagent stopped this way was seen to stay running with no task_notification after it (2.1.312), so Deventry ends the task and the subagent on that result. If task_notification comes as well, the second end does nothing. If the tool or its input changed, a stopped subagent would look like it runs until the tab's session restarts."
+
   # --- Threads: a tab handing work to other tabs (DESIGN.md §18) -----------------------------------------
   - id: "SendMessage"
     kind: behavior

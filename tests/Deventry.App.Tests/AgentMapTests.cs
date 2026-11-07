@@ -319,6 +319,90 @@ public class AgentMapTests
     }
 
     [Fact]
+    public async Task A_tabs_row_counts_its_running_subagents_after_the_turn_and_its_chip_shows_them()
+    {
+        await using var h = new TabTestHarness();
+        var tab = await h.OpenTabAsync();
+        h.Transport.Emit(Wire.Init());
+        h.Transport.Emit(Wire.Agent("bg", "Long job", "RUN_BASH sleep 20", background: true));
+        h.Transport.Emit(Wire.TaskStarted("task-bg", "bg", backgrounded: true));
+        h.Transport.Emit(Wire.Result("bg", "Async agent launched successfully.", toolUseResult: new JsonObject
+        {
+            ["isAsync"] = true, ["status"] = "async_launched", ["agentId"] = "task-bg", ["description"] = "Long job", ["prompt"] = "RUN_BASH sleep 20",
+        }));
+        h.Transport.Emit(Wire.TurnResult());
+
+        await TabTestHarness.Eventually(() => tab.Items.OfType<TurnSummaryItem>().Any() && tab.IsSettled, "the turn to end");
+        // Off by default: no chip, so the row's count of tasks still running has the subagent, as nothing else on the
+        // row says it works.
+        Assert.False(tab.ShowsAgentsBadge);
+        Assert.Equal(1, tab.RowTaskCount);
+        Assert.True(tab.ShowTaskBadge);
+        Assert.Equal("1 agent still running", tab.TaskBadgeTip);
+
+        // On in Settings: the chip counts it, so the row's count leaves it out.
+        h.Services.Settings.Appearance.ShowRunningSubagentsOnTabs = true;
+        tab.OnSettingsChanged();
+        Assert.True(tab.ShowsAgentsBadge);
+        Assert.Equal("1 running", tab.AgentsBadge);
+        Assert.Equal("1 subagent running. Click to see it.", tab.AgentsBadgeTip);
+        Assert.Equal(0, tab.RowTaskCount);
+        Assert.False(tab.ShowTaskBadge);
+
+        tab.ToggleRowsCollapsedCommand.Execute(null);
+        Assert.True(tab.AreRowsCollapsed);
+        tab.ShowAgentsFromRowCommand.Execute(null);
+        Assert.False(tab.AreRowsCollapsed);
+        Assert.True(tab.ShowsSubagentRows);
+
+        h.Transport.Emit(Wire.Notification("task-bg", "bg", "completed", "Slept well.", tokens: 1200, toolUses: 1, durationMs: 20500));
+        await TabTestHarness.Eventually(() => !tab.HasActiveAgents, "the notification");
+    }
+
+    [Fact]
+    public async Task A_background_subagent_Claude_stops_with_TaskStop_ends_without_a_task_notification()
+    {
+        await using var h = new TabTestHarness();
+        var tab = await h.OpenTabAsync();
+        h.Transport.Emit(Wire.Init());
+        h.Transport.Emit(Wire.Agent("bg", "Long job", "RUN_BASH sleep 20", background: true));
+        h.Transport.Emit(Wire.TaskStarted("task-bg", "bg", backgrounded: true));
+        h.Transport.Emit(Wire.Result("bg", "Async agent launched successfully.", toolUseResult: new JsonObject
+        {
+            ["isAsync"] = true, ["status"] = "async_launched", ["agentId"] = "task-bg", ["description"] = "Long job", ["prompt"] = "RUN_BASH sleep 20",
+        }));
+        h.Transport.Emit(Wire.Tool(null, "stop", "TaskStop", new JsonObject { ["task_id"] = "task-bg" }));
+        h.Transport.Emit(Wire.Result("stop", "{\"message\":\"Successfully stopped task: task-bg\"}"));
+        h.Transport.Emit(Wire.TurnResult());
+
+        await TabTestHarness.Eventually(() => tab.Items.OfType<TurnSummaryItem>().Any() && tab.IsSettled, "the turn to end");
+        Assert.Equal(AgentStatus.Stopped, tab.Agents.Find("bg")!.Status);
+        Assert.False(tab.HasActiveAgents);
+        Assert.Equal(0, tab.RunningTaskCount);
+    }
+
+    [Fact]
+    public async Task A_TaskStop_that_comes_after_the_subagent_finished_leaves_it_done()
+    {
+        await using var h = new TabTestHarness();
+        var tab = await h.OpenTabAsync();
+        h.Transport.Emit(Wire.Init());
+        h.Transport.Emit(Wire.Agent("bg", "Long job", "RUN_BASH sleep 20", background: true));
+        h.Transport.Emit(Wire.TaskStarted("task-bg", "bg", backgrounded: true));
+        h.Transport.Emit(Wire.Result("bg", "Async agent launched successfully.", toolUseResult: new JsonObject
+        {
+            ["isAsync"] = true, ["status"] = "async_launched", ["agentId"] = "task-bg", ["description"] = "Long job", ["prompt"] = "RUN_BASH sleep 20",
+        }));
+        h.Transport.Emit(Wire.Notification("task-bg", "bg", "completed", "Slept well.", tokens: 1200, toolUses: 1, durationMs: 20500));
+        h.Transport.Emit(Wire.Tool(null, "stop", "TaskStop", new JsonObject { ["task_id"] = "task-bg" }));
+        h.Transport.Emit(Wire.Result("stop", "{\"message\":\"Successfully stopped task: task-bg\"}"));
+        h.Transport.Emit(Wire.TurnResult());
+
+        await TabTestHarness.Eventually(() => tab.Items.OfType<TurnSummaryItem>().Any() && tab.IsSettled, "the turn to end");
+        Assert.Equal(AgentStatus.Done, tab.Agents.Find("bg")!.Status);
+    }
+
+    [Fact]
     public async Task With_colored_rows_a_tab_runs_its_highlight_while_a_background_subagent_works_after_the_turn()
     {
         await using var h = new TabTestHarness();

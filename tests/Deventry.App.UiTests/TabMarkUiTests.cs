@@ -65,6 +65,41 @@ public class TabMarkUiTests
         window.Close();
     }
 
+    /// <summary>
+    /// Every mark is drawn at one scale, from the 12×12 grid its icon is drawn on, rather than stretched to fill its box:
+    /// stretched, the narrow question mark stood the box's whole height, taller than the others.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task Every_mark_is_drawn_at_one_scale_so_the_question_mark_is_no_taller_than_its_grid_makes_it()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var tab = await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell });
+        var row = window.GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("tabrow"));
+        var mark = row.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "RowMark");
+
+        foreach (var each in TabMarks.All)
+        {
+            tab.SetMark(each);
+            UiText.Settle(window);
+            var icon = mark.GetVisualDescendants().OfType<MarkIcon>().Single();
+            var grid = Assert.IsAssignableFrom<Geometry>(window.FindResource($"IconMark{each}")).Bounds;
+            var scale = icon.Bounds.Height / 12;
+            var drawn = icon.RenderedGeometry!.Bounds;
+            Assert.Equal(grid.Height * scale, drawn.Height, precision: 3);
+            Assert.Equal(grid.Top * scale, drawn.Top, precision: 3);
+            Assert.Equal(grid.Left * scale, drawn.Left, precision: 3);
+        }
+
+        // The question mark, its stroke too, is no taller than 9 pixels: it was 11.5.
+        tab.SetMark(TabMark.Question);
+        UiText.Settle(window);
+        var question = mark.GetVisualDescendants().OfType<MarkIcon>().Single();
+        Assert.True(question.RenderedGeometry!.Bounds.Height + question.StrokeThickness <= 9, $"The question mark is {question.RenderedGeometry.Bounds.Height + question.StrokeThickness} px tall.");
+        AssertLevelWithTheRing(mark, row);
+        window.Close();
+    }
+
     [AvaloniaFact]
     public async Task With_colored_rows_the_mark_moves_only_the_second_line_over_and_the_name_keeps_its_place()
     {

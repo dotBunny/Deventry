@@ -173,9 +173,10 @@ public sealed partial class ShellViewModel
             if (_services.Games.IsEnabled)
             {
                 Command("Play tic-tac-toe with Joulene", () => tab.PlayGame(GameKind.TicTacToe));
-                Command("Play Connect Four with Joulene", () => tab.PlayGame(GameKind.ConnectFour));
+                Command("Play Four in a Row with Joulene", () => tab.PlayGame(GameKind.FourInARow));
                 Command("Play hangman with Joulene", () => tab.PlayGame(GameKind.Hangman));
                 Command("Play Minesweeper with Joulene", () => tab.PlayGame(GameKind.Minesweeper));
+                Command("Play Pipeline with Joulene", () => tab.PlayGame(GameKind.Pipeline));
             }
             Command("Tab settings…", () => OpenTabSettingsCommand.Execute(tab));
             // DESIGN.md §4, "Sidebar": what's under its row.

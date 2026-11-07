@@ -30,6 +30,31 @@ public sealed partial class TabViewModel
     /// <summary>A subagent is running or waiting: the Agents page button shows a busy dot.</summary>
     public bool HasActiveAgents => Agents.ActiveCount > 0;
 
+    /// <summary>
+    /// The row's chip while subagents run (DESIGN.md §4, "Sidebar"): how many, so a tab whose turn has ended but whose
+    /// background subagents still work says so. Settings → Conversation → Show running subagents.
+    /// </summary>
+    public bool ShowsAgentsBadge => _services.Settings.Appearance.ShowRunningSubagentsOnTabs && HasActiveAgents;
+
+    public string AgentsBadge => $"{Agents.ActiveCount} running";
+
+    public string AgentsBadgeTip => Agents.ActiveCount == 1 ? "1 subagent running. Click to see it." : $"{Agents.ActiveCount} subagents running. Click to see them.";
+
+    /// <summary>The chip: the subagents' rows come out from under a collapsed tab, or the Agents window shows them.</summary>
+    [RelayCommand]
+    private void ShowAgentsFromRow()
+    {
+        _shell.SelectedTab = this;
+        if (SubagentsInSidebar && HasSubagentRows)
+        {
+            ExpandRows();
+        }
+        else
+        {
+            ShowToolWindow(ToolWindows.ToolWindowKinds.Agents);
+        }
+    }
+
     /// <summary>The top of the Agents page.</summary>
     public string AgentsHeader => Agents.Summary ?? "Claude hasn't started any subagents in this tab.";
 
@@ -137,6 +162,10 @@ public sealed partial class TabViewModel
         OnPropertyChanged(nameof(AgentsHeader));
         OnPropertyChanged(nameof(HasAgents));
         OnPropertyChanged(nameof(HasActiveAgents));
+        OnPropertyChanged(nameof(ShowsAgentsBadge));
+        OnPropertyChanged(nameof(AgentsBadge));
+        OnPropertyChanged(nameof(AgentsBadgeTip));
+        OnRowTasksChanged();
         OnPropertyChanged(nameof(AgentsButtonText));
         OnPropertyChanged(nameof(ShowsWorkBar));
         OnPropertyChanged(nameof(ShowsDoneBar));
