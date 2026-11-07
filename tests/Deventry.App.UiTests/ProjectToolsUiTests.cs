@@ -3,6 +3,8 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
+using Avalonia.Logging;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using AvaloniaEdit;
@@ -134,6 +136,80 @@ public class ProjectToolsUiTests
         UiText.Settle(window);
         Assert.False(Submenu(actions).IsOpen);
         Assert.True(flyout.IsOpen);
+    }
+
+    /// <summary>
+    /// Picking an action from Actions ▸ with the mouse runs it and closes the submenu and the menu. The project's first
+    /// run changes the menu (Show output… has a log to show), which takes the submenu away under the pointer, and the
+    /// submenu then hears the pointer left it, after it has left its window. Asking where that was on the screen ended
+    /// Deventry: on Windows the submenu is a window of its own, and what it threw as that window closed went through
+    /// Windows, where nothing can catch it.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task Picking_an_action_from_Actions_with_the_mouse_runs_it_and_closes_the_menu()
+    {
+        var launcher = new FakeLauncher();
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher(), launcher: launcher);
+        File.WriteAllText(Path.Combine(h.WorkFolder, Core.ProjectTools.ProjectFile.SharedName), """
+            { "actions": [ { "name": "Build and launch", "command": "make run" } ] }
+            """);
+        var tab = await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell });
+        await UiText.SettleUntilAsync(window, () => tab.ProjectTools.HasTools, "the actions");
+        var button = window.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetName(b) == "Project tools" && b.IsEffectivelyVisible);
+        var flyout = Assert.IsType<Flyout>(button.Flyout);
+        flyout.ShowAt(button);
+        var menu = Assert.IsAssignableFrom<Control>(flyout.Content);
+        await UiText.SettleUntilAsync(window, () => menu.IsEffectivelyVisible, "the menu");
+        static Button Row(Visual within, string name) =>
+            within.GetVisualDescendants().OfType<Button>().Single(b => b.IsEffectivelyVisible && AutomationProperties.GetName(b) == name);
+        static Point Middle(Visual at, TopLevel top) => at.TranslatePoint(new Point(at.Bounds.Width / 2, at.Bounds.Height / 2), top)!.Value;
+        var actions = Row(menu, "Actions");
+        var root = TopLevel.GetTopLevel(menu)!;
+        root.MouseMove(Middle(actions, root));
+        UiText.Settle(window);
+        var popup = ((Panel)actions.Parent!).Children.OfType<Avalonia.Controls.Primitives.Popup>().Single();
+        Assert.True(popup.IsOpen);
+        var submenu = popup.Child!;
+        var submenuRoot = TopLevel.GetTopLevel(submenu)!;
+        var entry = Middle(Row(submenu, "Build and launch"), submenuRoot);
+
+        using (var logged = new AvaloniaWarnings())
+        {
+            submenuRoot.MouseMove(entry);
+            submenuRoot.MouseDown(entry, MouseButton.Left);
+            submenuRoot.MouseUp(entry, MouseButton.Left);
+            UiText.Settle(window);
+            // Headless, the submenu is drawn in the main window rather than one of its own, so what it throws is caught by
+            // the binding that changed the menu, which logs it.
+            if (logged.Messages.Count > 0)
+            {
+                Assert.Fail(string.Join(Environment.NewLine, logged.Messages));
+            }
+        }
+
+        Assert.False(popup.IsOpen);
+        Assert.False(flyout.IsOpen);
+        Assert.Equal("Build and launch", Assert.Single(tab.ProjectTools.Runs.Items).Name);
+    }
+
+    /// <summary>What Avalonia logs as a warning or worse while this is in use, such as an exception a binding caught.</summary>
+    private sealed class AvaloniaWarnings : ILogSink, IDisposable
+    {
+        private readonly ILogSink? _previous = Logger.Sink;
+
+        public AvaloniaWarnings() => Logger.Sink = this;
+
+        public List<string> Messages { get; } = [];
+
+        public bool IsEnabled(LogEventLevel level, string area) => level >= LogEventLevel.Warning;
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate) => Log(level, area, source, messageTemplate, []);
+
+        public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues) =>
+            Messages.Add($"{area}: {string.Join(" · ", propertyValues)}");
+
+        public void Dispose() => Logger.Sink = _previous;
     }
 
     [AvaloniaFact]

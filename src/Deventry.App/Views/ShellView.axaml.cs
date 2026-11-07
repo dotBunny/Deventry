@@ -415,11 +415,14 @@ public partial class ShellView : UserControl
 
     /// <summary>
     /// The pointer left the submenu: it closes, unless the pointer went back onto its own row, which keeps it open, as a
-    /// menu's submenu does.
+    /// menu's submenu does. Closing under the pointer (an entry picked, or the menu changing as a run starts) says so too,
+    /// once the submenu has left its window but before the popup says it's closed. It's on no screen then to ask about,
+    /// and on Windows what that threw went through the popup's window procedure, which ended Deventry.
     /// </summary>
     private void OnProjectSubmenuExited(object? sender, PointerEventArgs e)
     {
-        if (sender is not Visual submenu || _projectSubmenu is not { IsOpen: true } open || SubmenuRow(open) is not { } row)
+        if (sender is not Visual submenu || !submenu.IsAttachedToVisualTree() || _projectSubmenu is not { IsOpen: true } open
+            || SubmenuRow(open) is not { } row || !row.IsAttachedToVisualTree())
         {
             return;
         }
