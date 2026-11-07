@@ -81,6 +81,23 @@ public class CommandPaletteUiTests
     }
 
     [AvaloniaFact]
+    public async Task Esc_closes_Find_a_tab_before_the_dialog_under_it()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell }, 1100, 800);
+        h.Shell.OpenNewProjectCommand.Execute(null);
+        UiText.Settle(window);
+
+        Press(window, PhysicalKey.K, Primary);
+        Assert.True(h.Shell.IsTabSearchOpen);
+        Press(window, PhysicalKey.Escape);
+
+        Assert.False(h.Shell.IsTabSearchOpen);
+        Assert.True(h.Shell.IsCloneOpen);
+    }
+
+    [AvaloniaFact]
     public async Task The_new_tab_picker_opens_from_its_shortcut_with_its_search_box_taking_the_keyboard()
     {
         await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());

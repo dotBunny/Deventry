@@ -494,6 +494,20 @@ public partial class ShellView : UserControl
         {
             return;
         }
+        var keyboard = shell.Keyboard;
+        bool Is(string id) => Shortcuts.Matches(keyboard, id, e.Key, e.KeyModifiers);
+
+        if (shell.IsTabSearchOpen)
+        {
+            // Find a tab has the keys while it's open (DESIGN.md §4, "Find a tab"), Esc included, before a dialog or
+            // tool window under it; its shortcut closes it again.
+            if (Is(KeyboardShortcuts.FindTab))
+            {
+                shell.CloseTabSearch();
+                e.Handled = true;
+            }
+            return;
+        }
         if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None && shell.IsPickerOpen)
         {
             shell.ClosePicker();
@@ -512,20 +526,6 @@ public partial class ShellView : UserControl
             e.Handled = true;
             return;
         }
-        var keyboard = shell.Keyboard;
-        bool Is(string id) => Shortcuts.Matches(keyboard, id, e.Key, e.KeyModifiers);
-
-        if (shell.IsTabSearchOpen)
-        {
-            // Find a tab has the keys while it's open (DESIGN.md §4, "Find a tab"); its shortcut closes it again.
-            if (Is(KeyboardShortcuts.FindTab))
-            {
-                shell.CloseTabSearch();
-                e.Handled = true;
-            }
-            return;
-        }
-
         if (shell.IsPaletteOpen)
         {
             // The palette has the keys while it's open; its shortcut closes it again.
