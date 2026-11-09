@@ -41,5 +41,7 @@
   <string>Claude Code, running in Deventry, reads and edits the projects you open.</string>
   <key>NSNetworkVolumesUsageDescription</key>
   <string>Claude Code, running in Deventry, reads and edits the projects you open.</string>
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
 </dict>
 </plist>
