@@ -58,7 +58,7 @@ The `review-pr` skill (`.claude/skills/review-pr/SKILL.md`) reviews a pull reque
   - Reference `Application.Resources` from `Application.Styles` with `DynamicResource`, because styles load before resources.
   - Give icon-only buttons an `AutomationProperties.Name`, and a button whose content is a panel one too: without it, it's read as the panel's type.
   - A menu in sections, as the header's **≡**, a tab's and a folder group's are, has the class `sectioned`, a `MenuItem` with the class `menusection` for each section's title, and a `Path` with the class `menuicon` for each entry's icon (`Themes/MenuStyles.axaml`).
-  - Put text in another font or size beside other text (monospace beside the interface font) on its baseline with `controls:Baseline.AlignWith="{Binding #Name}"`, not a margin tuned by eye.
+  - Put text in another font or size beside other text (monospace beside the interface font) on its baseline with `controls:Baseline.AlignWith="{Binding #Name}"`, not a margin tuned by eye. A box, an arrow or an icon at the start of a row whose text can wrap goes at the row's top, on the middle of the text's first line, with `controls:FirstLine.CenterOn="{Binding #Name}"`.
 - The visual reference is JetBrains Rider (its New UI, Islands theme) for the Standard style, with the conversation's layout after Claude Code's VS Code extension, and the Claude apps (iOS, claude.ai) for the Claude style; both styles are islands (§3, "Visual style").
 
 ## Rules that keep the code testable (§15)

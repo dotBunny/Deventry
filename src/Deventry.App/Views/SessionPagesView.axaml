@@ -59,27 +59,28 @@
                  changed files in more than one. A click anywhere but its box folds it, Alt+click every level under it too. -->
             <DataTemplate DataType="vm:ChangedFolderRow">
               <Grid Classes="changedfolder" Classes.worktree="{Binding IsWorkTree}" Classes.reviewed="{Binding IsAllReviewed}"
-                    Margin="{Binding Indent, Converter={x:Static vm:Converters.LeftMargin}}" ColumnDefinitions="14,Auto,*,Auto"
+                    Margin="{Binding Indent, Converter={x:Static vm:Converters.LeftMargin}}" ColumnDefinitions="20,Auto,Auto,*,Auto"
                     ToolTip.Tip="{Binding Path}" Background="Transparent">
-                <Panel Classes="changedfold" Height="{Binding #FolderBox.Bounds.Height}">
+                <!-- Its arrow, box and icon at the row's top, each on the middle of its name's first line (Controls/FirstLine),
+                     so a name that wraps goes on under the name rather than under them -->
+                <Panel Classes="changedfold" controls:FirstLine.CenterOn="{Binding #FolderName}">
                   <Path Data="{StaticResource IconChevronDown}" IsVisible="{Binding IsExpanded}" />
                   <Path Data="{StaticResource IconChevronRight}" IsVisible="{Binding IsCollapsed}" />
                 </Panel>
                 <!-- Ticks every file in it, or unticks them all; partly ticked while some are -->
-                <CheckBox x:Name="FolderBox" Grid.Column="1" Classes="reviewed" IsChecked="{Binding IsReviewed, Mode=OneWay}"
+                <CheckBox Grid.Column="1" Classes="reviewed" IsChecked="{Binding IsReviewed, Mode=OneWay}" controls:FirstLine.CenterOn="{Binding #FolderName}"
                           Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).ChangedFiles.ToggleFolderReviewedCommand}" CommandParameter="{Binding}"
                           AutomationProperties.Name="Reviewed, every file in it" ToolTip.Tip="Reviewed: ticks every file in it, or unticks them all." />
-                <!-- Its icon, a folder or a working tree's branch, on its name's first line as a file's letter is -->
-                <TextBlock Grid.Column="2" x:Name="FolderName" TextWrapping="Wrap">
-                  <InlineUIContainer BaselineAlignment="Center">
-                    <Panel Classes="changedfoldericon">
-                      <Path Data="{StaticResource IconToolFolder}" IsVisible="{Binding !IsWorkTree}" />
-                      <Path Data="{StaticResource IconBranch}" IsVisible="{Binding IsWorkTree}" />
-                    </Panel>
-                  </InlineUIContainer><Run Text="{Binding Name}" />
+                <!-- A folder, or a working tree's branch -->
+                <Panel Grid.Column="2" Classes="changedfoldericon" controls:FirstLine.CenterOn="{Binding #FolderName}">
+                  <Path Data="{StaticResource IconToolFolder}" IsVisible="{Binding !IsWorkTree}" />
+                  <Path Data="{StaticResource IconBranch}" IsVisible="{Binding IsWorkTree}" />
+                </Panel>
+                <TextBlock Grid.Column="3" x:Name="FolderName" TextWrapping="Wrap">
+                  <Run Text="{Binding Name}" />
                   <Run Classes="changedcount" Text="{Binding FilesText}" />
                 </TextBlock>
-                <TextBlock Grid.Column="3" Classes="mono small muted" Text="{Binding Stats}" VerticalAlignment="Top" Margin="6,0,0,0"
+                <TextBlock Grid.Column="4" Classes="mono small muted" Text="{Binding Stats}" VerticalAlignment="Top" Margin="6,0,0,0"
                            controls:Baseline.AlignWith="{Binding #FolderName}" />
                 <Grid.ContextMenu>
                   <ContextMenu>
@@ -98,8 +99,9 @@
                 <!-- DESIGN.md §8, "Working trees": in the list, each working tree's group, headed on its first row -->
                 <TextBlock Classes="small muted changedgroup" Text="{Binding Group}" IsVisible="{Binding ShowsGroup}" />
                 <Grid Classes="changedfile" Classes.reviewed="{Binding IsReviewed}" ColumnDefinitions="Auto,Auto,*" ToolTip.Tip="{Binding StatusText}" Background="Transparent">
-                  <!-- DESIGN.md §8, "Reviewed": unticks when Claude changes the file again -->
-                  <CheckBox Classes="reviewed" IsChecked="{Binding IsReviewed, Mode=OneWay}"
+                  <!-- DESIGN.md §8, "Reviewed": unticks when Claude changes the file again. At the row's top, on the middle of
+                       the name's first line (Controls/FirstLine). -->
+                  <CheckBox Classes="reviewed" IsChecked="{Binding IsReviewed, Mode=OneWay}" controls:FirstLine.CenterOn="{Binding #FileName}"
                             Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).ChangedFiles.ToggleFileReviewedCommand}" CommandParameter="{Binding}"
                             AutomationProperties.Name="Reviewed" ToolTip.Tip="Reviewed. Unticks when Claude changes the file again." />
                   <!-- The letter and the counts are monospace, beside the name: on its baseline (Controls/Baseline). -->

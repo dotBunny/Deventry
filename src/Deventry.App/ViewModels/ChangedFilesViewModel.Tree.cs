@@ -11,8 +11,11 @@ public abstract partial class ChangedTreeRow : ObservableObject
     /// <summary>How far in a level of the tree is drawn.</summary>
     public const double TreeLevel = 16;
 
-    /// <summary>The room a folder's arrow takes, before its box; a file in the tree leaves it, so the boxes of one level line up.</summary>
-    public const double ArrowWidth = 14;
+    /// <summary>
+    /// The room a folder's arrow takes before its box, with a gap between them; a file in the tree leaves it, so the boxes
+    /// of one level line up.
+    /// </summary>
+    public const double ArrowWidth = 20;
 
     /// <summary>How deep in the tree it is: 0 at its top, and in the list.</summary>
     [ObservableProperty]

@@ -619,6 +619,48 @@ public class ToolWindowsUiTests
         }
     }
 
+    [AvaloniaFact]
+    public async Task A_changed_rows_box_arrow_and_icon_sit_at_its_top_on_the_middle_of_its_names_first_line()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var tab = await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell });
+        h.ShowToolWindow(ToolWindowKinds.Files);
+        // The panel's pages are only in the visual tree once it has been laid out open.
+        UiText.Settle(window);
+        // A folder whose name wraps, and a file with a line for what changed since under its name (DESIGN.md §8, "The tree").
+        var folder = Directory.CreateDirectory(Path.Combine([h.WorkFolder, .. Enumerable.Repeat("a_folder_with_a_long_name_that_goes_on", 4)])).FullName;
+        var file = Path.Combine(folder, "auth.cs");
+        await File.WriteAllTextAsync(file, "b\nyours\n", TestContext.Current.CancellationToken);
+        h.Transport.Emit(Edit("e1", file));
+        h.Transport.Emit(EditResult("e1", file));
+        var list = window.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "ChangedFilesList");
+        await UiText.SettleUntilAsync(window, () => list.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "Changed since: +1 −0"), "the folder and its file");
+        UiText.Settle(window);
+
+        var folderName = list.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "FolderName");
+        var centered = list.GetVisualDescendants().OfType<Control>().Where(c => FirstLine.GetCenterOn(c) is not null && c.IsEffectivelyVisible).ToList();
+        // The folder's arrow, box and icon, and the file's box.
+        Assert.Equal(4, centered.Count);
+        Assert.True(folderName.Bounds.Height > folderName.FontSize * 2.5, "the folder's name wraps");
+        foreach (var control in centered)
+        {
+            var name = FirstLine.GetCenterOn(control)!;
+            var middle = control.TranslatePoint(new Point(0, control.Bounds.Height / 2), window)!.Value.Y;
+            Assert.InRange(middle - FirstLine.MiddleIn(name, window)!.Value, -0.6, 0.6);
+            // On the first line: in the row's top line, not the middle of its lines.
+            Assert.True(middle - name.TranslatePoint(default, window)!.Value.Y < name.TextLayout.TextLines[0].Height, $"{control.GetType().Name} is below the first line.");
+        }
+        // The name's lines go on under the name, after the icon, not under it.
+        var icon = centered.Single(c => c.Classes.Contains("changedfoldericon"));
+        Assert.True(icon.TranslatePoint(new Point(icon.Bounds.Width, 0), window)!.Value.X <= folderName.TranslatePoint(default, window)!.Value.X);
+        // Room between the arrow and the box.
+        var arrow = centered.Single(c => c.Classes.Contains("changedfold")).GetVisualChildren().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.IsVisible);
+        var box = centered.OfType<CheckBox>().Single(b => FirstLine.GetCenterOn(b) == folderName);
+        var gap = box.TranslatePoint(default, window)!.Value.X - arrow.TranslatePoint(new Point(arrow.Bounds.Width, 0), window)!.Value.X;
+        Assert.True(gap >= 6, $"The arrow is {gap} from the box.");
+    }
+
     /// <summary>A tab with its side panel open on one file Claude edited, and that file's row.</summary>
     private static async Task<(Window Window, Grid Row)> ShowChangedFileAsync(TabTestHarness h)
     {

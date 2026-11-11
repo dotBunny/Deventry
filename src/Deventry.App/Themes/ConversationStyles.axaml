@@ -1137,16 +1137,13 @@
     <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <!-- Changed files (DESIGN.md §8, "Reviewed"): a small box before each file, centered on its row, and a reviewed file
-       drawn faintly. A row's text is centered too, so a row of one line has its box level with it. -->
+  <!-- Changed files (DESIGN.md §8, "Reviewed"): a small box before each file, at the row's top on the middle of its
+       name's first line (Controls/FirstLine), and a reviewed file drawn faintly -->
   <Style Selector="CheckBox.reviewed">
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="VerticalAlignment" Value="Center" />
-  </Style>
-  <Style Selector="Grid.changedfile > StackPanel, Grid.changedfolder > TextBlock#FolderName">
-    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Top" />
   </Style>
   <!-- The status letter, midway between the box and the file's name: its column fits it at any code size. -->
   <Style Selector="Grid.changedfile > TextBlock.mono">
@@ -1168,9 +1165,12 @@
   <Style Selector="ListBox#ChangedFilesList.tree ListBoxItem">
     <Setter Property="Padding" Value="12,5,16,6" />
   </Style>
-  <!-- A folder's arrow, beside its box: as tall as the box, and centered on the row as it is, so it's drawn level with it -->
+  <!-- A folder's arrow, with room between it and its box (ChangedTreeRow.ArrowWidth in all) -->
   <Style Selector="Panel.changedfold">
-    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="Width" Value="14" />
+    <Setter Property="Margin" Value="0,0,6,0" />
   </Style>
   <Style Selector="Panel.changedfold Path">
     <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
@@ -1180,8 +1180,9 @@
     <Setter Property="Stretch" Value="Uniform" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <!-- Its icon, at the start of its name's first line, where a file's letter is -->
+  <!-- Its icon, between its box and its name, where a file's letter is -->
   <Style Selector="Panel.changedfoldericon">
+    <Setter Property="VerticalAlignment" Value="Top" />
     <Setter Property="Margin" Value="8,0,6,0" />
   </Style>
   <Style Selector="Panel.changedfoldericon Path">
@@ -1201,7 +1202,7 @@
     <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
   <!-- Every file in it reviewed: drawn faintly, as a reviewed file is; its box isn't -->
-  <Style Selector="Grid.changedfolder.reviewed > TextBlock">
+  <Style Selector="Grid.changedfolder.reviewed > TextBlock, Grid.changedfolder.reviewed > Panel.changedfoldericon">
     <Setter Property="Opacity" Value="0.5" />
   </Style>
   <!-- Expand all, Collapse all and the switch, beside Refresh -->
