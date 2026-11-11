@@ -158,9 +158,10 @@
 
   <!-- After the packages are resolved and before the resources are named, so the embedded file is the current one. -->
   <Target Name="WriteThirdPartyNotices" DependsOnTargets="ResolvePackageAssets" BeforeTargets="AssignTargetPaths">
-    <!-- Here rather than above: the SDK sets IntermediateOutputPath after the project file is read -->
+    <!-- Here rather than above: the SDK sets IntermediateOutputPath after the project file is read. It's a full path when
+         the build has an artifacts path (dotnet's artifacts-path option, or UseArtifactsOutput), and then it's used as is. -->
     <PropertyGroup>
-      <ThirdPartyNoticesFile>$(MSBuildProjectDirectory)\$(IntermediateOutputPath)ThirdPartyNotices.xml</ThirdPartyNoticesFile>
+      <ThirdPartyNoticesFile>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'ThirdPartyNotices.xml'))</ThirdPartyNoticesFile>
     </PropertyGroup>
     <ItemGroup>
       <_ThirdPartyPackageFile Include="@(RuntimeCopyLocalItems);@(NativeCopyLocalItems);@(ResourceCopyLocalItems);@(RuntimeTargetsCopyLocalItems)" />
