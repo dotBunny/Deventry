@@ -1,3 +1,4 @@
+using System.Globalization;
 using Deventry.Core.Diffs;
 using Deventry.Core.Sessions;
 using Deventry.Core.Settings;
@@ -12,7 +13,8 @@ namespace Deventry.Core.Demo;
 /// "Demo mode"). The first tab,
 /// Grappling hook, is the one the main screenshot shows; Move to the Input System is a thread with two sub-threads, a
 /// plan, a task list part-way done and three subagents. Pool particle emitters and Stamina drains twice on clients run
-/// on the studio's API key.
+/// on the studio's API key, and Pool particle emitters has images, a video and a sound for the Media window
+/// (<see cref="DemoMedia"/>).
 /// </summary>
 public static class DemoContent
 {
@@ -896,17 +898,47 @@ public static class DemoContent
 
     private const string SpawnNew = "var emitter := _pool.take()";
 
+    // The Media window's (DESIGN.md §18, "Media"): the user's capture of the stutter, the charts Claude's profiling makes
+    // and the burst's sound, which its last reply names.
+    private const string Capture = "captures/wave-clear.mp4";
+
+    private const string FramesBefore = "profiling/frame-times-before.png";
+
+    private const string FramesPooled = "profiling/frame-times-pooled.png";
+
+    private const string BurstSound = "sfx/burst.wav";
+
     private static string Orbit(string projects, Func<string, DemoProject, string> make) => make(projects, new DemoProject("orbit-game", "main",
         new() { ["project.godot"] = "[application]\nconfig/name=\"Orbit\"\n", ["scripts/effects.gd"] = Effects },
-        new() { ["scripts/effects.gd"] = Effects.Replace(SpawnOld, SpawnNew) }));
+        new() { ["scripts/effects.gd"] = Effects.Replace(SpawnOld, SpawnNew) },
+        new()
+        {
+            [Capture] = DemoMedia.StandInVideo,
+            [BurstSound] = DemoMedia.StandInSound,
+            [FramesBefore] = DemoMedia.FrameTimeChart(pooled: false).Png,
+            [FramesPooled] = DemoMedia.FrameTimeChart(pooled: true).Png,
+        }));
 
     private static DemoTranscript Pool(string root, DateTimeOffset today)
     {
         var t = new DemoTranscript("a93c0f5e-2d1b-4e8a-9f7c-6b5a4d3e2f55", root, "main", At(today, 6, 5))
-            .Prompt("Explosions stutter when lots of them spawn at once. Pool the particle emitters.")
-            .Text("Taking emitters from a pool instead of instancing one per burst.");
+            .Prompt($"Explosions stutter when lots of them spawn at once, as in this screenshot and in {Capture}. Pool the particle emitters.", DemoMedia.Screenshot())
+            .Text("I'll measure it first: the profiling scene sets off 200 bursts in waves and plots each frame's time.");
+        Profile(FramesBefore, pooled: false);
+        t.Text("Each spike is a wave of bursts instancing their emitters at once. Taking emitters from a pool instead of instancing one per burst.");
         t.Edit(Path.Combine(root, "scripts", "effects.gd"), Effects, SpawnOld, SpawnNew);
-        return t.Text("Bursts reuse pooled emitters now. I paused before tuning the pool size: how many bursts can be on screen at once?", last: true);
+        Profile(FramesPooled, pooled: true);
+        return t.Text($"Bursts reuse pooled emitters now, and no frame goes over budget. Each burst still starts its own player for `{BurstSound}`, which could come from the pool too. I paused before tuning the pool size: how many bursts can be on screen at once?", last: true);
+
+        // A run of the profiling scene, which writes its chart, and Claude reading the chart.
+        void Profile(string chart, bool pooled)
+        {
+            var times = DemoMedia.FrameTimes(pooled);
+            var over = times.Count(ms => ms > DemoMedia.Budget);
+            t.Bash($"godot --headless --path . res://tools/profile_bursts.tscn -- --bursts=200 --out={chart}", pooled ? "Profile the bursts with the pool" : "Profile the bursts",
+                    string.Create(CultureInfo.InvariantCulture, $"200 bursts in 4 waves · worst frame {times.Max():0.0} ms · {over} frames over {DemoMedia.Budget} ms\nWrote {chart}"))
+                .Read(Path.Combine(root, chart.Replace('/', Path.DirectorySeparatorChar)), DemoMedia.FrameTimeChart(pooled));
+        }
     }
 
     // ---- Helpers ---------------------------------------------------------------------------------------------------
@@ -925,6 +957,8 @@ public static class DemoContent
 
 /// <summary>
 /// One of the demo's projects: its name, the branch Claude works on, its files as committed, and what Claude changed
-/// them to, which a maker writes over them uncommitted, or leaves out.
+/// them to, which a maker writes over them uncommitted, or leaves out; and its <paramref name="Media"/>, files that
+/// aren't text (images, a video, a sound), committed with the others.
 /// </summary>
-public sealed record DemoProject(string Name, string Branch, Dictionary<string, string> Before, Dictionary<string, string> After);
+public sealed record DemoProject(string Name, string Branch, Dictionary<string, string> Before, Dictionary<string, string> After,
+    Dictionary<string, byte[]>? Media = null);
