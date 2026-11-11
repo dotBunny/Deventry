@@ -34,6 +34,20 @@ public class ControlBarPanelTests
     }
 
     [AvaloniaFact]
+    public void Chips_in_a_wrap_panel_are_centered_on_the_line_too()
+    {
+        // As in the composer: a WrapPanel has no height of its own, and given the whole line it lays its own out at the top.
+        var chip = new Border { Width = 100, Height = 24 };
+        var chips = new WrapPanel { ItemSpacing = 2, LineSpacing = 4, Children = { chip } };
+        var send = new Border { Width = 200, Height = 30 };
+        var bar = new ControlBarPanel { RowSpacing = 4, Children = { chips, send } };
+        UiText.Show(new Border { Width = 600, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Child = bar });
+
+        Assert.False(bar.IsWrapped);
+        Assert.Equal(new Point(0, 3), chip.TranslatePoint(default, bar));
+    }
+
+    [AvaloniaFact]
     public void Without_room_the_end_group_moves_under_the_chips_still_at_the_end()
     {
         var (bar, chips, send) = Show(450);

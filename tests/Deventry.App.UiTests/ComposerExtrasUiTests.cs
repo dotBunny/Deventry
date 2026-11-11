@@ -177,6 +177,30 @@ public class ComposerExtrasUiTests
     }
 
     /// <summary>
+    /// The bar's two groups on one line (DESIGN.md §5, "Composer"): the chips' text level with the counts', both in the
+    /// middle of Send, rather than the chips at the top of the line.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task The_chips_and_the_counts_are_level_on_one_line()
+    {
+        // Wide, and the composer as wide as the tab: headless text is about twice as wide as on a screen, and a narrower
+        // bar takes two lines.
+        await using var h = new TabTestHarness(s => s.Appearance.FullWidthConversation = true, dispatcher: new AvaloniaUiDispatcher());
+        await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell }, 2400, 900);
+        var bar = window.GetVisualDescendants().OfType<ControlBarPanel>().Single();
+        double Middle(string tip)
+        {
+            var text = bar.GetVisualDescendants().OfType<Button>().Single(b => ToolTip.GetTip(b) as string == tip).GetVisualDescendants().OfType<TextBlock>().First();
+            return text.TranslatePoint(new Point(0, text.Bounds.Height / 2), bar)!.Value.Y;
+        }
+
+        Assert.False(bar.IsWrapped, $"The bar is {bar.Bounds.Width} wide, its chips {bar.Children[0].DesiredSize.Width} and counts {bar.Children[^1].DesiredSize.Width}.");
+        Assert.Equal(Middle("Changed files"), Middle("Permission mode for this session"), 0.5);
+        Assert.Equal(Middle("Changed files"), bar.Bounds.Height / 2, 0.5);
+    }
+
+    /// <summary>
     /// The send key chip before Send (DESIGN.md §5, "Composer"): it says which key sends, a click switches Settings →
     /// Keyboard → Send with (§14) and the placeholder and Send's tooltip follow, and the keyboard reaches it.
     /// </summary>

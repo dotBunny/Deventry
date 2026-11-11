@@ -65,11 +65,13 @@ public sealed class ControlBarPanel : Panel
         var (start, end) = (first.DesiredSize, last.DesiredSize);
         if (!IsWrapped)
         {
+            // Each group at its own height, centered on the line, as in a grid row. Given the whole line, a WrapPanel
+            // (the chips) would lay its line out at the top, above the middle of the taller group's (the counts and Send).
             var height = Math.Max(start.Height, end.Height);
-            first.Arrange(new Rect(0, 0, start.Width, height));
+            first.Arrange(new Rect(0, (height - start.Height) / 2, start.Width, start.Height));
             if (!ReferenceEquals(first, last))
             {
-                last.Arrange(new Rect(finalSize.Width - end.Width, 0, end.Width, height));
+                last.Arrange(new Rect(finalSize.Width - end.Width, (height - end.Height) / 2, end.Width, end.Height));
             }
         }
         else
