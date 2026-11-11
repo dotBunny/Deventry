@@ -307,6 +307,8 @@ h1, h2, h3 { color: var(--heading); line-height: 1.12; margin: 0; }
 .story-copy h3 { font-size: clamp(1.8rem, 3vw, 2.5rem); font-weight: 800; letter-spacing: -0.03em; }
 .story-copy p:not(.kicker) { margin: 1.1rem 0 1.3rem; color: var(--muted); }
 .story-shot.is-tall { justify-self: center; width: min(19rem, 100%); }
+/* A tool window's picture, at about its own size rather than the column's. */
+.story-shot.is-panel { justify-self: center; width: min(26rem, 100%); }
 .more { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 700; }
 .more .icon { transition: transform 0.15s ease; }
 .more:hover .icon { transform: translateX(3px); }
