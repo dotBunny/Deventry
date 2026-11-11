@@ -153,6 +153,77 @@ public class PermissionModeTests
         Assert.Equal("Auto", tab.PermissionModeName);
     }
 
+    [Fact]
+    public async Task A_restored_tab_shows_the_mode_it_starts_in_before_it_starts()
+    {
+        await using var h = new TabTestHarness();
+
+        var tab = RestoreUnstarted(h);
+
+        // Claude Code's settings files are read in the background, as the tab is made.
+        await TabTestHarness.Eventually(() => tab.PermissionModeName == "Auto", "the mode it starts in");
+        Assert.Equal(TabStatus.NotStarted, tab.Status);
+        Assert.Empty(h.Factory.Launches);
+        Assert.Contains(tab.InfoRows, r => r.Label == "Mode" && r.Value == "Auto");
+        Assert.Equal("Default (Auto)", TabSettings(h, tab).ModeChoices[0].Label);
+        // Picking the mode it shows doesn't start it.
+        await InlineDispatcher.RunAsync(() => tab.ChooseModeCommand.ExecuteAsync(tab.PermissionModeChoices.Single(c => c.IsAuto)));
+        Assert.Empty(h.Factory.Launches);
+
+        // What it showed is what it asks Claude Code for.
+        h.Start(tab);
+        await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.IsSettled, "the tab to start");
+        Assert.Equal("auto", Assert.Single(h.Factory.Launches).PermissionMode);
+    }
+
+    [Fact]
+    public async Task A_mode_chosen_in_Tab_settings_shows_before_the_tab_starts()
+    {
+        await using var h = new TabTestHarness();
+
+        var tab = RestoreUnstarted(h, new TabOverrides { PermissionMode = "plan" });
+
+        Assert.Equal("Plan", tab.PermissionModeName);
+        Assert.False(tab.IsBypassMode);
+
+        var previous = tab.State.Overrides;
+        tab.State.Overrides = new TabOverrides { PermissionMode = "acceptEdits" };
+        await tab.ApplyOverridesAsync(previous);
+        Assert.Equal("Accept edits", tab.PermissionModeName);
+        Assert.Empty(h.Factory.Launches);
+    }
+
+    [Fact]
+    public async Task A_tab_that_starts_in_Bypass_has_its_warning_before_it_starts()
+    {
+        await using var h = new TabTestHarness();
+
+        var tab = RestoreUnstarted(h, new TabOverrides { PermissionMode = PermissionModeInfo.Bypass });
+
+        Assert.Equal("Bypass permissions", tab.PermissionModeName);
+        Assert.True(tab.IsBypassMode);
+        Assert.Empty(h.Factory.Launches);
+    }
+
+    [Fact]
+    public async Task An_unloaded_tab_shows_the_mode_its_next_start_brings_not_the_one_it_was_in()
+    {
+        await using var h = new TabTestHarness(s => s.Sessions.UnloadIdleTabs = true);
+        var tab = await h.OpenTabAsync();
+        await InlineDispatcher.RunAsync(() => tab.ChooseModeCommand.ExecuteAsync(tab.PermissionModeChoices.Single(c => c.Value == "acceptEdits")));
+        Assert.Equal("Accept edits", tab.PermissionModeName);
+        tab.ComposerText = "first";
+        await InlineDispatcher.RunAsync(() => tab.SendCommand.ExecuteAsync(null));
+        h.Transport.EmitTurn();
+        await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.IsSettled, "the turn to end");
+
+        h.Time.Advance(TimeSpan.FromMinutes(61));
+        await TabTestHarness.Eventually(() => tab.Status == TabStatus.NotStarted, "the tab to unload");
+
+        // A resumed session doesn't keep a mode picked in the run before: it starts again in Auto.
+        Assert.Equal("Auto", tab.PermissionModeName);
+    }
+
     private static void UseClaudeSettings(TabTestHarness h, string json)
     {
         var config = Path.Combine(h.Root, "claude-config");
@@ -170,6 +241,14 @@ public class PermissionModeTests
         var tab = h.Shell.AllTabs.Single();
         await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.IsSettled, "the restored tab to start");
         return tab;
+    }
+
+    /// <summary>A restored tab, selected, which starts only with its first message (DESIGN.md §9, "Starting fast").</summary>
+    private static TabViewModel RestoreUnstarted(TabTestHarness h, TabOverrides? overrides = null)
+    {
+        h.Services.State.Tabs = [new TabState { Folder = h.WorkFolder, IsPinned = true, Overrides = overrides ?? new TabOverrides() }];
+        h.Shell.Restore(null);
+        return h.Shell.SelectedTab!;
     }
 
     private static TabSettingsViewModel TabSettings(TabTestHarness h, TabViewModel tab) => new(h.Services, tab, () => { });

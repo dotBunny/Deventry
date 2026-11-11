@@ -21,7 +21,7 @@ The mode is on the left of the [composer bar](../composer/the-composer-bar.md), 
 | **Auto** | Don't ask; a safety check reviews actions and blocks risky ones. |
 | **Bypass permissions** | Skip permission prompts; Claude Code's own deny and ask rules still apply. |
 
-Picking a mode changes it for this session only. The picker always shows the mode Claude Code reports, including changes Claude Code makes itself, such as leaving Plan mode when you [approve a plan](approving-a-plan.md).
+Picking a mode changes it for this session only. Once the tab is running, the picker shows the mode Claude Code reports, including changes Claude Code makes itself, such as leaving Plan mode when you [approve a plan](approving-a-plan.md). Before a tab starts, as a restored tab waits for its first message, it shows the mode the tab will start in ([below](#the-mode-a-tab-starts-in)), and a tab that will start in Bypass permissions has its red border already.
 
 ## When Auto isn't offered
 
