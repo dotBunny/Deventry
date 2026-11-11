@@ -140,8 +140,10 @@
                         AutomationProperties.Name="{Binding Name, StringFormat='Open {0}'}"
                         Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).OpenImageCommand}" CommandParameter="{Binding}">
                   <Border Classes="thumbnail">
-                    <Image Source="{Binding Image.Data, Converter={x:Static services:ImageFiles.Preview}}" MaxHeight="120" MaxWidth="320"
-                           Stretch="Uniform" StretchDirection="DownOnly" />
+                    <Border Classes="thumbclip">
+                      <Image Source="{Binding Image.Data, Converter={x:Static services:ImageFiles.Preview}}" MaxHeight="120" MaxWidth="320"
+                             Stretch="Uniform" StretchDirection="DownOnly" />
+                    </Border>
                   </Border>
                 </Button>
               </DataTemplate>
@@ -291,8 +293,10 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="protocol:MessageImage">
                   <Border Classes="thumbnail">
-                    <Image Source="{Binding Data, Converter={x:Static services:ImageFiles.Thumbnail}}" Height="72" MaxWidth="160" Stretch="UniformToFill"
-                           AutomationProperties.Name="Attached image" />
+                    <Border Classes="thumbclip">
+                      <Image Source="{Binding Data, Converter={x:Static services:ImageFiles.Thumbnail}}" Height="72" MaxWidth="160" Stretch="UniformToFill"
+                             AutomationProperties.Name="Attached image" />
+                    </Border>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>

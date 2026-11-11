@@ -244,8 +244,10 @@
               <DataTemplate DataType="vm:ComposerAttachment">
                 <Panel ToolTip.Tip="{Binding Name}">
                   <Border Classes="thumbnail">
-                    <Image Source="{Binding Data, Converter={x:Static services:ImageFiles.Thumbnail}}" Height="56" MaxWidth="120" Stretch="UniformToFill"
-                           AutomationProperties.Name="{Binding Name}" />
+                    <Border Classes="thumbclip">
+                      <Image Source="{Binding Data, Converter={x:Static services:ImageFiles.Thumbnail}}" Height="56" MaxWidth="120" Stretch="UniformToFill"
+                             AutomationProperties.Name="{Binding Name}" />
+                    </Border>
                   </Border>
                   <Button Classes="flat" Padding="4" Margin="3" HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="9"
                           Background="{DynamicResource ComposerBrush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1"

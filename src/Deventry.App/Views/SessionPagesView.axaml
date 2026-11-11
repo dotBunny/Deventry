@@ -401,11 +401,13 @@
                               Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).OpenMediaCommand}" CommandParameter="{Binding}">
                         <StackPanel Spacing="3">
                           <Border Classes="thumbnail mediathumb">
-                            <Panel>
-                              <Image Source="{Binding Thumbnail, Converter={x:Static services:ImageFiles.Thumbnail}}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
-                              <!-- A video, a sound, or an image without a thumbnail (yet, or ever: an SVG) -->
-                              <Path Classes="mediakind" Data="{Binding KindIcon, Converter={x:Static conv:ToolIcons.Geometry}}" IsVisible="{Binding HasNoThumbnail}" />
-                            </Panel>
+                            <Border Classes="thumbclip">
+                              <Panel>
+                                <Image Source="{Binding Thumbnail, Converter={x:Static services:ImageFiles.Thumbnail}}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
+                                <!-- A video, a sound, or an image without a thumbnail (yet, or ever: an SVG) -->
+                                <Path Classes="mediakind" Data="{Binding KindIcon, Converter={x:Static conv:ToolIcons.Geometry}}" IsVisible="{Binding HasNoThumbnail}" />
+                              </Panel>
+                            </Border>
                           </Border>
                           <TextBlock Classes="small" Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxLines="1" />
                         </StackPanel>
