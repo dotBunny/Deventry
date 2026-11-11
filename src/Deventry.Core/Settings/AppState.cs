@@ -147,6 +147,12 @@ public sealed class AppState
     public bool DiffWordWrap { get; set; }
 
     /// <summary>
+    /// Changed files lists its files one after another rather than in a tree of their folders (DESIGN.md §8, "The tree"),
+    /// in every tab: its switch sets it.
+    /// </summary>
+    public bool ChangedFilesAsList { get; set; }
+
+    /// <summary>
     /// This machine's id in the session library's shared usage (DESIGN.md §6, "Sharing across machines"): made up once, so
     /// its file keeps its name when the machine's is changed, and two machines with the same name don't share a file. Its
     /// leases carry it too, so a lease an earlier run here left is known for one (§9, "One machine at a time").
@@ -452,6 +458,12 @@ public sealed class TabState
     /// once it's shown (DESIGN.md §4, "Marks").
     /// </summary>
     public bool AllFilesReviewed { get; set; }
+
+    /// <summary>
+    /// The folders collapsed in Changed files' tree (DESIGN.md §8, "The tree"), by full path, and a working tree's
+    /// heading by <c>worktree:</c> and its path. A folder not in it is expanded, so one that's new to the tree is.
+    /// </summary>
+    public List<string> CollapsedChangedFolders { get; set; } = [];
 
     /// <summary>
     /// A usage limit stopped the tab's last turn, and it waits for the limit to reset (DESIGN.md §6, "Continuing after a

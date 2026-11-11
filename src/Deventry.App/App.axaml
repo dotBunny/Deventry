@@ -747,6 +747,11 @@
       <StreamGeometry x:Key="IconFiles">M1.5,1.5 L4.5,1.5 L5.5,2.8 L10.5,2.8 L10.5,6 L1.5,6 Z M3,6 L3,10 L6,10 M3,8 L6,8 M6.5,7 L10.5,7 L10.5,9 L6.5,9 Z M6.5,9.2 L10.5,9.2 L10.5,11 L6.5,11 Z</StreamGeometry>
       <!-- Lines folding up: the explorer's Collapse all. 12×12. -->
       <StreamGeometry x:Key="IconCollapseAll">M1.5,1.5 L10.5,1.5 L10.5,10.5 L1.5,10.5 Z M3.5,6 L8.5,6</StreamGeometry>
+      <!-- Its other half: Changed files' Expand all (DESIGN.md §8, "The tree"). 12×12. -->
+      <StreamGeometry x:Key="IconExpandAll">M1.5,1.5 L10.5,1.5 L10.5,10.5 L1.5,10.5 Z M3.5,6 L8.5,6 M6,3.5 L6,8.5</StreamGeometry>
+      <!-- Changed files' switch, showing what it switches to: a list of files, each after a dot, and a tree of them. 12×12. -->
+      <StreamGeometry x:Key="IconViewList">M1.5,2.5 L2.5,2.5 M4.5,2.5 L10.5,2.5 M1.5,6 L2.5,6 M4.5,6 L10.5,6 M1.5,9.5 L2.5,9.5 M4.5,9.5 L10.5,9.5</StreamGeometry>
+      <StreamGeometry x:Key="IconViewTree">M1.5,2.5 L8,2.5 M3,2.5 L3,9.5 M3,6 L5,6 M3,9.5 L5,9.5 M6.5,6 L10.5,6 M6.5,9.5 L10.5,9.5</StreamGeometry>
       <StreamGeometry x:Key="IconToolFolder">M1,2.5 L4.5,2.5 L5.5,4 L11,4 L11,10 L1,10 Z</StreamGeometry>
       <StreamGeometry x:Key="IconToolWeb">M6,1 A5,5 0 1 1 6,11 A5,5 0 1 1 6,1 M1,6 L11,6 M6,1 C3.6,3.6 3.6,8.4 6,11 M6,1 C8.4,3.6 8.4,8.4 6,11</StreamGeometry>
       <StreamGeometry x:Key="IconToolWebSearch">M5,1.5 A3.5,3.5 0 1 1 5,8.5 A3.5,3.5 0 1 1 5,1.5 M1.5,5 L8.5,5 M5,1.5 C3.7,3 3.7,7 5,8.5 M5,1.5 C6.3,3 6.3,7 5,8.5 M7.5,7.5 L10.5,10.5</StreamGeometry>

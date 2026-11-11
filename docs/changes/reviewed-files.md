@@ -12,6 +12,7 @@ When Claude has changed a lot of files, it helps to keep track of the ones you'v
 ## Ticking a file
 
 - In [Changed files](changed-files.md), tick the box at the start of the file's row. Its tip reads *Reviewed. Unticks when Claude changes the file again.*
+- To tick every file in a folder at once, tick the folder's box in Changed files' tree ([The tree](changed-files.md#the-tree)). Ticked again, it unticks them all. While only some of its files are ticked, the box is partly ticked, and a folder whose files are all ticked is drawn faintly too.
 - In the [diff view](the-diff-view.md), click **Reviewed**. It ticks the file and closes the window. The button shows a check when the file is already ticked.
 
 A file has one reviewed state, so ticking it in one place ticks it in the other.

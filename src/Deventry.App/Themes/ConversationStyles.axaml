@@ -1137,12 +1137,16 @@
     <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <!-- Changed files (DESIGN.md §8, "Reviewed"): a small box before each file, and a reviewed file drawn faintly -->
+  <!-- Changed files (DESIGN.md §8, "Reviewed"): a small box before each file, centered on its row, and a reviewed file
+       drawn faintly. A row's text is centered too, so a row of one line has its box level with it. -->
   <Style Selector="CheckBox.reviewed">
     <Setter Property="MinWidth" Value="0" />
     <Setter Property="MinHeight" Value="0" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Grid.changedfile > StackPanel, Grid.changedfolder > TextBlock#FolderName">
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <!-- The status letter, midway between the box and the file's name: its column fits it at any code size. -->
   <Style Selector="Grid.changedfile > TextBlock.mono">
@@ -1159,6 +1163,58 @@
   <!-- Fluent's padding, with the right side wide enough to keep a row's counts clear of the scroll bar -->
   <Style Selector="ListBox#ChangedFilesList ListBoxItem">
     <Setter Property="Padding" Value="12,9,16,12" />
+  </Style>
+  <!-- The tree (DESIGN.md §8, "The tree"): a file's row is a line without its path under it, so the rows sit closer -->
+  <Style Selector="ListBox#ChangedFilesList.tree ListBoxItem">
+    <Setter Property="Padding" Value="12,5,16,6" />
+  </Style>
+  <!-- A folder's arrow, beside its box: as tall as the box, and centered on the row as it is, so it's drawn level with it -->
+  <Style Selector="Panel.changedfold">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Panel.changedfold Path">
+    <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="StrokeThickness" Value="1.4" />
+    <Setter Property="Width" Value="9" />
+    <Setter Property="Height" Value="9" />
+    <Setter Property="Stretch" Value="Uniform" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- Its icon, at the start of its name's first line, where a file's letter is -->
+  <Style Selector="Panel.changedfoldericon">
+    <Setter Property="Margin" Value="8,0,6,0" />
+  </Style>
+  <Style Selector="Panel.changedfoldericon Path">
+    <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="StrokeThickness" Value="1.2" />
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Height" Value="12" />
+    <Setter Property="Stretch" Value="Uniform" />
+  </Style>
+  <!-- How many files it has, muted after its name -->
+  <Style Selector="Run.changedcount">
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <!-- A working tree's heading, as the list's is -->
+  <Style Selector="Grid.changedfolder.worktree > TextBlock">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <!-- Every file in it reviewed: drawn faintly, as a reviewed file is; its box isn't -->
+  <Style Selector="Grid.changedfolder.reviewed > TextBlock">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+  <!-- Expand all, Collapse all and the switch, beside Refresh -->
+  <Style Selector="Button.changedtool">
+    <Setter Property="Padding" Value="6,4" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.changedtool Path">
+    <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="StrokeThickness" Value="1.3" />
+    <Setter Property="Width" Value="11" />
+    <Setter Property="Height" Value="11" />
+    <Setter Property="Stretch" Value="Uniform" />
   </Style>
   <!-- A process's row (DESIGN.md §4): lit under the pointer, so it's plain it has a menu, and while the menu is open, so
        it's plain which process the menu is for. Its numbers keep clear of the scroll bar on their own (Controls/ShownWidth). -->

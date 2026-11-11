@@ -57,23 +57,36 @@ public partial class SessionPagesView : UserControl
 
     /// <summary>
     /// A click opens the built-in diff view (DESIGN.md §8). Not on selection, so the arrow keys move through the list
-    /// without opening a window for each file; Enter opens the selected one.
+    /// without opening a window for each file; Enter opens the selected one. A click on a folder's row folds it, and with
+    /// Alt every folder under it too (DESIGN.md §8, "The tree").
     /// </summary>
     private void OnChangedFileTapped(object? sender, TappedEventArgs e)
     {
-        if (ChangedFileAt(e) is { } row && ViewModel?.ChangedFiles is { HasDiffTool: false } files)
+        if (ViewModel?.ChangedFiles is not { } files)
         {
-            files.OpenFileDiffCommand.Execute(row);
+            return;
+        }
+        switch (ChangedRowAt(e))
+        {
+            case ChangedFolderRow folder when e.KeyModifiers.HasFlag(KeyModifiers.Alt):
+                files.ToggleFolderAllLevels(folder);
+                break;
+            case ChangedFolderRow folder:
+                files.ToggleFolderCommand.Execute(folder);
+                break;
+            case ChangedFileRow row when !files.HasDiffTool:
+                files.OpenFileDiffCommand.Execute(row);
+                break;
         }
     }
 
     /// <summary>
     /// A double click opens the diff tool when one is set. Without one, the second click of it opens the built-in view
-    /// again, as a single click would (a double click raises no second tap).
+    /// again, as a single click would (a double click raises no second tap). On a folder, its first click folded it.
     /// </summary>
     private void OnChangedFileDoubleTapped(object? sender, TappedEventArgs e)
     {
-        if (ChangedFileAt(e) is not { } row || ViewModel?.ChangedFiles is not { } files)
+        if (ChangedRowAt(e) is not ChangedFileRow row || ViewModel?.ChangedFiles is not { } files)
         {
             return;
         }
@@ -87,28 +100,48 @@ public partial class SessionPagesView : UserControl
         }
     }
 
-    /// <summary>Enter opens the selected file as a click (or, with a diff tool, a double click) would.</summary>
+    /// <summary>
+    /// Enter opens the selected file as a click (or, with a diff tool, a double click) would, and folds a folder. In the
+    /// tree, Right expands a folder and Left collapses it, or goes up to the folder a row is in, as the Files tab's
+    /// explorer does.
+    /// </summary>
     private void OnChangedFileKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && ChangedFilesList.SelectedItem is ChangedFileRow row && ViewModel is { } tab)
+        if (ViewModel is not { } tab || e.KeyModifiers != KeyModifiers.None)
         {
-            if (tab.ChangedFiles.HasDiffTool)
-            {
-                tab.ChangedFiles.OpenFileInDiffToolCommand.Execute(row);
-            }
-            else
-            {
-                tab.ChangedFiles.OpenFileDiffCommand.Execute(row);
-            }
-            e.Handled = true;
+            return;
         }
+        var files = tab.ChangedFiles;
+        switch (e.Key, ChangedFilesList.SelectedItem)
+        {
+            case (Key.Enter, ChangedFileRow row) when files.HasDiffTool:
+                files.OpenFileInDiffToolCommand.Execute(row);
+                break;
+            case (Key.Enter, ChangedFileRow row):
+                files.OpenFileDiffCommand.Execute(row);
+                break;
+            case (_, ChangedFolderRow folder) when e.Key == Key.Enter || e.Key == Key.Right && folder.IsCollapsed || e.Key == Key.Left && folder.IsExpanded:
+                files.ToggleFolderCommand.Execute(folder);
+                break;
+            case (Key.Left, ChangedTreeRow { Depth: > 0 } row):
+                var index = files.Rows.IndexOf(row);
+                if (files.Rows.Take(index).LastOrDefault(r => r is ChangedFolderRow && r.Depth < row.Depth) is { } up)
+                {
+                    ChangedFilesList.SelectedItem = up;
+                    ChangedFilesList.ContainerFromItem(up)?.Focus(NavigationMethod.Directional);
+                }
+                break;
+            default:
+                return;
+        }
+        e.Handled = true;
     }
 
     /// <summary>The row under a tap, unless it was on one of the row's own controls (the Reviewed box, a button).</summary>
-    private static ChangedFileRow? ChangedFileAt(TappedEventArgs e) =>
+    private static ChangedTreeRow? ChangedRowAt(TappedEventArgs e) =>
         e.Source is Control source && source.FindAncestorOfType<ToggleButton>(includeSelf: true) is null
             && source.FindAncestorOfType<Button>(includeSelf: true) is null
-            ? source.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext as ChangedFileRow
+            ? source.FindAncestorOfType<ListBoxItem>(includeSelf: true)?.DataContext as ChangedTreeRow
             : null;
 
     // ---- Processes (DESIGN.md §4, "Process monitor") ---------------------------------------------------------------

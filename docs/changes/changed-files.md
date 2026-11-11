@@ -2,14 +2,14 @@
 title: Changed files
 parent: Reviewing changes
 nav_order: 1
-summary: "The Changed files tool window lists the files Claude changed in that tab's session, each added, modified or deleted, with how many lines changed."
+summary: "The Changed files tool window shows the files Claude changed in that tab's session, in a tree of their folders, each added, modified or deleted, with how many lines changed."
 ---
 
 # Changed files
 
-The **Changed files** tool window lists the files Claude changed in that tab's session, each added, modified or deleted, with how many lines changed. It's built from Claude's file edits, live while the tab works and again when a conversation is restored.
+The **Changed files** tool window shows the files Claude changed in that tab's session, in a tree of their folders, each added, modified or deleted, with how many lines changed. It's built from Claude's file edits, live while the tab works and again when a conversation is restored.
 
-{% include shot.html name="guide/changes/changed-files" alt="The Changed files tool window: a summary of five files changed with two reviewed, a Working tree vs HEAD box, and a row for each file with its status letter, name, line counts and folder." %}
+{% include shot.html name="guide/changes/changed-files" alt="The Changed files tool window: a summary of five files changed with one reviewed, a Working tree vs HEAD box, and a tree: the folder Source/Starfall with five files, and under it the folders Abilities, Player and Tests, each with its files, their status letters and line counts." %}
 
 ## Opening the page
 
@@ -21,17 +21,36 @@ Each tab has its own list. A tab in the background only keeps its count, and lis
 
 ## Reading a row
 
-Each row has, from the left:
+Each file's row has, from the left:
 
 - a box to tick when you've reviewed the file ([Reviewed files](reviewed-files.md));
 - a letter: **A** for a file Claude created, **M** for one it modified, **D** for one deleted, and **=** for a file that's back to how it was;
-- the file's name, with `+12 −3` beside it for the lines added and removed, and its folder under it. A file that isn't text shows *binary* in place of the counts;
+- the file's name, with `+12 −3` beside it for the lines added and removed. A file that isn't text shows *binary* in place of the counts. In the list, its folder is under its name;
 - when something changed that its lines don't show, such as its line endings, a line saying what ([What the lines don't show](#what-the-lines-dont-show));
 - when the file has changed on disk since this session's last change to it, a line saying so ([Changed since](#changed-since)).
 
 Point at a row to see what it is in words.
 
 The summary at the top reads *"5 files changed · 2 reviewed"*. **Refresh** reads the files again.
+
+## The tree
+
+The files are under their folders, from the tab's folder, with folders before files and each by name. A folder that holds only one other folder shares its row with it, such as *Source/Starfall*, down to where the folders branch. A file outside the tab's folder is under a folder named by its full path, after the others.
+
+A folder's row has an arrow, a box, its name with how many files are in it, such as *3 files*, and their lines added and removed, added up, at the right. Point at it to see its full path.
+
+- **Fold a folder** by clicking its row anywhere but its box. Alt+click folds every folder under it too.
+- **Expand all** and **Collapse all**, beside **Refresh**, fold every folder in the tree. After **Collapse all**, a folder you expand shows the folders in it collapsed.
+- **With the keyboard**, Right expands the selected folder and Left collapses it, or goes up to the folder the selected row is in. `Enter` folds a folder.
+- **Right-click a folder** for **Expand all**, **Collapse**, **Reveal in file manager** and **Copy path**.
+
+Each tab remembers the folders you collapsed, after a restart too, and they stay collapsed as Claude changes files in them. A folder that's new to the tree starts expanded. `/clear` starts the tree again, with every folder expanded.
+
+A folder's box ticks every file in it as reviewed, or, when they're all ticked, unticks them. It's partly ticked while only some of them are ([Reviewed files](reviewed-files.md)).
+
+### The list
+
+The button beside **Refresh** switches to a list, as Changed files was before: the files one after another, in the order Claude first changed them, each with its folder under its name. The same button switches back. Your choice holds in every tab.
 
 ## This session's changes
 
@@ -71,7 +90,7 @@ A tab off screen catches up once you show it.
 
 ## Several working trees
 
-A session can change files in more than one checkout of a repository: a worktree Claude moved into ([Worktree tabs](../tabs/worktree-tabs.md#claude-moving-into-a-worktree)), one a subagent works in, or one made with `git worktree add` beside the checkout. The list then has a group for each, with the tab's own first, each headed by its folder and branch, such as *"brisk-otter · worktree-brisk-otter"*. A file's folder is shown from its own checkout's top.
+A session can change files in more than one checkout of a repository: a worktree Claude moved into ([Worktree tabs](../tabs/worktree-tabs.md#claude-moving-into-a-worktree)), one a subagent works in, or one made with `git worktree add` beside the checkout. The tree then has a group for each, with the tab's own first, each headed by its folder and branch, such as *"brisk-otter · worktree-brisk-otter"*, which folds as a folder does. A file's folders are from its own checkout's top. In the list, each group's heading is over its first file.
 
 When a worktree is removed, its files stay in their group, headed *"brisk-otter · removed"*, with Claude's changes as they were, and **Open** isn't offered for them. While a tab's Claude has changed files in a worktree, cleaning up worktrees leaves it ([Worktree tabs](../tabs/worktree-tabs.md#cleaning-up-worktrees)).
 
@@ -99,7 +118,7 @@ Claude Code doesn't report the earlier contents of a file a subagent changes at 
 
 ## Opening a file's changes
 
-Click a row, or press `Enter` on it, to open its [diff view](the-diff-view.md). The arrow keys move through the list without opening anything. Right-click a row for **Open diff**, **Open in diff tool**, **Open**, **Open in the OS's app**, **Reveal in file manager** and **Copy path**, which [The diff view](the-diff-view.md#the-files-actions) explains, and **Diff tool settings…**, which opens Settings → **Files and diffs** at the [diff tool](external-diff-tools.md).
+Click a file's row, or press `Enter` on it, to open its [diff view](the-diff-view.md). The arrow keys move through the rows without opening anything. Right-click a row for **Open diff**, **Open in diff tool**, **Open**, **Open in the OS's app**, **Reveal in file manager** and **Copy path**, which [The diff view](the-diff-view.md#the-files-actions) explains, and **Diff tool settings…**, which opens Settings → **Files and diffs** at the [diff tool](external-diff-tools.md).
 
 With an [external diff tool](external-diff-tools.md) set, a single click only selects the row, and a double-click opens the tool.
 

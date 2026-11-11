@@ -2,10 +2,8 @@
 "M"
 "auth.cs"
 "+1 −1"
-"auth.cs"
 "Only whitespace changed"
 [ ] Reviewed
 "M"
-"login.cs"
 "login.cs"
 "Only the newline at its end changed: removed"

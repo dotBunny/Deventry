@@ -298,12 +298,85 @@ public class ToolWindowsUiTests
         var view = ShownWindow(window);
         var list = view.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "ChangedFilesList");
 
-        await UiText.SettleUntilAsync(window, () => list.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "brisk-otter · worktree-brisk-otter" && t.IsEffectivelyVisible),
-            "the worktree's heading");
+        // In the tree, a row of its own at the top of its files (DESIGN.md §8, "The tree").
+        Grid? Heading() => list.GetVisualDescendants().OfType<Grid>()
+            .SingleOrDefault(g => g.Classes.Contains("changedfolder") && g.DataContext is ChangedFolderRow { Name: "brisk-otter · worktree-brisk-otter" } && g.IsEffectivelyVisible);
+        await UiText.SettleUntilAsync(window, () => Heading() is not null, "the worktree's heading");
 
+        Assert.Contains("worktree", Heading()!.Classes);
+        var shown = UiText.Describe(list);
+
+        // In the list, it heads the first of its files, as before.
+        h.OnUiThread(() => tab.ChangedFiles.ToggleViewCommand.Execute(null));
+        await UiText.SettleUntilAsync(window, () => list.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "brisk-otter · worktree-brisk-otter" && t.IsEffectivelyVisible),
+            "the worktree's heading in the list");
         var heading = list.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "brisk-otter · worktree-brisk-otter");
         Assert.Contains("changedgroup", heading.Classes);
-        await Verify(UiText.Describe(list));
+        await Verify(shown);
+    }
+
+    [AvaloniaFact]
+    public async Task A_click_on_a_changed_folder_folds_it_its_box_ticks_every_file_in_it_and_the_arrow_keys_fold_it_too()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var tab = await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell });
+        h.ShowToolWindow(ToolWindowKinds.Files);
+        // The panel's pages are only in the visual tree once it has been laid out open.
+        UiText.Settle(window);
+        string[] files = [Path.Combine(h.WorkFolder, "src", "auth", "login.cs"), Path.Combine(h.WorkFolder, "src", "auth", "token.cs"), Path.Combine(h.WorkFolder, "README.md")];
+        for (var i = 0; i < files.Length; i++)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(files[i])!);
+            await File.WriteAllTextAsync(files[i], "b\n", TestContext.Current.CancellationToken);
+            h.Transport.Emit(Edit($"e{i}", files[i]));
+            h.Transport.Emit(EditResult($"e{i}", files[i]));
+        }
+        var view = ShownWindow(window);
+        var list = view.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "ChangedFilesList");
+        await UiText.SettleUntilAsync(window, () => Boxes(list).Count == 4, "the folder and its files");
+        var opened = 0;
+        tab.ChangedFiles.DiffRequested += _ => opened++;
+        var folder = tab.ChangedFiles.Rows.OfType<ChangedFolderRow>().Single();
+        Assert.Equal("src/auth", folder.Name);
+        var shown = UiText.Describe(list);
+
+        // A click on its name folds it, and opens nothing.
+        Click(window, FolderName(list));
+        await UiText.SettleUntilAsync(window, () => Boxes(list).Count == 2, "the folder collapsed");
+        Assert.False(folder.IsExpanded);
+        Assert.Equal(0, opened);
+        // Anywhere on its row: its counts, far enough along that two clicks aren't a double click, which folds it once.
+        Click(window, list.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "+2 −2"));
+        await UiText.SettleUntilAsync(window, () => Boxes(list).Count == 4, "the folder expanded");
+
+        // Its box ticks both of its files, and nothing else.
+        Click(window, Box(0));
+        Assert.True(folder.IsReviewed);
+        Assert.Equal([true, true, true, false], Enumerable.Range(0, 4).Select(i => Box(i).IsChecked == true));
+        Assert.Equal("3 files changed · 2 reviewed", tab.ChangedFiles.Summary);
+
+        // One file unticked, its box is partly ticked.
+        Click(window, Box(1));
+        Assert.Null(Box(0).IsChecked);
+
+        // Left on it collapses it, and Right expands it again.
+        list.SelectedIndex = 0;
+        list.ContainerFromIndex(0)!.Focus();
+        window.KeyPressQwerty(PhysicalKey.ArrowLeft, RawInputModifiers.None);
+        window.KeyReleaseQwerty(PhysicalKey.ArrowLeft, RawInputModifiers.None);
+        await UiText.SettleUntilAsync(window, () => Boxes(list).Count == 2, "the folder collapsed by Left");
+        window.KeyPressQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+        window.KeyReleaseQwerty(PhysicalKey.ArrowRight, RawInputModifiers.None);
+        await UiText.SettleUntilAsync(window, () => Boxes(list).Count == 4, "the folder expanded by Right");
+        Assert.Equal(0, opened);
+
+        await Verify(shown);
+
+        static TextBlock FolderName(ListBox list) => list.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name == "FolderName");
+
+        // A row's box, by the row's place: the list's controls aren't in its rows' order once a folder has folded.
+        CheckBox Box(int index) => list.ContainerFromIndex(index)!.GetVisualDescendants().OfType<CheckBox>().First(c => c.Classes.Contains("reviewed"));
     }
 
     [AvaloniaFact]

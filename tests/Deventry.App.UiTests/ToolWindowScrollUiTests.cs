@@ -66,7 +66,7 @@ public class ToolWindowScrollUiTests
     }
 
     [AvaloniaFact]
-    public async Task A_changed_files_path_wraps_while_its_counts_stay_at_the_right_edge()
+    public async Task A_changed_files_folder_and_path_wrap_while_their_counts_stay_at_the_right_edge()
     {
         await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
         var tab = await h.OpenTabAsync();
@@ -80,15 +80,25 @@ public class ToolWindowScrollUiTests
         h.Transport.Emit(Edit("e1", file));
         h.Transport.Emit(EditResult("e1", file));
         var list = window.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "ChangedFilesList");
-        await UiText.SettleUntilAsync(window, () => list.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "+1 −1"), "the changed file");
+        List<TextBlock> Counts() => [.. list.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Text == "+1 −1" && t.IsEffectivelyVisible)];
+        // The folder's row and the file's under it (DESIGN.md §8, "The tree").
+        await UiText.SettleUntilAsync(window, () => Counts().Count == 2, "the changed file under its folder");
         UiText.Settle(window);
 
         var viewer = Viewer(list);
-        var counts = list.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "+1 −1");
-        var path = list.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text?.Contains("a_folder_with_a_long_name", StringComparison.Ordinal) == true);
+        var folderName = list.GetVisualDescendants().OfType<TextBlock>()
+            .Single(t => t.Inlines?.OfType<Run>().Any(r => r.Text?.Contains("a_folder_with_a_long_name", StringComparison.Ordinal) == true) == true);
         Assert.Equal(viewer.Viewport.Width, viewer.Extent.Width, 1);
+        Assert.True(folderName.Bounds.Height > folderName.FontSize * 3, "the folder's name wraps");
+        Assert.All(Counts(), counts => Assert.InRange(RightEdge(counts, viewer), viewer.Viewport.Width - 24, viewer.Viewport.Width - 16));
+
+        // In the list, the file's path under its name wraps instead.
+        h.OnUiThread(() => tab.ChangedFiles.ToggleViewCommand.Execute(null));
+        await UiText.SettleUntilAsync(window, () => Counts().Count == 1, "the changed file in the list");
+        UiText.Settle(window);
+        var path = list.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text?.Contains("a_folder_with_a_long_name", StringComparison.Ordinal) == true);
         Assert.True(path.Bounds.Height > path.FontSize * 3, "the path wraps");
-        Assert.InRange(RightEdge(counts, viewer), viewer.Viewport.Width - 24, viewer.Viewport.Width - 16);
+        Assert.InRange(RightEdge(Counts().Single(), viewer), viewer.Viewport.Width - 24, viewer.Viewport.Width - 16);
         window.Close();
     }
 

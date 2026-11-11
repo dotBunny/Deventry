@@ -21,9 +21,25 @@
       <!-- Changed files (DESIGN.md §8) -->
       <DockPanel x:Name="FilesPage" IsVisible="False">
         <StackPanel DockPanel.Dock="Top" Margin="12,0,12,6" Spacing="4">
-          <Grid ColumnDefinitions="*,Auto">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
             <TextBlock Classes="muted small" Text="{Binding ChangedFiles.Summary}" TextWrapping="Wrap" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="flat" Command="{Binding ChangedFiles.RefreshCommand}">
+            <!-- DESIGN.md §8, "The tree": every folder at once, and the tree or the list -->
+            <Button Grid.Column="1" Classes="flat changedtool" Command="{Binding ChangedFiles.ExpandAllCommand}" IsVisible="{Binding ChangedFiles.HasFolders}"
+                    ToolTip.Tip="Expand all" AutomationProperties.Name="Expand all">
+              <Path Data="{StaticResource IconExpandAll}" />
+            </Button>
+            <Button Grid.Column="2" Classes="flat changedtool" Command="{Binding ChangedFiles.CollapseAllCommand}" IsVisible="{Binding ChangedFiles.HasFolders}"
+                    ToolTip.Tip="Collapse all" AutomationProperties.Name="Collapse all">
+              <Path Data="{StaticResource IconCollapseAll}" />
+            </Button>
+            <Button Grid.Column="3" Classes="flat changedtool" Command="{Binding ChangedFiles.ToggleViewCommand}"
+                    ToolTip.Tip="{Binding ChangedFiles.ViewSwitchText}" AutomationProperties.Name="{Binding ChangedFiles.ViewSwitchText}">
+              <Panel>
+                <Path Data="{StaticResource IconViewList}" IsVisible="{Binding ChangedFiles.ShowAsTree}" />
+                <Path Data="{StaticResource IconViewTree}" IsVisible="{Binding !ChangedFiles.ShowAsTree}" />
+              </Panel>
+            </Button>
+            <Button Grid.Column="4" Classes="flat" Command="{Binding ChangedFiles.RefreshCommand}">
               <TextBlock Classes="small" Text="Refresh" />
             </Button>
           </Grid>
@@ -33,15 +49,54 @@
           </CheckBox>
         </StackPanel>
         <!-- Every page wraps at the width shown (DESIGN.md §3, "Side panel"): a row's name and path wrap, and its counts
-             stay at its right edge. -->
-        <ListBox x:Name="ChangedFilesList" ItemsSource="{Binding ChangedFiles.Files}" Background="Transparent"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+             stay at its right edge. In the tree (DESIGN.md §8, "The tree"), a folder's row and, while it's expanded, what's
+             in it, each in by its depth; in the list, the files. -->
+        <ListBox x:Name="ChangedFilesList" ItemsSource="{Binding ChangedFiles.Rows}" Background="Transparent" Classes.tree="{Binding ChangedFiles.ShowAsTree}"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Changed files"
                  Tapped="OnChangedFileTapped" DoubleTapped="OnChangedFileDoubleTapped">
-          <ListBox.ItemTemplate>
+          <ListBox.DataTemplates>
+            <!-- A folder, or a chain of folders that each hold only the next; a working tree's heading when the session
+                 changed files in more than one. A click anywhere but its box folds it, Alt+click every level under it too. -->
+            <DataTemplate DataType="vm:ChangedFolderRow">
+              <Grid Classes="changedfolder" Classes.worktree="{Binding IsWorkTree}" Classes.reviewed="{Binding IsAllReviewed}"
+                    Margin="{Binding Indent, Converter={x:Static vm:Converters.LeftMargin}}" ColumnDefinitions="14,Auto,*,Auto"
+                    ToolTip.Tip="{Binding Path}" Background="Transparent">
+                <Panel Classes="changedfold" Height="{Binding #FolderBox.Bounds.Height}">
+                  <Path Data="{StaticResource IconChevronDown}" IsVisible="{Binding IsExpanded}" />
+                  <Path Data="{StaticResource IconChevronRight}" IsVisible="{Binding IsCollapsed}" />
+                </Panel>
+                <!-- Ticks every file in it, or unticks them all; partly ticked while some are -->
+                <CheckBox x:Name="FolderBox" Grid.Column="1" Classes="reviewed" IsChecked="{Binding IsReviewed, Mode=OneWay}"
+                          Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).ChangedFiles.ToggleFolderReviewedCommand}" CommandParameter="{Binding}"
+                          AutomationProperties.Name="Reviewed, every file in it" ToolTip.Tip="Reviewed: ticks every file in it, or unticks them all." />
+                <!-- Its icon, a folder or a working tree's branch, on its name's first line as a file's letter is -->
+                <TextBlock Grid.Column="2" x:Name="FolderName" TextWrapping="Wrap">
+                  <InlineUIContainer BaselineAlignment="Center">
+                    <Panel Classes="changedfoldericon">
+                      <Path Data="{StaticResource IconToolFolder}" IsVisible="{Binding !IsWorkTree}" />
+                      <Path Data="{StaticResource IconBranch}" IsVisible="{Binding IsWorkTree}" />
+                    </Panel>
+                  </InlineUIContainer><Run Text="{Binding Name}" />
+                  <Run Classes="changedcount" Text="{Binding FilesText}" />
+                </TextBlock>
+                <TextBlock Grid.Column="3" Classes="mono small muted" Text="{Binding Stats}" VerticalAlignment="Top" Margin="6,0,0,0"
+                           controls:Baseline.AlignWith="{Binding #FolderName}" />
+                <Grid.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Expand all" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).ChangedFiles.ExpandFolderAllCommand}" CommandParameter="{Binding}" />
+                    <MenuItem Header="Collapse" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).ChangedFiles.ToggleFolderCommand}" CommandParameter="{Binding}"
+                              IsVisible="{Binding IsExpanded}" />
+                    <Separator />
+                    <MenuItem Header="Reveal in file manager" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).ChangedFiles.RevealFolderCommand}" CommandParameter="{Binding}" />
+                    <MenuItem Header="Copy path" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).ChangedFiles.CopyFolderPathCommand}" CommandParameter="{Binding}" />
+                  </ContextMenu>
+                </Grid.ContextMenu>
+              </Grid>
+            </DataTemplate>
             <DataTemplate DataType="vm:ChangedFileRow">
-              <StackPanel>
-                <!-- DESIGN.md §8, "Working trees": each working tree's group, headed on its first row -->
-                <TextBlock Classes="small muted changedgroup" Text="{Binding Group}" IsVisible="{Binding Group, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <StackPanel Margin="{Binding Indent, Converter={x:Static vm:Converters.LeftMargin}}">
+                <!-- DESIGN.md §8, "Working trees": in the list, each working tree's group, headed on its first row -->
+                <TextBlock Classes="small muted changedgroup" Text="{Binding Group}" IsVisible="{Binding ShowsGroup}" />
                 <Grid Classes="changedfile" Classes.reviewed="{Binding IsReviewed}" ColumnDefinitions="Auto,Auto,*" ToolTip.Tip="{Binding StatusText}" Background="Transparent">
                   <!-- DESIGN.md §8, "Reviewed": unticks when Claude changes the file again -->
                   <CheckBox Classes="reviewed" IsChecked="{Binding IsReviewed, Mode=OneWay}"
@@ -56,7 +111,8 @@
                       <TextBlock Grid.Column="1" Classes="mono small muted" Text="{Binding Stats}" VerticalAlignment="Top" Margin="6,0,0,0"
                                  controls:Baseline.AlignWith="{Binding #FileName}" />
                     </Grid>
-                    <TextBlock Classes="muted small" Text="{Binding DisplayPath}" TextWrapping="Wrap" />
+                    <!-- In the tree, its folder's row says where it is -->
+                    <TextBlock Classes="muted small" Text="{Binding DisplayPath}" TextWrapping="Wrap" IsVisible="{Binding !InTree}" />
                     <!-- DESIGN.md §8, "What the lines don't show": its line endings, byte order mark, newline at the end or whitespace -->
                     <TextBlock Classes="muted small" Text="{Binding Note}" TextWrapping="Wrap"
                                IsVisible="{Binding Note, Converter={x:Static ObjectConverters.IsNotNull}}" />
@@ -85,7 +141,7 @@
                 </Grid>
               </StackPanel>
             </DataTemplate>
-          </ListBox.ItemTemplate>
+          </ListBox.DataTemplates>
         </ListBox>
       </DockPanel>
 
