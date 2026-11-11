@@ -1145,6 +1145,11 @@
     <Setter Property="Padding" Value="0" />
     <Setter Property="VerticalAlignment" Value="Top" />
   </Style>
+  <!-- A row's text in its middle: Fluent's box lays out taller than a line, so a row of one line has its name, and the
+       box, arrow and icon on it, in the middle of its highlight. Text taller than the box fills the row from its top. -->
+  <Style Selector="Grid.changedfile > StackPanel, Grid.changedfolder > TextBlock#FolderName">
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
   <!-- The status letter, midway between the box and the file's name: its column fits it at any code size. -->
   <Style Selector="Grid.changedfile > TextBlock.mono">
     <Setter Property="Margin" Value="8,0" />

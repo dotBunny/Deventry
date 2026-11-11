@@ -661,6 +661,36 @@ public class ToolWindowsUiTests
         Assert.True(gap >= 6, $"The arrow is {gap} from the box.");
     }
 
+    [AvaloniaFact]
+    public async Task A_changed_row_of_one_line_has_its_name_and_box_in_its_middle()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var tab = await h.OpenTabAsync();
+        var window = UiText.Show(new ShellView { DataContext = h.Shell });
+        h.ShowToolWindow(ToolWindowKinds.Files);
+        // The panel's pages are only in the visual tree once it has been laid out open.
+        UiText.Settle(window);
+        var file = Path.Combine(Directory.CreateDirectory(Path.Combine(h.WorkFolder, "docs")).FullName, "auth.cs");
+        await File.WriteAllTextAsync(file, "b\n", TestContext.Current.CancellationToken);
+        h.Transport.Emit(Edit("e1", file));
+        h.Transport.Emit(EditResult("e1", file));
+        var list = window.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "ChangedFilesList");
+        await UiText.SettleUntilAsync(window, () => Boxes(list).Count == 2, "the folder and its file");
+        UiText.Settle(window);
+
+        // The folder's row and the file's, in the tree. Fluent's box lays out taller than their names' one line.
+        var items = list.GetVisualDescendants().OfType<ListBoxItem>().ToList();
+        Assert.Equal(2, items.Count);
+        foreach (var item in items)
+        {
+            var middle = item.Padding.Top + (item.Bounds.Height - item.Padding.Top - item.Padding.Bottom) / 2;
+            var name = item.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Name is "FolderName" or "FileName");
+            Assert.InRange(FirstLine.MiddleIn(name, item)!.Value - middle, -0.6, 0.6);
+            var box = item.GetVisualDescendants().OfType<CheckBox>().Single(c => c.Classes.Contains("reviewed"));
+            Assert.InRange(box.TranslatePoint(new Point(0, box.Bounds.Height / 2), item)!.Value.Y - middle, -0.6, 0.6);
+        }
+    }
+
     /// <summary>A tab with its side panel open on one file Claude edited, and that file's row.</summary>
     private static async Task<(Window Window, Grid Row)> ShowChangedFileAsync(TabTestHarness h)
     {
