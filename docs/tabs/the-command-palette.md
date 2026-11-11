@@ -59,7 +59,7 @@ For the selected tab:
 - **Stop Claude**, while Claude works
 - The project's main action, named for it (such as *Build*), with the project's name beside it
 - **Stash the message**, while something's typed in the composer
-- **Show changed files**, **Show the agent map**, **Show tasks**, **Show processes**, **Show MCP servers** (when the session has some) and **Show scratch pad**
+- **Show changed files**, **Show the agent map**, **Show tasks**, **Show processes**, **Show MCP servers** (when the session has some), **Show media** (when the conversation has any) and **Show scratch pad**
 - **Open project files**, which opens the project's Files tab. See [Opening project files](../project-files/opening-project-files.md).
 - **Play tic-tac-toe with Joulene**, **Play Four in a Row with Joulene**, **Play hangman with Joulene**, **Play Minesweeper with Joulene** and **Play Pipeline with Joulene**, unless the games are turned off. See [Games with Joulene](../joulene/games-with-joulene.md).
 - **Tab settings…**, **Duplicate tab** and **Export conversation…**

@@ -4,8 +4,8 @@ namespace Deventry.App.ViewModels.ToolWindows;
 
 /// <summary>
 /// The tool windows Deventry has (DESIGN.md §3, "Tool windows"), in the order their icons take on the strip at first:
-/// the side panel's pages at the right, Scratch pad, Processes and Games splitting it, and Find at the bottom. A feature
-/// adds its kind to <see cref="All"/> and its view to <c>Views/ToolWindowView</c>.
+/// the side panel's pages and Media at the right, Scratch pad, Processes and Games splitting it, and Find at the bottom.
+/// A feature adds its kind to <see cref="All"/> and its view to <c>Views/ToolWindowView</c>.
 /// </summary>
 public static class ToolWindowKinds
 {
@@ -61,6 +61,20 @@ public static class ToolWindowKinds
         ShowsWhen = new(t => t, nameof(TabViewModel.HasMcpServers), t => t.HasMcpServers),
     };
 
+    /// <summary>
+    /// The images, video and sound in the session's conversation, the user's and the agent's, once it has any (DESIGN.md
+    /// §18, "Media").
+    /// </summary>
+    public static readonly ToolWindowKind Media = new()
+    {
+        Id = "Media",
+        Title = "Media",
+        Icon = "IconMedia",
+        PaletteText = "Show media",
+        FollowsSession = true,
+        ShowsWhen = new(t => t.Media, nameof(MediaGallery.HasAnything), t => t.Media.HasAnything),
+    };
+
     /// <summary>The project's scratch pad (DESIGN.md §18, "Scratch pad").</summary>
     public static readonly ToolWindowKind ScratchPad = new()
     {
@@ -109,5 +123,5 @@ public static class ToolWindowKinds
     };
 
     /// <summary>Every kind, in the order their icons take on the strip at first.</summary>
-    public static IReadOnlyList<ToolWindowKind> All { get; } = [Files, Agents, Project, Tasks, Mcp, ScratchPad, Processes, Games, Find];
+    public static IReadOnlyList<ToolWindowKind> All { get; } = [Files, Agents, Project, Tasks, Mcp, Media, ScratchPad, Processes, Games, Find];
 }

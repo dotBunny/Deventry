@@ -1,7 +1,7 @@
 ---
 title: Files and links in replies
 parent: The conversation
-nav_order: 12
+nav_order: 13
 summary: "Claude names files as it works: weapons.md is written, see docs/specs/weapons.md, Player.cpp:42."
 ---
 

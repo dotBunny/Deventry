@@ -23,6 +23,7 @@ They show the tab you're looking at: its changed files, its agents, its tasks. W
 | **Project** | When the folder holds a project Deventry has tools for. A dot on its icon shows while a job runs. | [Project tools](../project-tools/using-project-tools.md) |
 | **Tasks** | Once Claude keeps a task list or a plan. Its icon's tip says how far it's got, such as *2 of 5 done*. | [The Tasks page](../plans/the-tasks-page.md) |
 | **MCP** | When the session has MCP servers. A warning dot shows on its icon when one needs attention. | [MCP servers](mcp-servers.md) |
+| **Media** | Once the conversation has an image, a video or a sound. Its icon's tip counts yours and Claude's. | [Media](../conversation/media.md) |
 | **Scratch pad** | Always. | [The scratch pad](../conversation/the-scratch-pad.md) |
 | **Processes** | When the process monitor is on for the tab. | [Processes](processes.md) |
 | **Games** | While games are on (Settings → Appearance → **Games with Joulene**), game or no game. | [Games with Joulene](../joulene/games-with-joulene.md) |
@@ -34,7 +35,7 @@ Each window scrolls and wraps its text at the width shown, so a long file name o
 
 The icons are in three groups, top to bottom:
 
-- **The right side's top**: Changed files, Agents, Project, Tasks and MCP at first. Their windows show at the right of the window, the whole height.
+- **The right side's top**: Changed files, Agents, Project, Tasks, MCP and Media at first. Their windows show at the right of the window, the whole height.
 - **Under the line**: Scratch pad, Processes and Games. Their windows show at the right too, under the top group's, sharing its height.
 - **At the strip's foot**: Find. Its window shows along the bottom, under the conversation.
 
@@ -45,7 +46,7 @@ One window of each group shows at a time, so a Changed files window and a Scratc
 - **Click** an icon to show its window, in place of the one of its group that was showing, with the keyboard in it. Its icon is filled in while it shows. Click it again to hide it.
 - The **−** on a window's header hides it too.
 - **Files** in the composer bar shows Changed files, and the bar's **Agents** button, process summary and task progress show theirs.
-- The command palette's **Show changed files**, **Show the agent map**, **Show tasks**, **Show processes**, **Show MCP servers** and **Show scratch pad** show that window.
+- The command palette's **Show changed files**, **Show the agent map**, **Show tasks**, **Show processes**, **Show MCP servers**, **Show media** and **Show scratch pad** show that window.
 
 ## Pinned or unpinned
 

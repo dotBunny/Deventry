@@ -48,6 +48,7 @@ public partial class SessionPagesView : UserControl
         ProjectPage.IsVisible = Page == "Project";
         TasksPage.IsVisible = Page == "Tasks";
         McpPage.IsVisible = Page == "Mcp";
+        MediaPage.IsVisible = Page == "Media";
         ScratchPadPage.IsVisible = Page == "ScratchPad";
         ProcessesPage.IsVisible = Page == "Processes";
     }

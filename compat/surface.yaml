@@ -1144,10 +1144,10 @@ items:
   - id: "Images in tool results"
     kind: behavior
     status: documented
-    usedIn: src/Deventry.Core/Protocol/ContentBlocks.cs, src/Deventry.Core/Protocol/MessageImage.cs, src/Deventry.App/Conversation/ConversationBuilder.cs
+    usedIn: src/Deventry.Core/Protocol/ContentBlocks.cs, src/Deventry.Core/Protocol/MessageImage.cs, src/Deventry.App/Conversation/ConversationBuilder.cs, src/Deventry.App/Conversation/MediaGallery.cs
     docs: https://code.claude.com/docs/en/mcp
-    test: ToolImagesTests, ToolImageTests, ToolImageRealCliTests
-    fallback: "A tool_result's content can hold base64 image blocks, as the Messages API's do: a Read of an image, a PDF's pages read with pages, a notebook's figures, Bash output that's an image, an MCP tool's image (checked against 2.1.299, live and in transcripts). Deventry shows them under the tool's card (DESIGN.md §18, \"Images from Claude's tools\"). Non-base64 sources are skipped. If images move elsewhere, the cards show only the text, as before."
+    test: ToolImagesTests, ToolImageTests, ToolImageRealCliTests, MediaTests
+    fallback: "A tool_result's content can hold base64 image blocks, as the Messages API's do: a Read of an image, a PDF's pages read with pages, a notebook's figures, Bash output that's an image, an MCP tool's image (checked against 2.1.299, live and in transcripts). Deventry shows them under the tool's card (DESIGN.md §18, \"Images from Claude's tools\") and in the Media window (\"Media\"). Non-base64 sources are skipped. If images move elsewhere, the cards show only the text, as before, and the Media window has only the media files the conversation names."
   - id: "FileReadOutput"
     kind: field
     status: documented
@@ -1867,7 +1867,7 @@ items:
     status: documented
     usedIn: src/Deventry.Core/Diffs/ChangedFiles.cs, src/Deventry.App/Conversation/ConversationBuilder.cs
     docs: https://code.claude.com/docs/en/agent-sdk/typescript
-    test: ChangedFilesTests, TaskProgressTests, ReplyFileTests
+    test: ChangedFilesTests, TaskProgressTests, ReplyFileTests, MediaTests
   - id: "filePath"
     kind: field
     status: documented
@@ -2309,9 +2309,9 @@ items:
   - id: "BashInput"
     kind: field
     status: documented
-    usedIn: src/Deventry.Core/Perforce/BashCommandLog.cs, src/Deventry.App/ViewModels/PerforceViewModel.cs
+    usedIn: src/Deventry.Core/Perforce/BashCommandLog.cs, src/Deventry.App/ViewModels/PerforceViewModel.cs, src/Deventry.App/Conversation/ConversationBuilder.cs
     docs: https://code.claude.com/docs/en/agent-sdk/typescript
-    test: PerforceTabTests
+    test: PerforceTabTests, MediaTests
   - id: "control_cancel_request for hook_callback"
     kind: behavior
     status: undocumented

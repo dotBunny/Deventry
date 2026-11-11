@@ -1194,6 +1194,38 @@
   <Style Selector="Border.mcprow:pointerover">
     <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
   </Style>
+  <!-- The Media window (DESIGN.md §18, "Media"): a section's header, which folds it, and its tiles, each a thumbnail or its
+       kind's icon over its name, its outline in the accent under the pointer and while its menu is open. -->
+  <Style Selector="Button.mediasection">
+    <Setter Property="Padding" Value="4,3" />
+  </Style>
+  <Style Selector="Button.mediatile">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Width" Value="96" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.mediatile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.mediathumb">
+    <Setter Property="Width" Value="96" />
+    <Setter Property="Height" Value="72" />
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  </Style>
+  <Style Selector="Button.mediatile:pointerover Border.mediathumb, Button.mediatile.menuopen Border.mediathumb">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentStatusBrush}" />
+  </Style>
+  <Style Selector="Path.mediakind">
+    <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
+    <Setter Property="StrokeThickness" Value="1.1" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+    <Setter Property="Width" Value="24" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Stretch" Value="Uniform" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
   <!-- The running tasks list (DESIGN.md §5, "Running tasks"), under the chip in the composer bar -->
   <Style Selector="StackPanel.tasklist">
     <Setter Property="Spacing" Value="2" />

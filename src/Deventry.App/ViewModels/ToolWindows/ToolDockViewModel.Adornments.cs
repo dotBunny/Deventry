@@ -21,7 +21,7 @@ public sealed partial class ToolDockViewModel
         _watched.Clear();
         if (session is not null)
         {
-            _watched.AddRange([session, session.TodoList, session.ProjectTools.Runs, session.McpServers]);
+            _watched.AddRange([session, session.TodoList, session.ProjectTools.Runs, session.McpServers, session.Media]);
             foreach (var source in _watched)
             {
                 source.PropertyChanged += OnAdornmentSourceChanged;
@@ -42,6 +42,7 @@ public sealed partial class ToolDockViewModel
                 "Project" when session is not null => (session.ProjectTools.Runs.IsJobRunning, false, session.ProjectTools.HeaderTitle),
                 "Tasks" when session is not null => (false, false, session.TodoList.PageTip),
                 "Mcp" when session is not null => (false, session.McpServers.Attention is not null, session.McpServers.Attention ?? "MCP servers"),
+                "Media" when session is not null => (false, false, session.Media.Tip),
                 "ScratchPad" => (false, false, "Notes shared by the tabs in this project"),
                 "Games" => (false, false, "Play a game against Joulene"),
                 _ => (false, false, (string?)null),

@@ -1,7 +1,7 @@
 ---
 title: The working line and running tasks
 parent: The conversation
-nav_order: 13
+nav_order: 14
 summary: "While Claude works, a line above the composer says so."
 ---
 

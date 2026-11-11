@@ -126,6 +126,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         Tasks.Changed += OnTasksChanged;
         Find = new ConversationSearch(Items);
         Find.CurrentChanged += OnFindCurrentChanged;
+        SetUpMedia();
         _conversation = new ConversationBuilder(Items, TodoList, ModelDisplayName)
         {
             ExpandThinking = state.ExpandThinking ?? services.Settings.Appearance.ExpandThinking,
@@ -137,6 +138,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
             OpenUrl = services.Platform.OpenUrlAsync,
             Agents = Agents,
             Tasks = Tasks,
+            Media = Media,
             Time = services.Time,
         };
         // A prompt the phone answered is withdrawn by Claude Code (DESIGN.md §18, "Remote Control").

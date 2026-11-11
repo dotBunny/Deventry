@@ -1,6 +1,6 @@
-<!-- A session's tool window's page (DESIGN.md §3, "Tool windows"): changed files, agents, tasks, MCP servers, the project's
-     tools, the scratch pad or, when the monitor is on, processes; the one Page names shows. ToolWindowView holds it, with
-     the session tab whose data it shows. -->
+<!-- A session's tool window's page (DESIGN.md §3, "Tool windows"): changed files, agents, tasks, MCP servers, media, the
+     project's tools, the scratch pad or, when the monitor is on, processes; the one Page names shows. ToolWindowView holds
+     it, with the session tab whose data it shows. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Deventry.App.ViewModels"
@@ -307,6 +307,73 @@
           </ItemsControl>
         </ScrollViewer>
       </DockPanel>
+
+      <!-- Media (DESIGN.md §18, "Media"): the conversation's images, video and sound, the user's and the agent's, newest
+           first, each section folding to its header. A tile opens what it shows; its menu has the rest. -->
+      <ScrollViewer x:Name="MediaPage" IsVisible="False" HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl ItemsSource="{Binding Media.Sections}" Margin="12,0,16,12">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="12" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="conv:MediaSection">
+              <StackPanel Spacing="6">
+                <Button Classes="flat row mediasection" Command="{Binding ToggleCommand}" AutomationProperties.Name="{Binding ToggleName}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Panel VerticalAlignment="Center">
+                      <Path Classes="toolicon" Data="{StaticResource IconChevronDown}" IsVisible="{Binding IsExpanded}" />
+                      <Path Classes="toolicon" Data="{StaticResource IconChevronRight}" IsVisible="{Binding !IsExpanded}" />
+                    </Panel>
+                    <TextBlock x:Name="SectionTitle" Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock Classes="muted small" Text="{Binding CountText}" controls:Baseline.AlignWith="{Binding #SectionTitle}" />
+                  </StackPanel>
+                </Button>
+                <TextBlock Classes="muted small" Text="{Binding EmptyText}" TextWrapping="Wrap" Margin="4,0" IsVisible="{Binding ShowsEmptyText}" />
+                <ItemsControl ItemsSource="{Binding Entries}" IsVisible="{Binding IsExpanded}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <WrapPanel ItemSpacing="6" LineSpacing="8" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="conv:MediaEntry">
+                      <Button Classes="flat mediatile" Classes.menuopen="{Binding #MediaMenu.IsOpen}" ToolTip.Tip="{Binding Tip}" AutomationProperties.Name="{Binding OpenName}"
+                              Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).OpenMediaCommand}" CommandParameter="{Binding}">
+                        <StackPanel Spacing="3">
+                          <Border Classes="thumbnail mediathumb">
+                            <Panel>
+                              <Image Source="{Binding Thumbnail, Converter={x:Static services:ImageFiles.Thumbnail}}" Stretch="UniformToFill" IsVisible="{Binding HasThumbnail}" />
+                              <!-- A video, a sound, or an image without a thumbnail (yet, or ever: an SVG) -->
+                              <Path Classes="mediakind" Data="{Binding KindIcon, Converter={x:Static conv:ToolIcons.Geometry}}" IsVisible="{Binding HasNoThumbnail}" />
+                            </Panel>
+                          </Border>
+                          <TextBlock Classes="small" Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                        </StackPanel>
+                        <Button.ContextMenu>
+                          <ContextMenu x:Name="MediaMenu">
+                            <MenuItem Header="Open" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).OpenMediaCommand}" CommandParameter="{Binding}" />
+                            <MenuItem Header="Open in the OS's app" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).OpenMediaInSystemCommand}" CommandParameter="{Binding}"
+                                      IsVisible="{Binding IsFile}" />
+                            <MenuItem Header="Show in conversation" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).ShowMediaInConversationCommand}" CommandParameter="{Binding}"
+                                      IsVisible="{Binding CanShowInConversation}" />
+                            <Separator IsVisible="{Binding IsFile}" />
+                            <MenuItem Header="Reveal in file manager" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).RevealMediaCommand}" CommandParameter="{Binding}"
+                                      IsVisible="{Binding IsFile}" />
+                            <MenuItem Header="Copy path" Command="{Binding $parent[UserControl].((vm:TabViewModel)DataContext).CopyMediaPathCommand}" CommandParameter="{Binding}"
+                                      IsVisible="{Binding IsFile}" />
+                          </ContextMenu>
+                        </Button.ContextMenu>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
 
       <!-- The project's scratch pad (DESIGN.md §18, "Scratch pad"), once the tab has used it -->
       <Panel x:Name="ScratchPadPage" IsVisible="False">

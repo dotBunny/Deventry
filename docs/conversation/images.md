@@ -86,5 +86,6 @@ Find and [Exporting](exporting.md) skip images, since they have no text to find.
 ## See also
 
 - [Tool calls](tool-calls.md) for the tiles the images sit under.
+- [Media](media.md) for every image, video and sound in the conversation, yours and Claude's, in one window.
 - [Files and links in replies](files-and-links-in-replies.md) for clicking a file Claude names.
 - [Opening files from the conversation](../project-files/opening-files-from-the-conversation.md) for the files that open in Deventry's editor.
