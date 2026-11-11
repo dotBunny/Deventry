@@ -12,7 +12,7 @@ no tokens) four times:
 - signed out (FAKE_CLAUDE_LOGGED_IN=0), for the sign-in screen;
 - as the demo is, after visiting every tab so each shows its model and any reviewed icon, for the shots that leave it
   alone: the new tab picker, the sidebar, a tab's info card, the command palette, a Tool calls card, the composer, the
-  Changed files, Scratch pad and Project tool windows, a Files tab, the Usage window, the Settings window on General,
+  Changed files, Scratch pad, Media and Project tool windows, a Files tab, the Usage window, the Settings window on General,
   Appearance, a search, Unreal Engine's page in Project tools, About and Accounts, and a tab's Tab settings;
 - with a stand-in for the Unreal editor open on starfall (deventry-demo --stand-in-editor, run as UnrealEditor.exe),
   for its log under the tab and in the main area;
@@ -179,7 +179,7 @@ if (Test-Wanted 'getting-started/sign-in') {
 
 # As the demo is.
 if (Test-Wanted 'getting-started/new-tab', 'tabs/sidebar', 'tabs/info-card', 'tabs/command-palette', 'conversation/tool-calls',
-    'conversation/scratch-pad', 'composer/composer', 'changes/changed-files', 'project-tools/project-page', 'tabs/tool-windows', 'usage/usage-window',
+    'conversation/scratch-pad', 'conversation/media', 'composer/composer', 'changes/changed-files', 'project-tools/project-page', 'tabs/tool-windows', 'usage/usage-window',
     'settings/settings-window', 'settings/appearance', 'settings/search', 'settings/project-tools', 'settings/about', 'accounts/settings-accounts',
     'tabs/tab-settings', 'project-files/files-tab', 'project-files/markdown-preview') {
     Use-Deventry @{} {
@@ -362,6 +362,20 @@ if (Test-Wanted 'getting-started/new-tab', 'tabs/sidebar', 'tabs/info-card', 'ta
             Set-ElementText (Find-ByType $window 'Edit' 'Scratch pad') "- Let go when the player jumps, or past Range`n- Try AirControl 0.6 with a gamepad: does the swing feel right?`n- Create IA_Grapple in the editor and assign it to Grapple Action`n- Ask Claude about a cooldown"
             Wait-Settled $window
             Save-Rect $window $path (Get-PanelRect -height 330 -Below) 0
+        }
+
+        # Pool particle emitters' media, on its own at the right: the screenshot and capture the user brought, and the
+        # charts Claude read and the sound it named. Files named are found, and thumbnails made, off the UI thread.
+        Shot 'conversation/media' {
+            param($path)
+            Hide-ToolWindows $window
+            Show-SidePage 'Pool particle emitters' 'Media' 'Media'
+            foreach ($tile in 'Open Attached image', 'Open wave-clear.mp4', 'Open burst.wav', 'Open frame-times-pooled.png', 'Open frame-times-before.png') {
+                Wait-Until { Find-ByText $window $tile -Optional } "the $($tile.Substring(5)) tile" 30
+            }
+            Wait-Settled $window 1000
+            $panel = Find-ByText $window 'Tool window at the right'
+            Save-Rect $window $path (Get-PanelRect (Find-Lowest $panel)) 0
         }
 
         # Last, as it takes the layout with it: the group's Files tab, with a changed file open to show Claude's marks.

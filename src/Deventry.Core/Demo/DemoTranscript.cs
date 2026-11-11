@@ -38,6 +38,14 @@ internal sealed class DemoTranscript(string sessionId, string folder, string bra
         return this;
     }
 
+    /// <summary>A prompt with an image attached, which goes before its text, as Deventry sends it.</summary>
+    public DemoTranscript Prompt(string text, DemoImage image)
+    {
+        var content = new JsonArray(ImageBlock(image), new JsonObject { ["type"] = "text", ["text"] = Lf(text) });
+        Add(Entry("user", Uuid(), 30, new JsonObject { ["role"] = "user", ["content"] = content }));
+        return this;
+    }
+
     public DemoTranscript Thinking(string text)
     {
         text = Lf(text);
@@ -54,8 +62,9 @@ internal sealed class DemoTranscript(string sessionId, string folder, string bra
     }
 
     /// <summary>A tool call and its result. Returns the call's id, which marks a change as reviewed.</summary>
+    /// <param name="result">Its text, or its content blocks, such as an image.</param>
     /// <param name="toolUseResult">The result's details; a failed call's are its text.</param>
-    public string Tool(string name, JsonObject input, string result, JsonNode toolUseResult, bool isError = false)
+    public string Tool(string name, JsonObject input, JsonNode result, JsonNode toolUseResult, bool isError = false)
     {
         var (id, source) = Call(name, input);
         Result(id, source, result, toolUseResult, isError);
@@ -71,6 +80,26 @@ internal sealed class DemoTranscript(string sessionId, string folder, string bra
         {
             ["type"] = "text",
             ["file"] = new JsonObject { ["filePath"] = path, ["content"] = content, ["numLines"] = lines.Length, ["startLine"] = 1, ["totalLines"] = lines.Length },
+        });
+        return this;
+    }
+
+    /// <summary>A Read of an image file, whose result is the image, as Claude saw it.</summary>
+    public DemoTranscript Read(string path, DemoImage image)
+    {
+        Tool("Read", new JsonObject { ["file_path"] = path }, new JsonArray(ImageBlock(image)), new JsonObject
+        {
+            ["type"] = "image",
+            ["file"] = new JsonObject
+            {
+                ["base64"] = Convert.ToBase64String(image.Png),
+                ["type"] = "image/png",
+                ["originalSize"] = image.Png.Length,
+                ["dimensions"] = new JsonObject
+                {
+                    ["originalWidth"] = image.Width, ["originalHeight"] = image.Height, ["displayWidth"] = image.Width, ["displayHeight"] = image.Height,
+                },
+            },
         });
         return this;
     }
@@ -272,7 +301,7 @@ internal sealed class DemoTranscript(string sessionId, string folder, string bra
         return (id, Reply(new JsonObject { ["type"] = "tool_use", ["id"] = id, ["name"] = name, ["input"] = input }));
     }
 
-    private void Result(string id, string source, string result, JsonNode toolUseResult, bool isError = false)
+    private void Result(string id, string source, JsonNode result, JsonNode toolUseResult, bool isError = false)
     {
         var block = new JsonObject { ["tool_use_id"] = id, ["type"] = "tool_result", ["content"] = result };
         if (isError)
@@ -331,6 +360,12 @@ internal sealed class DemoTranscript(string sessionId, string folder, string bra
         _lines.Add(line.ToJsonString());
         _parent = line["uuid"]!.GetValue<string>();
     }
+
+    private static JsonObject ImageBlock(DemoImage image) => new()
+    {
+        ["type"] = "image",
+        ["source"] = new JsonObject { ["type"] = "base64", ["media_type"] = "image/png", ["data"] = Convert.ToBase64String(image.Png) },
+    };
 
     /// <summary>Files on disk have LF line endings, so their contents in the transcript do too, whatever the checkout's.</summary>
     private static string Lf(string text) => text.ReplaceLineEndings("\n");

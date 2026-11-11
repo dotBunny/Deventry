@@ -151,6 +151,8 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         _autoContinue = CreateAutoContinue();
         Status = TabStatus.NotStarted;
         ShowStartingModel();
+        ShowStartingMode();
+        _ = ReadStartingModeAsync();
         _restoredTranscript = !isRestored;
         // The suffix menu checks the suffixes on the message.
         Chips.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SuffixMenu));
@@ -329,6 +331,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
     // ---- Status (DESIGN.md §4, "Status icon") ------------------------------------------------------------
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PermissionModeName), nameof(IsBypassMode))]
     [NotifyPropertyChangedFor(nameof(StatusGlyph), nameof(StatusTip), nameof(InfoRows), nameof(IsWorking), nameof(NeedsInput), nameof(IsBusyStatus), nameof(IsAlertStatus), nameof(ShowsWorkBar), nameof(ShowsWaitBlink), nameof(ShowsDoneBar), nameof(ShowsStatusGlyph), nameof(ShowsErrorBar), nameof(ShowsStartingShimmer), nameof(IsErrorStatus), nameof(IsUnread), nameof(RowDetail), nameof(ShowTaskBadge), nameof(CanSyncNow), nameof(SyncNowTip))]
     [NotifyCanExecuteChangedFor(nameof(StopCommand), nameof(SendCommand), nameof(RestartCommand), nameof(CompactCommand), nameof(SyncNowCommand))]
     public partial TabStatus Status { get; set; }
@@ -396,7 +399,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
             AddWorktreeRows(rows);
             AddAccountInfoRows(rows);
             rows.Add(new InfoRow("Model", $"{ModelName ?? "Default"} · {EffortName}"));
-            if (PermissionMode is not null)
+            if (ShownPermissionMode is not null)
             {
                 rows.Add(new InfoRow("Mode", PermissionModeName));
             }
@@ -637,10 +640,26 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
     [NotifyPropertyChangedFor(nameof(InfoRows), nameof(PermissionModeName), nameof(IsBypassMode))]
     public partial string? PermissionMode { get; set; }
 
-    public string PermissionModeName => PermissionModeInfo.Label(PermissionMode);
+    /// <summary>
+    /// The mode the tab starts in (DESIGN.md §7, "Starting mode"): chosen in Tab settings or Settings → Tabs, else what
+    /// Claude Code's settings files give. Shown until its claude reports one, as its model and effort are.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(InfoRows), nameof(PermissionModeName), nameof(IsBypassMode))]
+    public partial string? ExpectedPermissionMode { get; private set; }
 
-    /// <summary>Bypass mode gives the tab a warning style (DESIGN.md §7).</summary>
-    public bool IsBypassMode => PermissionMode == PermissionModeInfo.Bypass;
+    /// <summary>
+    /// The mode the picker, the info card and Bypass's warning go by: the one the tab starts in until its claude runs, and
+    /// while an unloaded tab waits for its next message; then the one Claude Code reports.
+    /// </summary>
+    private string? ShownPermissionMode => Status is TabStatus.NotStarted or TabStatus.Starting || PermissionMode is null
+        ? ExpectedPermissionMode
+        : PermissionMode;
+
+    public string PermissionModeName => PermissionModeInfo.Label(ShownPermissionMode);
+
+    /// <summary>Bypass mode gives the tab a warning style (DESIGN.md §7), before it starts in it too.</summary>
+    public bool IsBypassMode => ShownPermissionMode == PermissionModeInfo.Bypass;
 
     /// <summary>The modes to pick from: Auto only while the model supports it and no settings file turns it off.</summary>
     public IReadOnlyList<PermissionModeChoice> PermissionModeChoices =>
@@ -655,10 +674,40 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
     /// </summary>
     public bool IsAutoModeAvailable => _startingMode?.AutoModeDisabled != true && CurrentModelInfo?.SupportsAutoMode != false;
 
-    /// <summary>The mode this tab starts in when neither its settings nor Deventry's choose one, once it has started.</summary>
+    /// <summary>
+    /// The mode this tab starts in when neither its settings nor Deventry's choose one, once Claude Code's settings files
+    /// have been read: as the tab is made, and again as it starts.
+    /// </summary>
     internal string? ClaudeCodeStartingMode => _startingMode is { } starting
         ? starting.Expected == PermissionModeInfo.Auto && !IsAutoModeAvailable ? PermissionModeInfo.Manual : starting.Expected
         : null;
+
+    /// <summary>Until its claude reports a mode, the tab shows the one it starts in.</summary>
+    private void ShowStartingMode() =>
+        ExpectedPermissionMode = State.Overrides.PermissionMode ?? _services.Settings.NewTabs.DefaultPermissionMode ?? ClaudeCodeStartingMode;
+
+    /// <summary>
+    /// Reads what Claude Code's settings files say about the starting mode, off the UI thread, for the mode the tab shows
+    /// before it starts. A start reads them again, and that reading wins.
+    /// </summary>
+    private async Task ReadStartingModeAsync()
+    {
+        var settingsFolder = State.WithoutProjectSettings ? null : Folder;
+        StartingPermissionMode starting;
+        try
+        {
+            starting = await Task.Run(() => _services.ReadStartingPermissionMode(settingsFolder)).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return;
+        }
+        _services.Dispatcher.Post(() =>
+        {
+            _startingMode ??= starting;
+            ShowStartingMode();
+        });
+    }
 
     /// <summary>Bypass asks first (DESIGN.md §7).</summary>
     public InlineConfirmation BypassConfirmation => field ??= new(() => SetModeAsync(PermissionModeInfo.Bypass));
@@ -670,7 +719,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
     [RelayCommand]
     private async Task ChooseModeAsync(PermissionModeChoice? choice)
     {
-        if (choice is null || choice.Value == PermissionMode)
+        if (choice is null || choice.Value == ShownPermissionMode)
         {
             return;
         }
@@ -1000,6 +1049,8 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         ProjectTools.OnSettingsChanged();
         OnPropertyChanged(nameof(MarksYourMessages));
         OnPropertyChanged(nameof(MarksClaudesAnswers));
+        // Settings → Tabs' Permission mode is the one a tab without its own starts in.
+        ShowStartingMode();
         OnGamesSettingsChanged();
         OnSubagentDisplayChanged();
         OnBranchChanged();
@@ -1711,6 +1762,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
             var folder = Folder;
             var settingsFolder = State.WithoutProjectSettings ? null : folder;
             var starting = _startingMode = await Task.Run(() => _services.ReadStartingPermissionMode(settingsFolder));
+            ShowStartingMode();
             var environment = new Dictionary<string, string?>(_services.ClaudeVariables);
             if (_carryOnInterruptedTurn && resume is not null)
             {
@@ -2556,6 +2608,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         _autoContinue.SettingsChanged();
         OnUsageCreditsChoiceChanged();
         OnFoldChainsChanged();
+        ShowStartingMode();
         if (_session is null)
         {
             ShowStartingModel();

@@ -526,7 +526,7 @@ function Get-OtherWindow($deventry, [IntPtr] $main, [string] $what, [int] $secon
 # Hides the tool windows showing in the main window, by the Hide button in each one's header, so a picture has the
 # window's whole width, as the Files tab's does.
 function Hide-ToolWindows([IntPtr] $window) {
-    foreach ($title in 'Changed files', 'Agents', 'Project', 'Tasks', 'MCP', 'Scratch pad', 'Processes', 'Games', 'Find') {
+    foreach ($title in 'Changed files', 'Agents', 'Project', 'Tasks', 'MCP', 'Media', 'Scratch pad', 'Processes', 'Games', 'Find') {
         if ($hide = Find-ByText $window "Hide $title" -Optional) {
             Send-Click $hide
             Wait-Until { -not (Find-ByText $window "Hide $title" -Optional) } "$title to hide" 20

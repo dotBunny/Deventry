@@ -19,6 +19,12 @@ internal static class DemoRepositories
         Directory.CreateDirectory(root);
         Git(root, "init", "-q", "-b", "main");
         WriteFiles(root, project.Before);
+        foreach (var (name, bytes) in project.Media ?? [])
+        {
+            var path = Path.Combine(root, name.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, bytes);
+        }
         Git(root, "add", "-A");
         Git(root, "-c", "user.name=Demo", "-c", "user.email=demo@example.com", "commit", "-q", "-m", "Initial commit");
         if (project.Branch != "main")

@@ -63,7 +63,7 @@ search_exclude: true
 
 <div class="hero-shot" data-reveal>
   <div class="frame frame-hero">
-    {% include picture.html name="standard" alt="Deventry's window: seven tabs over three game projects in the sidebar, a C++ conversation with tool calls and a code block, the Changed files page in the side panel, the plan's usage in the header, and Joulene standing on the message box" width=2224 height=1427 eager=true %}
+    {% include picture.html name="standard" alt="Deventry's window: seven tabs over three game projects in the sidebar, a C++ conversation with tool calls and a code block, the Changed files page in the side panel, the plan's usage in the header, and Joulene standing on the message box" width=2224 height=1382 eager=true %}
   </div>
 </div>
 
@@ -161,10 +161,11 @@ search_exclude: true
       <a href="#usage"><span>04</span> Usage</a>
       <a href="#review"><span>05</span> Review</a>
       <a href="#files"><span>06</span> Files</a>
-      <a href="#logs"><span>07</span> Logs</a>
-      <a href="#accounts"><span>08</span> Accounts</a>
-      <a href="#anywhere"><span>09</span> Anywhere</a>
-      <a href="#settings"><span>10</span> Settings</a>
+      <a href="#media"><span>07</span> Media</a>
+      <a href="#logs"><span>08</span> Logs</a>
+      <a href="#accounts"><span>09</span> Accounts</a>
+      <a href="#anywhere"><span>10</span> Anywhere</a>
+      <a href="#settings"><span>11</span> Settings</a>
     </div>
   </nav>
 
@@ -177,7 +178,7 @@ search_exclude: true
         <a class="more" href="{{ '/tabs/' | relative_url }}">Tabs and sessions {% include icon.html name="arrow-right" %}</a>
       </div>
       <div class="story-shot is-tall">
-        <div class="frame">{% include picture.html name="guide/tabs/sidebar" alt="The sidebar: three project groups and seven tabs, each with its status, model and effort, git branch and context ring, a thread with its two sub-threads, and the Studio account's tag" width=460 height=1306 %}</div>
+        <div class="frame">{% include picture.html name="guide/tabs/sidebar" alt="The sidebar: three project groups and seven tabs, each with its status, model and effort, git branch and context ring, a thread with its two sub-threads, and the Studio account's tag" width=480 height=870 %}</div>
       </div>
     </section>
 
@@ -189,7 +190,7 @@ search_exclude: true
         <a class="more" href="{{ '/threads/' | relative_url }}">Threads {% include icon.html name="arrow-right" %}</a>
       </div>
       <div class="story-shot">
-        <div class="frame">{% include picture.html name="tasks-standard" alt="A thread moving a Unity game to the Input System: its two sub-threads under it in the sidebar, the plan it approved with Changes from v1, and its tasks two of seven done" width=2224 height=1427 %}</div>
+        <div class="frame">{% include picture.html name="tasks-standard" alt="A thread moving a Unity game to the Input System: its two sub-threads under it in the sidebar, the plan it approved with Changes from v1, and its tasks two of seven done" width=2224 height=1382 %}</div>
       </div>
     </section>
 
@@ -201,7 +202,7 @@ search_exclude: true
         <a class="more" href="{{ '/plans/the-agent-map/' | relative_url }}">The agent map {% include icon.html name="arrow-right" %}</a>
       </div>
       <div class="story-shot">
-        <div class="frame">{% include picture.html name="agents-standard" alt="The agent map: three Explore subagents that surveyed the project in parallel, the first selected with its prompt and its report" width=2224 height=1427 %}</div>
+        <div class="frame">{% include picture.html name="agents-standard" alt="The agent map: three Explore subagents that surveyed the project in parallel, the first selected with its prompt and its report" width=2224 height=1382 %}</div>
       </div>
     </section>
 
@@ -213,7 +214,7 @@ search_exclude: true
         <a class="more" href="{{ '/usage/' | relative_url }}">Usage and limits {% include icon.html name="arrow-right" %}</a>
       </div>
       <div class="story-shot">
-        <div class="frame">{% include picture.html name="header-standard" alt="The detailed usage header: the session chart heading for 90% just before the reset, the week with a model's own line, the burn rate per hour and the busiest tabs" width=2224 height=374 %}</div>
+        <div class="frame">{% include picture.html name="header-standard" alt="The detailed usage header: the session chart heading for 90% just before the reset, the week with a model's own line, the burn rate per hour and the busiest tabs" width=2224 height=314 %}</div>
       </div>
     </section>
 
@@ -237,49 +238,61 @@ search_exclude: true
         <a class="more" href="{{ '/project-files/' | relative_url }}">Project files {% include icon.html name="arrow-right" %}</a>
       </div>
       <div class="story-shot">
-        <div class="frame">{% include picture.html name="guide/project-files/files-tab" alt="A project's Files tab: the explorer with the files Claude changed marked, and StarfallCharacter.cpp open in the editor with Claude's changes in the gutter" width=2224 height=1427 %}</div>
+        <div class="frame">{% include picture.html name="guide/project-files/files-tab" alt="A project's Files tab: the explorer with the files Claude changed marked, and StarfallCharacter.cpp open in the editor with Claude's changes in the gutter" width=2224 height=1382 %}</div>
+      </div>
+    </section>
+
+    <section class="story-step" id="media" data-reveal>
+      <div class="story-copy">
+        <p class="kicker"><span>07</span> Media</p>
+        <h3>Every screenshot.<br>One click away.</h3>
+        <p>The Media window gathers every image, video and sound in a tab's conversation: the screenshots you attach, the images Claude reads, and the charts and captures it makes or names. Click one to open it, or go back to where it came up in the conversation.</p>
+        <a class="more" href="{{ '/conversation/media/' | relative_url }}">Media {% include icon.html name="arrow-right" %}</a>
+      </div>
+      <div class="story-shot is-panel">
+        <div class="frame">{% include picture.html name="guide/conversation/media" alt="The Media window: an attached screenshot of a game and a capture under User, and a sound and two frame-time charts Claude read under Agent" width=630 height=459 %}</div>
       </div>
     </section>
 
     <section class="story-step" id="logs" data-reveal>
       <div class="story-copy">
-        <p class="kicker"><span>07</span> Editor logs</p>
+        <p class="kicker"><span>08</span> Editor logs</p>
         <h3>The editor's log.<br>Right under the tab.</h3>
         <p>While Unreal, Unity or Godot has the project open, its log is a row under the tab, followed as it's written, with its errors and warnings counted. Filter it by level, category or text, click a file it names to open it, and when the editor crashes, the log stays to say why.</p>
         <a class="more" href="{{ '/project-tools/editor-logs/' | relative_url }}">Editor logs {% include icon.html name="arrow-right" %}</a>
       </div>
       <div class="story-shot">
-        <div class="frame">{% include picture.html name="guide/project-tools/editor-log" alt="The Unreal editor's log under the Grappling hook tab and shown in the main area: a chip for each level with its count, then the log in columns of time, category, verbosity and message, with an error in red and warnings in amber" width=2224 height=1427 %}</div>
+        <div class="frame">{% include picture.html name="guide/project-tools/editor-log" alt="The Unreal editor's log under the Grappling hook tab and shown in the main area: a chip for each level with its count, then the log in columns of time, category, verbosity and message, with an error in red and warnings in amber" width=2224 height=1382 %}</div>
       </div>
     </section>
 
     <section class="story-step" id="accounts" data-reveal>
       <div class="story-copy">
-        <p class="kicker"><span>08</span> Accounts</p>
+        <p class="kicker"><span>09</span> Accounts</p>
         <h3>Your plan for yours.<br>Their key for theirs.</h3>
         <p>Run a client's projects on their API key and everything else on your own plan. The key stays in your OS's credential store, and the header shows what it's spending today, this week and this month.</p>
         <a class="more" href="{{ '/accounts/' | relative_url }}">Accounts {% include icon.html name="arrow-right" %}</a>
       </div>
       <div class="story-shot">
-        <div class="frame">{% include picture.html name="accounts-standard" alt="A tab on the Studio API key: the header shows Studio's estimated spend today, this week and this month, and Studio's tag marks its group and tab" width=2224 height=1427 %}</div>
+        <div class="frame">{% include picture.html name="accounts-standard" alt="A tab on the Studio API key: the header shows Studio's estimated spend today, this week and this month, and Studio's tag marks its group and tab" width=2224 height=1382 %}</div>
       </div>
     </section>
 
     <section class="story-step" id="anywhere" data-reveal>
       <div class="story-copy">
-        <p class="kicker"><span>09</span> History and syncing</p>
+        <p class="kicker"><span>10</span> History and syncing</p>
         <h3>Pick up<br>anywhere.</h3>
         <p>Search every past session, Claude's replies too. Carry a conversation to your other computer through a folder Dropbox, Google Drive or OneDrive keeps in sync, or keep it going from your phone with the Claude app.</p>
         <a class="more" href="{{ '/history/' | relative_url }}">History and syncing {% include icon.html name="arrow-right" %}</a>
       </div>
       <div class="story-shot">
-        <div class="frame">{% include picture.html name="history-standard" alt="History narrowed to the starfall project by its chip: its open tabs' sessions and older ones, one from a worktree" width=2224 height=1427 %}</div>
+        <div class="frame">{% include picture.html name="history-standard" alt="History narrowed to the starfall project by its chip: its open tabs' sessions and older ones, one from a worktree" width=2224 height=1382 %}</div>
       </div>
     </section>
 
     <section class="story-step" id="settings" data-reveal>
       <div class="story-copy">
-        <p class="kicker"><span>10</span> Settings</p>
+        <p class="kicker"><span>11</span> Settings</p>
         <h3>Settings that say<br>what they do.</h3>
         <p>Each setting has a line saying what it does, and the search finds it by what you'd call it. Changes apply as you make them, and Appearance shows them in a preview. Settings stays open beside your work, so you can see what a change does, and each section resets on its own.</p>
         <a class="more" href="{{ '/settings/the-settings-window/' | relative_url }}">The Settings window {% include icon.html name="arrow-right" %}</a>
@@ -299,11 +312,11 @@ search_exclude: true
   </div>
   <div class="looks-grid">
     <figure data-reveal>
-      <div class="frame">{% include picture.html name="standard" alt="The Standard style" width=2224 height=1427 %}</div>
+      <div class="frame">{% include picture.html name="standard" alt="The Standard style" width=2224 height=1382 %}</div>
       <figcaption>Standard</figcaption>
     </figure>
     <figure data-reveal>
-      <div class="frame">{% include picture.html name="claude" alt="The Claude style" width=2224 height=1427 %}</div>
+      <div class="frame">{% include picture.html name="claude" alt="The Claude style" width=2224 height=1382 %}</div>
       <figcaption>Claude</figcaption>
     </figure>
   </div>

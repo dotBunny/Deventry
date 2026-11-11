@@ -7,8 +7,9 @@
 //                   (--still reduces motion, so Joulene on the composer stands still for screenshots, and --quiet
 //                   turns the OS's notifications off, which a Deventry kept behind other windows would send),
 //                   seven tabs over three game projects (Unreal in C++, Unity in C#, Godot): the first with a long
-//                   conversation and changed files, one with every file reviewed, and a thread with two sub-threads,
-//                   a plan, a task list part-way done and three subagents; an API-key account, Studio, which
+//                   conversation and changed files, one with every file reviewed, one with images, a video and a
+//                   sound for its Media window, and a thread with two sub-threads, a plan, a task list part-way done
+//                   and three subagents; an API-key account, Studio, which
 //                   orbit-game's group and one starfall tab run on; the older projects as recent folders; and a usage
 //                   history that ends now, with the plan's usage and a month of Studio's spend
 //   claude-config/  for CLAUDE_CONFIG_DIR: the tabs' transcripts, with the subagents' beside them, and past sessions

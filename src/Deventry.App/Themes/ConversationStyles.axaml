@@ -961,12 +961,17 @@
     <Setter Property="Stretch" Value="None" />
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
-  <!-- Attached images (DESIGN.md §5, "Attachments") -->
+  <!-- Attached images (DESIGN.md §5, "Attachments"), and every thumbnail: the outline, and inside it a Border.thumbclip that
+       clips the image to the outline's inner curve. The image draws after the outline, so clipped to its outer curve it
+       would cover the outline's corners. -->
   <Style Selector="Border.thumbnail">
     <Setter Property="CornerRadius" Value="6" />
-    <Setter Property="ClipToBounds" Value="True" />
     <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
     <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.thumbclip">
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="ClipToBounds" Value="True" />
   </Style>
   <!-- An image under a tool's card, which shows full size on a click (DESIGN.md §18, "Images from Claude's tools") -->
   <Style Selector="Button.toolimage">
