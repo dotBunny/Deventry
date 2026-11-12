@@ -113,6 +113,11 @@ public sealed partial class ShellViewModel
                 Command("Go to line…", showing.RequestGoToLine);
                 // DESIGN.md §18, "A file in a window of its own".
                 Command("Open the file in a window", () => files.PopOut(showing));
+                // DESIGN.md §18, "Project files", "The editor": the bar's Wrap lines.
+                if (showing.ShowsEditor)
+                {
+                    Command(showing.WordWrap ? "Stop wrapping the file's lines" : "Wrap the file's lines", () => showing.WordWrap = !showing.WordWrap);
+                }
                 // DESIGN.md §18, "Markdown preview": the modes that aren't showing.
                 if (showing.IsMarkdown)
                 {

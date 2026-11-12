@@ -140,11 +140,12 @@ public class MarkdownPreviewTests
         var notes = Write(Path.Combine(h.WorkFolder, "notes.markdown"), Readme);
         var (files, readme) = await OpenAsync(h, Write(Path.Combine(h.WorkFolder, "README.md"), Readme));
 
-        Assert.True(readme is { IsMarkdown: true, ShowsModeBar: true, ShowsDiffModes: false, IsEditMode: true, ShowsEditor: true, ShowsPreview: false });
+        Assert.True(readme is { IsMarkdown: true, ShowsModeBar: true, ShowsModes: true, ShowsDiffModes: false, IsEditMode: true, ShowsEditor: true, ShowsPreview: false });
         Assert.Equal("Markdown", readme.Language.Name);
         Assert.True((await files.OpenFileAsync(notes, preview: false)).IsMarkdown);
+        // Any other file's bar has only Wrap lines without changes: Edit would be its only mode.
         var code = await files.OpenFileAsync(Write(Path.Combine(h.WorkFolder, "a.txt"), "a\n"), preview: false);
-        Assert.True(code is { IsMarkdown: false, ShowsModeBar: false });
+        Assert.True(code is { IsMarkdown: false, ShowsModeBar: true, ShowsModes: false });
     }
 
     [Fact]

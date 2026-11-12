@@ -4015,7 +4015,9 @@ A code editor for the project's files, in a tab of the project's own: a tree of 
     - **Go to line** (`Ctrl+G`);
     - folding by indentation, in any language;
     - box selection, dragging with `Alt` (`Option`) held.
-  - **Wrap long lines** in Settings → Files and diffs (off by default) sets it for every file. `Alt+Z` (`Option+Z`) changes it for the file showing.
+  - **Wrap lines.** ✅ Built 2026-11-12. While the editor shows (**Edit**, and a Markdown file's **Edit and preview**), the bar under the file tabs has **Wrap lines**, after the modes: on, long lines wrap at the editor's width and nothing scrolls sideways. `Alt+Z` (`Option+Z`) and the command palette's **Wrap the file's lines** (**Stop wrapping the file's lines** while they wrap) turn the same on and off, and its tip names the key.
+    - Each file has its own once it's been turned on or off, kept with its tab and restored at launch, as its mode is (`OpenFileState.WordWrap`). Until then it follows Settings → Files and diffs → **Wrap long lines** (off by default), and changes with it; once it has its own, the setting leaves it be.
+    - In **Inline changes** and **Side by side** the bar's **Wrap lines** is the diff's ([§8](#8-file-changes--diff-view), "Wrap lines"), as before: it isn't the file's, and the next diff starts as it was left.
   - Tab and new lines indent as the file does (**The chip**, below). Undo goes back through the file's edits while it's open.
   - **Which files open.**
     - Text in UTF-8, or in UTF-16 or UTF-32 when its byte order mark says so, as Revert reads files ([Reverting](#reverting)).
@@ -4068,7 +4070,7 @@ A code editor for the project's files, in a tab of the project's own: a tree of 
     - Under the header are the lines the change replaced, highlighted, in the removed color.
     - **Revert** puts them back in the editor's text as one step, which Undo takes back. The file then has unsaved edits: nothing is written until it's saved.
     - `F3` and `F4`, the conversation's previous and next message ([§14](#keyboard-shortcuts)), go to the previous and next change and open its peek.
-  - **Inline and side by side.** For a file with changes, a bar under the tabs switches between **Edit**, **Inline changes** and **Side by side**. In a pane too narrow for the bar's one row, **Whole file**, **Wrap lines** and **Reviewed** go onto a second. A Markdown file's bar always shows, with **Preview** and **Edit and preview** too ([Markdown preview](#markdown-preview)).
+  - **Inline and side by side.** For a file with changes, the bar under the tabs switches between **Edit**, **Inline changes** and **Side by side**. The bar shows for every text file, for the editor's **Wrap lines** (**The editor**, above), but its modes only while there's more than **Edit** to choose. In a pane too narrow for the bar's one row, **Whole file**, **Wrap lines** and **Reviewed** go onto a second. A Markdown file's bar always has its modes, with **Preview** and **Edit and preview** too ([Markdown preview](#markdown-preview)).
     - The last two are §8's diff view inside the tab, read-only, with **Whole file**, **Wrap lines**, the highlighting, and **Revert** on each change.
     - **Revert** there changes the editor's text, as the peek's does.
     - A double-click on a line goes back to **Edit** at that line.
@@ -4102,7 +4104,7 @@ A code editor for the project's files, in a tab of the project's own: a tree of 
   - **Open images in**: **Deventry's image viewer** (the default) or **The app the OS uses for the file** ([Opening images](#opening-images));
   - **Show a file clicked in a conversation**: **Beside the conversation** (the default) or **In its place**;
   - **Open in the diff window**: **Opens the file, as Open files in says** (the default), **Opens the file in the app the OS uses for it**, or **Opens the changes in the diff tool**, which is off until Settings → Files and diffs has a diff tool ([§8](#8-file-changes--diff-view));
-  - **Wrap long lines**: off by default;
+  - **Wrap long lines**: off by default, for the files whose **Wrap lines** hasn't been turned on or off (**The editor**, above);
   - **Indent new lines with**, for files that have no indentation to go by: 4 spaces by default.
 - **Keyboard.**
   - **Go to file** (`Ctrl/Cmd+P`) is a new rebindable shortcut.
@@ -4115,7 +4117,7 @@ A code editor for the project's files, in a tab of the project's own: a tree of 
     - `Ctrl/Cmd+S` saves, and `Ctrl/Cmd+Alt+S` saves all;
     - `Ctrl+H` replaces (`Cmd+Option+F` on macOS);
     - `Ctrl+G` goes to a line;
-    - `Alt+Z` turns word wrap on or off;
+    - `Alt+Z` turns the file's **Wrap lines** on or off;
     - `Ctrl+PageDown` and `Ctrl+PageUp` (`Cmd+Option+→` and `←`) go to the next and previous file.
 - **Accessibility.**
   - The explorer, the file tabs, the chip, the peek's buttons and the banners have names a screen reader can say.
@@ -4326,7 +4328,8 @@ A Markdown file in a [Project Files](#project-files) tab shows rendered as well 
 - **Which files.** The ones the editor colors as Markdown, by their extension: `.md`, `.markdown`, and the others the Markdown grammar takes (`.mkd`, `.mdown` and the like). The chip says *Markdown* for them ([Project files](#project-files), "The chip").
 - **The bar.** A Markdown file's bar under the file tabs always shows, changes or not.
   - Its first part is **Edit**, **Preview** and **Edit and preview**. While the file has Claude's changes, **Inline changes** and **Side by side** follow as a second part, then **Reviewed**, as for any file ([Project files](#project-files), "Claude's changes"). The five are one choice: picking **Preview** leaves **Side by side**, and the other way round.
-  - Any other file's bar is as before: one part with **Edit**, **Inline changes** and **Side by side**.
+  - Any other file's bar is as before: one part with **Edit**, **Inline changes** and **Side by side**, while it has changes.
+  - While the editor shows, in **Edit** and **Edit and preview**, the modes are followed by the editor's **Wrap lines** ([Project files](#project-files), "The editor"); the preview wraps by itself.
   - **Edit** is the editor. **Preview** is the file rendered, in the editor's place. **Edit and preview** has the editor on the left and the preview on the right.
   - In **Edit and preview**, the line between them drags to give either side more, down to 240 pixels each; a double-click on it shares the width evenly again, as it is each time the mode is picked.
   - Each open file keeps its own choice, kept with its tab and restored at launch, as the diff modes are. A Markdown file opens in **Edit**.

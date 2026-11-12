@@ -35,13 +35,14 @@
       <TextBlock Classes="muted small" Text="{Binding ReadOnlyReason}" TextWrapping="Wrap" />
     </Border>
     <!-- Claude's changes: the editor, or them inline or side by side, and Reviewed ("Claude's changes"); for a Markdown
-         file, its preview too ("Markdown preview"). A narrow pane wraps Whole file, Wrap lines and Reviewed onto a second
-         line. -->
+         file, its preview too ("Markdown preview"); and while the editor shows, its Wrap lines ("The editor"). A narrow
+         pane wraps Whole file, Wrap lines and Reviewed onto a second line. -->
     <Border DockPanel.Dock="Top" Classes="modebar" IsVisible="{Binding ShowsModeBar}">
       <WrapPanel ItemSpacing="8" LineSpacing="4">
         <!-- The modes, one choice in two parts: Edit, with Preview and Edit and preview for a Markdown file; then Inline
-             changes and Side by side while it has changes. For any other file the two parts join into one outline. -->
-        <StackPanel Classes="modegroups" Classes.joined="{Binding !IsMarkdown}" Orientation="Horizontal">
+             changes and Side by side while it has changes. For any other file the two parts join into one outline, and
+             with no changes there's no choice to show. -->
+        <StackPanel Classes="modegroups" Classes.joined="{Binding !IsMarkdown}" Orientation="Horizontal" IsVisible="{Binding ShowsModes}">
           <Border Classes="modes first">
             <StackPanel Orientation="Horizontal">
               <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Edit" IsChecked="{Binding IsEditMode}" />
@@ -62,6 +63,9 @@
                       IsChecked="{Binding Diff.ShowWholeFile, FallbackValue=False}" ToolTip.Tip="The whole file, not just its changes" />
         <ToggleButton Content="Wrap lines" IsVisible="{Binding IsDiffMode}"
                       IsChecked="{Binding Diff.WordWrap, FallbackValue=False}" ToolTip.Tip="Wrap long lines at the pane's width, rather than scrolling sideways" />
+        <!-- The editor's, the file's own (Alt+Z), where the diff's is in its modes -->
+        <ToggleButton x:Name="EditorWrapButton" Content="Wrap lines" IsVisible="{Binding ShowsEditor}"
+                      IsChecked="{Binding WordWrap}" ToolTip.Tip="{x:Static vm:ProjectFileViewModel.WordWrapTip}" />
         <ToggleButton x:Name="ReviewedButton" IsVisible="{Binding CanReview}" IsChecked="{Binding IsReviewed, Mode=OneWay}"
                       Command="{Binding ToggleReviewedCommand}"
                       ToolTip.Tip="Mark this file as reviewed in every tab of the project that changed it. It stays reviewed until Claude changes it again.">

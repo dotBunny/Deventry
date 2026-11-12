@@ -53,6 +53,12 @@ public sealed class OpenFileState
     public double Scroll { get; set; }
 
     public FileViewMode Mode { get; set; } = FileViewMode.Edit;
+
+    /// <summary>
+    /// The file's own <b>Wrap lines</b>, once it's been turned on or off; null follows Settings → Files and diffs →
+    /// Wrap long lines.
+    /// </summary>
+    public bool? WordWrap { get; set; }
 }
 
 /// <summary>

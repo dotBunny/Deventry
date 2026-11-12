@@ -72,6 +72,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
         _diffWait = new UiTimeout(services.Time, services.Dispatcher);
         _previewWait = new UiTimeout(services.Time, services.Dispatcher);
         Mode = state.Mode;
+        _wordWrap = state.WordWrap;
         TabLabel = Name;
     }
 
@@ -100,7 +101,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsText), nameof(HasProblem), nameof(ProblemText), nameof(CanOpenInViewer), nameof(IsMarkdown), nameof(ShowsModeBar),
-        nameof(ShowsEditor), nameof(ShowsPreview))]
+        nameof(ShowsModes), nameof(ShowsEditor), nameof(ShowsPreview))]
     public partial bool IsLoaded { get; private set; }
 
     public bool IsText => IsLoaded && Document is not null;
@@ -138,7 +139,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
 
     /// <summary>The grammar that colors it, and its name on the chip.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsMarkdown), nameof(ShowsModeBar), nameof(ShowsPreview))]
+    [NotifyPropertyChangedFor(nameof(IsMarkdown), nameof(ShowsModes), nameof(ShowsPreview))]
     public partial EditorLanguage Language { get; private set; } = EditorLanguage.PlainText;
 
     /// <summary>Reads the file, and its unsaved edits from before, if any. Called once, when it's opened.</summary>
@@ -318,10 +319,39 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
     /// <summary>Typing stopped for a moment, for what the view works out again then (the folds).</summary>
     public event Action? TextSettled;
 
-    /// <summary>Settings → Files and diffs → Word wrap; <c>Alt+Z</c> changes it for the file in the view.</summary>
-    public bool WordWrap => _owner.WordWrap;
+    /// <summary>
+    /// <b>Wrap lines</b> in the editor (DESIGN.md §18, "Project files", "The editor"): the file's own once the bar's toggle
+    /// or <c>Alt+Z</c> has turned it on or off, kept with its tab; until then Settings → Files and diffs → Wrap long lines.
+    /// </summary>
+    public bool WordWrap
+    {
+        get => _wordWrap ?? _owner.WordWrap;
+        set
+        {
+            if (value == WordWrap)
+            {
+                return;
+            }
+            _wordWrap = value;
+            OnPropertyChanged();
+            _owner.OnFileStateChanged();
+        }
+    }
 
-    internal void OnWordWrapChanged() => OnPropertyChanged(nameof(WordWrap));
+    private bool? _wordWrap;
+
+    /// <summary>The bar's Wrap lines, with its key as the OS writes it.</summary>
+    public static string WordWrapTip =>
+        $"Wrap this file's long lines at the editor's width, rather than scrolling sideways ({new Core.Settings.KeyChord(Core.Settings.ChordModifiers.Alt, "Z").Display(Shortcuts.IsMac)})";
+
+    /// <summary>The setting changed: a file without its own wrap follows it.</summary>
+    internal void OnWordWrapChanged()
+    {
+        if (_wordWrap is null)
+        {
+            OnPropertyChanged(nameof(WordWrap));
+        }
+    }
 
     /// <summary>Unsaved text is kept on disk; once there's none, its copy goes.</summary>
     private void KeepBackup()
@@ -719,7 +749,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
     /// <summary>Who changed the file and when, from the project's open tabs; null when none of them did.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Tip), nameof(BannerText), nameof(PeekHeader), nameof(CanReview), nameof(CanShowChange), nameof(ShowChangeTip),
-        nameof(ShowsDiffModes), nameof(ShowsModeBar))]
+        nameof(ShowsDiffModes), nameof(ShowsModeBar), nameof(ShowsModes))]
     public partial ProjectFileChange? Change { get; private set; }
 
     /// <summary>What the file is compared with: before Claude's first change, or at HEAD.</summary>
@@ -750,7 +780,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
 
     /// <summary>The gutter's bars, worked out again after each pause in typing; empty with nothing to compare with.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasChanges), nameof(ShowsModeBar), nameof(ShowsDiffModes), nameof(MarkersTip))]
+    [NotifyPropertyChangedFor(nameof(HasChanges), nameof(ShowsModeBar), nameof(ShowsModes), nameof(ShowsDiffModes), nameof(MarkersTip))]
     public partial ChangeMarkers Markers { get; private set; } = ChangeMarkers.None;
 
     /// <summary>The file is too long to compare: its tab's tip says why there are no marks.</summary>
@@ -763,10 +793,16 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
     public bool HasChanges => !Markers.IsEmpty;
 
     /// <summary>
-    /// The bar for Edit, Inline changes, Side by side and Reviewed: while it has changes, or shows them; always for a
-    /// Markdown file, for Preview and Edit and preview.
+    /// The bar for the modes, Wrap lines and Reviewed: for any text file, and while a file shows its changes (one gone from
+    /// disk shows only them).
     /// </summary>
-    public bool ShowsModeBar => ShowsDiffModes || IsMarkdown;
+    public bool ShowsModeBar => ShowsDiffModes || IsText;
+
+    /// <summary>
+    /// The bar has the modes: while the file has changes, or shows them, and always for a Markdown file, for Preview and
+    /// Edit and preview. Otherwise Edit would be the only one.
+    /// </summary>
+    public bool ShowsModes => ShowsDiffModes || IsMarkdown;
 
     /// <summary>The bar has Inline changes and Side by side: while the file has changes, or shows them.</summary>
     public bool ShowsDiffModes => HasChanges || IsDiffMode || Change is not null;
@@ -817,7 +853,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
     /// <summary>What the file shows: the editor, its changes inline or side by side, or a Markdown file's preview.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEditMode), nameof(IsInlineMode), nameof(IsSideBySideMode), nameof(IsPreviewMode), nameof(IsEditAndPreviewMode),
-        nameof(ShowsModeBar), nameof(ShowsDiffModes), nameof(IsDiffMode), nameof(ShowsEditor), nameof(ShowsPreview))]
+        nameof(ShowsModeBar), nameof(ShowsModes), nameof(ShowsDiffModes), nameof(IsDiffMode), nameof(ShowsEditor), nameof(ShowsPreview))]
     public partial FileViewMode Mode { get; set; }
 
     public bool IsEditMode
@@ -1276,6 +1312,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
         Column = CaretColumn,
         Scroll = Scroll,
         Mode = Mode,
+        WordWrap = _wordWrap,
     };
 
     /// <summary>It closed, or its Files tab did (Deventry quitting too): its window closes with it.</summary>

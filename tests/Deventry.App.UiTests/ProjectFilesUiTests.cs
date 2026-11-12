@@ -254,6 +254,48 @@ public sealed class ProjectFilesUiTests
         window.Close();
     }
 
+    /// <summary>
+    /// The bar's <b>Wrap lines</b> while the editor shows (DESIGN.md §18, "Project files", "The editor"): a click wraps the
+    /// file's lines and <c>Alt+Z</c> unwraps them, each following the other; the diff modes have the diff's instead; and a
+    /// file with no changes has the bar for it alone.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task Wrap_lines_in_the_bar_and_Alt_Z_wrap_the_files_lines_and_follow_each_other()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        var (_, files, _, window) = await ShowAsync(h);
+        var file = files.Showing!;
+        var editor = Editor(window);
+        Avalonia.Controls.Primitives.ToggleButton? Wrap() => View(window).GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ToggleButton>()
+            .SingleOrDefault(b => b.Name == "EditorWrapButton" && b.IsEffectivelyVisible);
+        Point Middle(Control c) => c.TranslatePoint(new Point(c.Bounds.Width / 2, c.Bounds.Height / 2), window)!.Value;
+        Assert.Equal((false, false), (editor.WordWrap, Wrap()!.IsChecked));
+
+        window.MouseDown(Middle(Wrap()!), MouseButton.Left);
+        window.MouseUp(Middle(Wrap()!), MouseButton.Left);
+        UiText.Settle(window);
+
+        Assert.Equal((true, true), (editor.WordWrap, file.WordWrap));
+        editor.TextArea.Focus();
+        window.KeyPressQwerty(PhysicalKey.Z, RawInputModifiers.Alt);
+        window.KeyReleaseQwerty(PhysicalKey.Z, RawInputModifiers.Alt);
+        UiText.Settle(window);
+        Assert.Equal((false, false, false), (editor.WordWrap, file.WordWrap, Wrap()!.IsChecked));
+
+        file.Mode = Core.ProjectFiles.FileViewMode.Inline;
+        await UiText.SettleUntilAsync(window, () => file.Diff is { IsLoading: false }, "the diff");
+        Assert.Null(Wrap());
+        Assert.Contains("[toggle] Wrap lines", UiText.Describe(View(window)), StringComparison.Ordinal);
+
+        await files.OpenFileAsync(Write(Path.Combine(h.WorkFolder, "notes.txt"), "a\n"), preview: false);
+        UiText.Settle(window);
+        var bar = View(window).GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("modebar") && b.IsEffectivelyVisible);
+        var shown = UiText.Describe(bar);
+        Assert.Contains("[toggle] Wrap lines", shown, StringComparison.Ordinal);
+        Assert.DoesNotContain("Edit", shown, StringComparison.Ordinal);
+        window.Close();
+    }
+
     [AvaloniaFact]
     public async Task A_file_comes_back_scrolled_where_it_was_left()
     {

@@ -280,7 +280,7 @@ public sealed partial class ProjectFilesViewModel : ViewModelBase, IShellTab, IA
         OnPerforceSettingsChanged();
     }
 
-    /// <summary>Settings → Files and diffs → Word wrap, unless the file showing has its own (<c>Alt+Z</c>).</summary>
+    /// <summary>Settings → Files and diffs → Wrap long lines: what a file wraps by until it has its own (<c>Alt+Z</c>, the bar's toggle).</summary>
     public bool WordWrap => _services.Settings.Editor.WordWrap;
 
     // ---- Kept with the app state -----------------------------------------------------------------------------------

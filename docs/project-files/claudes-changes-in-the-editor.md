@@ -46,10 +46,10 @@ Under the header are the lines the change replaced, in the removed color.
 
 ## Edit, Inline changes and Side by side
 
-For a file with changes, a bar under the file tabs switches between three views:
+For a file with changes, the bar under the file tabs switches between three views:
 
-- **Edit** is the editor.
-- **Inline changes** and **Side by side** are the [diff view](../changes/the-diff-view.md) inside the tab. They're read-only, with **Whole file**, **Wrap lines**, the colors, and **Revert** on each change. **Revert** there changes the editor's text, as the peek's does.
+- **Edit** is the editor, with its own **Wrap lines** ([Editing](editing.md#wrapping-long-lines)).
+- **Inline changes** and **Side by side** are the [diff view](../changes/the-diff-view.md) inside the tab. They're read-only, with **Whole file**, **Wrap lines**, the colors, and **Revert** on each change. **Revert** there changes the editor's text, as the peek's does. Their **Wrap lines** is the diff's: the next diff you open, here or in the diff window, starts the way you left it.
 
 A double-click on a line goes back to **Edit** at that line. Each open file keeps its own choice. A Markdown file's bar also has **Preview** and **Edit and preview** ([Markdown files](markdown-files.md)). In a pane too narrow for the bar's one row, **Whole file**, **Wrap lines** and **Reviewed** go onto a second.
 

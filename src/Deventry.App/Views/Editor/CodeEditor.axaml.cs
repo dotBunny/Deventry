@@ -32,7 +32,6 @@ public partial class CodeEditor : UserControl
     private ProjectFileViewModel? _file;
     private TextMateColoring? _coloring;
     private IBrush? _caretBrush;
-    private bool _wordWrapOverridden;
 
     /// <summary>What this editor gives its file, kept so it takes back only its own.</summary>
     private readonly Func<int?> _peekLine;
@@ -196,10 +195,7 @@ public partial class CodeEditor : UserControl
         Editor.IsReadOnly = file.IsReadOnly;
         Editor.Options.IndentationSize = file.Indent.Size;
         Editor.Options.ConvertTabsToSpaces = !file.Indent.UseTabs;
-        if (!_wordWrapOverridden)
-        {
-            Editor.WordWrap = file.WordWrap;
-        }
+        Editor.WordWrap = file.WordWrap;
     }
 
     private void OnFileChanged(object? sender, PropertyChangedEventArgs e)
@@ -380,7 +376,7 @@ public partial class CodeEditor : UserControl
 
     /// <summary>
     /// The editor's own keys (DESIGN.md §18, "Project files", "Keyboard"): <c>Ctrl+G</c> Go to line, <c>Ctrl/Cmd+H</c>
-    /// replace (<c>Cmd+Option+F</c> on macOS), <c>Alt+Z</c> word wrap for this file.
+    /// replace (<c>Cmd+Option+F</c> on macOS), <c>Alt+Z</c> the file's Wrap lines.
     /// </summary>
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
@@ -395,10 +391,10 @@ public partial class CodeEditor : UserControl
             OpenFind(replace: true);
             e.Handled = true;
         }
-        else if (e.Key == Key.Z && e.KeyModifiers == KeyModifiers.Alt)
+        else if (e.Key == Key.Z && e.KeyModifiers == KeyModifiers.Alt && _file is { } file)
         {
-            _wordWrapOverridden = true;
-            Editor.WordWrap = !Editor.WordWrap;
+            // The file's own, as the bar's Wrap lines is.
+            file.WordWrap = !file.WordWrap;
             e.Handled = true;
         }
     }

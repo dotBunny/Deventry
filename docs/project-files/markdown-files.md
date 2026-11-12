@@ -15,7 +15,7 @@ A Markdown file, such as a README or a plan Claude wrote, can be read rendered a
 
 A file whose extension is `.md`, `.markdown` or another of Markdown's (the chip says *Markdown*) always has the bar under the file tabs, with three choices:
 
-- **Edit** is the [editor](editing.md), as for any file.
+- **Edit** is the [editor](editing.md), as for any file, with **Wrap lines** after the choices ([Wrapping long lines](editing.md#wrapping-long-lines)), as in **Edit and preview**.
 - **Preview** shows the file rendered, in the editor's place.
 - **Edit and preview** puts the editor on the left and the preview on the right. Drag the line between them to give either side more room; double-click it to share the width evenly again.
 

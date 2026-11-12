@@ -894,6 +894,55 @@ public class ProjectFilesTests
         await TabTestHarness.Eventually(() => file.Diff is { IsLoading: false }, "the diff inline again");
     }
 
+    /// <summary>
+    /// The editor's Wrap lines (DESIGN.md §18, "Project files", "The editor"): a file follows Settings → Files and diffs →
+    /// Wrap long lines until the bar's toggle, <c>Alt+Z</c> or the palette turns it on or off; from then on it's the file's
+    /// own, which the setting leaves be, kept with its tab.
+    /// </summary>
+    [Fact]
+    public async Task Wrap_lines_is_the_files_own_once_turned_on_or_off_and_comes_back_with_its_tab()
+    {
+        await using var h = new TabTestHarness();
+        var (_, files) = await OpenFilesAsync(h);
+        var a = await files.OpenFileAsync(Write(Path.Combine(h.WorkFolder, "a.txt"), "a\n"), preview: false);
+        var b = await files.OpenFileAsync(Write(Path.Combine(h.WorkFolder, "b.txt"), "b\n"), preview: false);
+        // Any text file has the bar for it, without the modes while Edit would be the only one.
+        Assert.True(b is { ShowsModeBar: true, ShowsModes: false, ShowsEditor: true, WordWrap: false });
+
+        a.WordWrap = true;
+
+        Assert.False(b.WordWrap);
+        h.Services.Settings.Editor.WordWrap = true;
+        InlineDispatcher.Run(h.Services.SaveSettings);
+        Assert.True(b.WordWrap);
+        a.WordWrap = false;
+        h.Services.Settings.Editor.WordWrap = false;
+        InlineDispatcher.Run(h.Services.SaveSettings);
+        h.Services.Settings.Editor.WordWrap = true;
+        InlineDispatcher.Run(h.Services.SaveSettings);
+        Assert.Equal((false, true), (a.WordWrap, b.WordWrap));
+        Assert.Equal([false, null], files.CaptureState().Files.Select(f => f.WordWrap));
+
+        // The palette has it for the file showing, which is b.
+        var wrap = Assert.Single(h.Shell.PaletteEntries(), e => e.Label == "Stop wrapping the file's lines");
+        await InlineDispatcher.RunAsync(wrap.Run);
+        Assert.False(b.WordWrap);
+        Assert.Contains(h.Shell.PaletteEntries(), e => e.Label == "Wrap the file's lines");
+
+        a.WordWrap = true;
+        var snapshot = h.Shell.CaptureForRestart();
+        await h.Shell.CloseTabsForRestartAsync();
+        h.Services.Settings.Editor.WordWrap = false;
+        InlineDispatcher.Run(() => h.Shell.Restore(null, snapshot));
+
+        var back = Assert.IsType<ProjectFilesViewModel>(h.Shell.Selected);
+        await TabTestHarness.Eventually(() => back.OpenFiles.All(f => f.IsLoaded), "the files read");
+        Assert.Equal([true, false], back.OpenFiles.Select(f => f.WordWrap));
+        h.Services.Settings.Editor.WordWrap = true;
+        InlineDispatcher.Run(h.Services.SaveSettings);
+        Assert.Equal([true, false], back.OpenFiles.Select(f => f.WordWrap));
+    }
+
     [Fact]
     public async Task Show_only_changed_files_lists_Claudes_changes_by_path()
     {

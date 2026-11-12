@@ -29,7 +29,9 @@ Colors come from the file's language, picked by its extension. A file with no ex
 
 ## Wrapping long lines
 
-Settings → **Files and diffs** → **Wrap long lines** wraps lines at the editor's width. It's off by default. `Alt+Z` (`Option+Z`) turns it on or off for the file showing.
+**Wrap lines**, in the bar under the file tabs, wraps the file's long lines at the editor's width, so nothing runs off to the side. Click it again to have them on one line, scrolling sideways. It's there for any text file while the editor shows, and for a Markdown file in **Edit** and **Edit and preview** ([Markdown files](markdown-files.md)). `Alt+Z` (`Option+Z`) and the [command palette](../tabs/the-command-palette.md)'s **Wrap the file's lines** do the same.
+
+Each file keeps its own, and it comes back with the file's tab when Deventry starts again. A file you haven't turned it on or off for follows Settings → **Files and diffs** → **Wrap long lines**, which is off by default. In **Inline changes** and **Side by side** the bar's **Wrap lines** is the diff's ([Claude's changes in the editor](claudes-changes-in-the-editor.md)).
 
 ## The chip
 
@@ -58,7 +60,7 @@ An input method that composes text, such as for Japanese or Korean, does it in i
 
 | Setting | Default | Where |
 |---|---|---|
-| **Wrap long lines** | off | Settings → **Files and diffs** |
+| **Wrap long lines**, for files you haven't turned **Wrap lines** on or off for | off | Settings → **Files and diffs** |
 | **Indent new lines with** | 4 spaces (**2 spaces**, **4 spaces**, **8 spaces** or **Tabs**) | Settings → **Files and diffs** |
 | **Code font**, **Code font size** | | Settings → **Appearance** |
 
@@ -71,7 +73,7 @@ An input method that composes text, such as for Japanese or Korean, does it in i
 | `Ctrl/Cmd+F` | Find in the file |
 | `Ctrl+H` (macOS: `Cmd+Option+F`) | Find and replace |
 | `Ctrl+G` | Go to a line |
-| `Alt+Z` (macOS: `Option+Z`) | Turn word wrap on or off for this file |
+| `Alt+Z` (macOS: `Option+Z`) | Turn **Wrap lines** on or off for this file |
 
 `Ctrl/Cmd+S` and the keys for moving between files are on [Saving](saving.md) and [File tabs](file-tabs.md), and [Keyboard shortcuts](../reference/keyboard-shortcuts.md) lists them all.
 
