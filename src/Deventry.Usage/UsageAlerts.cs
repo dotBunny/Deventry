@@ -14,7 +14,15 @@ public enum UsageAlertKind
 
 /// <summary>Something worth an OS notification (DESIGN.md §6, "Alerts"; §10).</summary>
 /// <param name="Threshold">The level crossed, for <see cref="UsageAlertKind.ThresholdCrossed"/>.</param>
-public sealed record UsageAlert(UsageAlertKind Kind, string Title, string Message, double? Threshold = null);
+/// <param name="Reading">The limit that reset, as it read then, for <see cref="UsageAlertKind.LimitReset"/>.</param>
+public sealed record UsageAlert(UsageAlertKind Kind, string Title, string Message, double? Threshold = null, LimitReading? Reading = null)
+{
+    /// <summary>
+    /// Whether the usage credits notice says more than this alert does, so it gives way to the notice: a threshold or
+    /// projection alert about the session, which credits paying means is used up.
+    /// </summary>
+    public bool GivesWayToCredits => Kind is UsageAlertKind.ThresholdCrossed or UsageAlertKind.ProjectedToHitLimit;
+}
 
 /// <summary>
 /// Decides when usage is worth an alert (DESIGN.md §6, "Alerts"). Feed it every snapshot; it remembers what it has
@@ -122,16 +130,25 @@ public sealed class UsageAlerts(TimeProvider clock)
         previous is { } before && current is { } after && after - before > SameWindowTolerance;
 
     /// <summary>
-    /// An alert brought up to date, so the line under the header says what the header says: a threshold alert with
-    /// <paramref name="session"/>, and a projection alert with <paramref name="projection"/>, or null once the projection
-    /// no longer hits the limit before the reset. Any other alert, or a threshold alert for a window that has since reset,
-    /// stays as it is.
+    /// An alert brought up to date, so the line under the header says what the header says, or null once it no longer
+    /// holds:
+    /// <list type="bullet">
+    /// <item>A threshold alert follows the session's reading, until the window it was about resets: its reset time
+    /// passes, or a new window's reading is below the threshold.</item>
+    /// <item>A projection alert follows <paramref name="projection"/>, until it no longer hits the limit before the reset.</item>
+    /// <item>A reset alert follows the reading of the limit that reset.</item>
+    /// </list>
+    /// Without the reading it follows, an alert stays as it is.
     /// </summary>
-    public static UsageAlert? Refresh(UsageAlert alert, LimitReading session, BurnProjection projection, DateTimeOffset now) =>
+    public static UsageAlert? Refresh(UsageAlert alert, UsageSnapshot snapshot, BurnProjection? projection, DateTimeOffset now) =>
         alert switch
         {
-            { Kind: UsageAlertKind.ThresholdCrossed, Threshold: { } threshold } when session.Percent >= threshold => ThresholdAlert(session, threshold, now),
-            { Kind: UsageAlertKind.ProjectedToHitLimit } => projection.HitsLimitBeforeReset && session.Percent < 100 ? ProjectionAlert(projection) : null,
+            { Kind: UsageAlertKind.ThresholdCrossed, Threshold: { } threshold } when snapshot.Session is { } session =>
+                session.Percent >= threshold && (session.ResetsAt is null || session.ResetsAt > now) ? ThresholdAlert(session, threshold, now) : null,
+            { Kind: UsageAlertKind.ProjectedToHitLimit } when snapshot.Session is { } session && projection is not null =>
+                projection.HitsLimitBeforeReset && session.Percent < 100 ? ProjectionAlert(projection) : null,
+            { Kind: UsageAlertKind.LimitReset, Reading: { } reset } when snapshot.Limits.FirstOrDefault(l => l.Kind == reset.Kind && l.Label.Equals(reset.Label, StringComparison.OrdinalIgnoreCase)) is { } reading =>
+                ResetAlert(reading),
             _ => alert,
         };
 
@@ -160,6 +177,7 @@ public sealed class UsageAlerts(TimeProvider clock)
         return new UsageAlert(
             UsageAlertKind.LimitReset,
             $"{name} limit reset",
-            string.Create(CultureInfo.InvariantCulture, $"{name} usage is now {reading.Percent:0}%."));
+            string.Create(CultureInfo.InvariantCulture, $"{name} usage is now {reading.Percent:0}%."),
+            Reading: reading);
     }
 }

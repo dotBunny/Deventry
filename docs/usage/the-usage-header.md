@@ -62,7 +62,9 @@ If your plan has usage credits, they pay for Claude once a limit is used up, up 
 
 - It names the limit that's used up (the session, the week or a model's) and when it resets, then what's been spent this month, against your cap when the account has one of its own.
 - **Manage on claude.ai** opens your plan's usage on claude.ai, where you turn usage credits off or change the cap.
-- It has no **Dismiss**. It goes by itself when credits stop paying: the limit resets, credits are turned off or reach the cap, or Claude Code says they aren't paying.
+- It goes by itself when credits stop paying: the limit resets, credits are turned off or reach the cap, or Claude Code says they've stopped. A request that got through some other way, past the limit, doesn't end it.
+- **Dismiss** hides it until credits start paying again.
+- While it shows, it takes the place of the session's warning and projection [alerts](alerts.md), which it says more than.
 - It shows whichever tab is selected, one on an [API-key account](../accounts/api-key-accounts.md) too, since your plan's other tabs are still spending them, apart from [those that don't use them](tabs-that-dont-use-usage-credits.md).
 - Just after Deventry starts, it waits for the first reading or the next turn.
 

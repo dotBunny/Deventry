@@ -68,6 +68,9 @@ public sealed partial class UsageViewModel : ViewModelBase, IDisposable
     private readonly UsageAlerts _alerts;
     private readonly ITimer _clock;
     private List<UsagePoint> _history = [];
+    // Usage credits pay by the latest reading, whether or not their notice shows.
+    private bool _creditsPaying;
+    private bool _creditsNoticeDismissed;
 
     public UsageViewModel(AppServices services, UsageTracker tracker)
     {
@@ -133,7 +136,9 @@ public sealed partial class UsageViewModel : ViewModelBase, IDisposable
 
     /// <summary>
     /// The latest usage alert, shown under the header until dismissed. A threshold alert's numbers follow the session
-    /// meter, and a projection alert's the projection, until the projection stops saying the limit will be hit.
+    /// meter until its window resets, a projection alert's the projection until it stops saying the limit will be hit,
+    /// and a reset alert's the limit that reset (<see cref="UsageAlerts.Refresh"/>). While usage credits pay, the
+    /// session's alerts give way to their notice (<see cref="UsageAlert.GivesWayToCredits"/>).
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasAlert))]
@@ -146,13 +151,22 @@ public sealed partial class UsageViewModel : ViewModelBase, IDisposable
 
     /// <summary>
     /// While usage credits pay for Claude, what the notice under the header says: which limit is used up, until when,
-    /// and what's been spent (DESIGN.md §6, "Usage credits"). It can't be dismissed: it goes when they stop paying.
+    /// and what's been spent (DESIGN.md §6, "Usage credits"). It goes when they stop paying, or when dismissed, until
+    /// they start paying again.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsUsingCredits))]
     public partial string? CreditsNotice { get; set; }
 
+    /// <summary>Whether the notice shows: credits are paying, and it hasn't been dismissed since they started.</summary>
     public bool IsUsingCredits => CreditsNotice is not null;
+
+    [RelayCommand]
+    private void DismissCreditsNotice()
+    {
+        _creditsNoticeDismissed = true;
+        CreditsNotice = null;
+    }
 
     /// <summary>The notice's button: the plan's usage on claude.ai, where usage credits are turned off or capped.</summary>
     [RelayCommand]
@@ -178,8 +192,8 @@ public sealed partial class UsageViewModel : ViewModelBase, IDisposable
         foreach (var alert in _alerts.Observe(snapshot, Projection(snapshot), usage.WarnPercent, usage.CriticalPercent))
         {
             // The line under the header, and an OS notification when Deventry isn't in front (DESIGN.md §6, §10). Usage
-            // credits have their notice there already.
-            if (alert.Kind != UsageAlertKind.UsingCredits)
+            // credits have their notice there already, which says more than the session's alerts while they pay.
+            if (alert.Kind != UsageAlertKind.UsingCredits && !(_creditsPaying && alert.GivesWayToCredits))
             {
                 Alert = alert;
             }
@@ -228,8 +242,7 @@ public sealed partial class UsageViewModel : ViewModelBase, IDisposable
         var snapshot = _tracker.Current;
         HasData = snapshot?.Session is not null || snapshot?.WeeklyAll is not null;
         var now = _services.Time.GetUtcNow();
-        // It ends once the limit resets, without waiting for a reading to say so.
-        CreditsNotice = CreditUse.From(snapshot, now)?.Describe(_services.Time);
+        RefreshCredits(snapshot, now);
         if (snapshot is null)
         {
             return;
@@ -248,11 +261,11 @@ public sealed partial class UsageViewModel : ViewModelBase, IDisposable
             WindowStart = session.ResetsAt - SessionWindow;
             SessionPoints = _history.Select(p => new ChartPoint(p.Time, p.Percent)).Append(new ChartPoint(now, session.Percent)).ToArray();
             SessionProjection = ProjectionLine(projection, session.ResetsAt, now);
-            if (Alert is { } alert)
-            {
-                // The line under the header keeps saying what the meter and the projection say.
-                Alert = UsageAlerts.Refresh(alert, session, projection, now);
-            }
+        }
+        if (Alert is { } alert)
+        {
+            // The line under the header keeps saying what the meters and the projection say.
+            Alert = UsageAlerts.Refresh(alert, snapshot, projection, now);
         }
 
         var weekly = new List<LimitReading>();
@@ -289,6 +302,22 @@ public sealed partial class UsageViewModel : ViewModelBase, IDisposable
         {
             RefreshDetails(snapshot, projection, now);
         }
+    }
+
+    /// <summary>
+    /// The credits notice from the latest reading. It ends once the limit resets, without waiting for a reading to say so.
+    /// When credits start paying, the session's alerts give way to it; once they stop, a dismissed notice can show again.
+    /// </summary>
+    private void RefreshCredits(UsageSnapshot? snapshot, DateTimeOffset now)
+    {
+        var use = CreditUse.From(snapshot, now);
+        if (use is not null && !_creditsPaying && Alert is { GivesWayToCredits: true })
+        {
+            Alert = null;
+        }
+        _creditsPaying = use is not null;
+        _creditsNoticeDismissed &= _creditsPaying;
+        CreditsNotice = _creditsNoticeDismissed ? null : use?.Describe(_services.Time);
     }
 
     /// <summary>

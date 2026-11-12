@@ -20,7 +20,11 @@ Each alert comes once per window. The first reading after Deventry starts doesn'
 
 ## Where they show
 
-- **A line under the header**, with **Dismiss**. A threshold alert's line keeps up with the session meter, so the two never disagree. Usage credits have their notice instead, which stays until they stop paying.
+- **A line under the header**, with **Dismiss**. It keeps itself up to date, so it never disagrees with the header:
+  - A warning level's line keeps up with the session meter, and goes once the session resets.
+  - The projection's keeps up with the projection, and goes once you're no longer on pace to hit the limit.
+  - A reset's keeps up with the limit that reset.
+- **The usage credits notice** instead, for usage credits. Once they start paying, the session's warning and projection lines give way to it, since it says the limit is used up. See [When usage credits pay](the-usage-header.md#when-usage-credits-pay).
 - **An OS notification**, when Deventry isn't in front. Clicking it opens [the Usage window](the-usage-window.md).
 
 [Notifications](../away/notifications.md) explains how notifications work on each system.

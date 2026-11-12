@@ -174,7 +174,7 @@ public sealed class UsageAlertsTests
         Observe(10);
         var alert = Assert.Single(Observe(91));
 
-        var later = UsageAlerts.Refresh(alert, new LimitReading(LimitKind.Session, "Session", 94.2, WindowA, null, false), new BurnProjection(), Now.AddMinutes(30));
+        var later = UsageAlerts.Refresh(alert, UsageFixtures.Snapshot(Now, 94.2, WindowA), new BurnProjection(), Now.AddMinutes(30));
 
         Assert.NotNull(later);
         Assert.Equal("Session usage passed 90%", later.Title);
@@ -183,15 +183,40 @@ public sealed class UsageAlertsTests
     }
 
     [Fact]
-    public void Refresh_leaves_other_alerts_and_readings_below_the_threshold_alone()
+    public void A_threshold_alert_goes_once_its_window_resets()
+    {
+        Observe(10);
+        var alert = Assert.Single(Observe(91));
+
+        // Its reset time passes, before a reading says so.
+        Assert.Null(UsageAlerts.Refresh(alert, UsageFixtures.Snapshot(Now, 94, WindowA), new BurnProjection(), WindowA));
+        // A new window's reading.
+        Assert.Null(UsageAlerts.Refresh(alert, UsageFixtures.Snapshot(Now, 3, WindowB), new BurnProjection(), Now));
+    }
+
+    [Fact]
+    public void A_reset_alert_follows_the_limit_that_reset()
+    {
+        Observe(50);
+        var reset = Assert.Single(Observe(3, WindowB));
+
+        var later = UsageAlerts.Refresh(reset, UsageFixtures.Snapshot(Now, 12.4, WindowB, weekly: 60), new BurnProjection(), Now.AddMinutes(30));
+
+        Assert.NotNull(later);
+        Assert.Equal("Session limit reset", later.Title);
+        Assert.Equal("Session usage is now 12%.", later.Message);
+    }
+
+    [Fact]
+    public void Refresh_leaves_an_alert_alone_without_the_reading_it_follows()
     {
         Observe(10);
         var threshold = Assert.Single(Observe(91));
-        var reset = Assert.Single(Observe(3, WindowB));
-        var newWindow = new LimitReading(LimitKind.Session, "Session", 3, WindowB, null, false);
+        var weeklyOnly = new UsageSnapshot([new LimitReading(LimitKind.WeeklyAll, "Weekly", 60, WindowB, null, false)], Now, UsageSource.RateLimitEvent);
 
-        Assert.Same(threshold, UsageAlerts.Refresh(threshold, newWindow, new BurnProjection(), Now));
-        Assert.Same(reset, UsageAlerts.Refresh(reset, newWindow, new BurnProjection(), Now));
+        Assert.Same(threshold, UsageAlerts.Refresh(threshold, weeklyOnly, null, Now));
+        var reset = Assert.Single(Observe(3, WindowB));
+        Assert.Same(reset, UsageAlerts.Refresh(reset, weeklyOnly, null, Now));
     }
 
     [Fact]
@@ -199,7 +224,7 @@ public sealed class UsageAlertsTests
     {
         var hitting = new BurnProjection { CurrentPercent = 40, RatePerHour = 60, HitsLimitBeforeReset = true, TimeToLimit = TimeSpan.FromHours(1), MarginBeforeReset = TimeSpan.FromHours(1) };
         var alert = Assert.Single(Observe(40, projection: hitting));
-        var later = new LimitReading(LimitKind.Session, "Session", 70, WindowA, null, false);
+        var later = UsageFixtures.Snapshot(Now, 70, WindowA);
 
         var closer = UsageAlerts.Refresh(alert, later, hitting with { CurrentPercent = 70, TimeToLimit = TimeSpan.FromMinutes(20), MarginBeforeReset = TimeSpan.FromMinutes(70) }, Now.AddMinutes(30));
         Assert.NotNull(closer);
@@ -207,7 +232,7 @@ public sealed class UsageAlertsTests
         Assert.Equal("At this rate you'll hit the limit in 20m, 1h 10m before it resets.", closer.Message);
 
         Assert.Null(UsageAlerts.Refresh(alert, later, new BurnProjection { CurrentPercent = 70, RatePerHour = 1, PercentAtReset = 72 }, Now.AddMinutes(30)));
-        Assert.Null(UsageAlerts.Refresh(alert, later with { Percent = 100 }, hitting with { CurrentPercent = 100 }, Now.AddMinutes(30)));
+        Assert.Null(UsageAlerts.Refresh(alert, UsageFixtures.Snapshot(Now, 100, WindowA), hitting with { CurrentPercent = 100 }, Now.AddMinutes(30)));
     }
 
     [Fact]

@@ -49,7 +49,19 @@ public sealed record UsageCredits(bool IsEnabled, double? Used, double? MonthlyL
 /// <param name="LimitType">The event's <c>rateLimitType</c>, such as <c>five_hour</c>.</param>
 /// <param name="ResetsAt">The event's <c>resetsAt</c>: when that limit resets.</param>
 /// <param name="At">When the event came.</param>
-public sealed record CreditsReport(bool IsUsing, string? LimitType, DateTimeOffset? ResetsAt, DateTimeOffset At);
+/// <param name="StillUsedUp">
+/// For a report that they aren't paying: the request was let through, yet the event still showed the session or the
+/// weekly limit used up, Claude in its grace window past the limit, or usage credits in use (<c>overageInUse</c>). That
+/// request was paid for some other way, and says nothing of credits having stopped.
+/// </param>
+public sealed record CreditsReport(bool IsUsing, string? LimitType, DateTimeOffset? ResetsAt, DateTimeOffset At, bool StillUsedUp = false)
+{
+    /// <summary>
+    /// Claude Code said usage credits stopped paying: they were refused (the request was rejected without them), or the
+    /// request was let through with no limit used up.
+    /// </summary>
+    public bool SaysStopped => !IsUsing && !StillUsedUp;
+}
 
 /// <summary>
 /// Usage credits paying for Claude now, for the notice under the header and its alert (DESIGN.md §6, "Usage credits").
@@ -70,7 +82,7 @@ public sealed record CreditUse(string? LimitType, DateTimeOffset? Until, UsageCr
     /// <list type="bullet">
     /// <item>Credits reported unable to pay since Claude Code last said they were paying: no.</item>
     /// <item>Claude Code said they're paying: yes, until the limit it named resets.</item>
-    /// <item>Claude Code said they aren't, since the last poll: no.</item>
+    /// <item>Claude Code said they stopped (<see cref="CreditsReport.SaysStopped"/>), since the last poll: no.</item>
     /// <item>Otherwise, credits that are on pay once the session or the weekly limit is used up, until it resets. A
     /// model's own limit doesn't count here: only that model's requests would pay, and the poll can't say which model
     /// Claude is using.</item>
@@ -97,7 +109,7 @@ public sealed record CreditUse(string? LimitType, DateTimeOffset? Until, UsageCr
                 return new CreditUse(report.LimitType, until, credits);
             }
         }
-        else if (report is { IsUsing: false } && (credits is null || report.At >= credits.At))
+        else if (report is { SaysStopped: true } && (credits is null || report.At >= credits.At))
         {
             return null;
         }

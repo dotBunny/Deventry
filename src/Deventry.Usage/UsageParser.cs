@@ -63,7 +63,10 @@ public static partial class UsageParser
     /// <summary>
     /// The <c>rate_limit_info</c> of a <c>rate_limit_event</c> message. Gives the session and weekly readings only:
     /// <c>unifiedWindows</c> when present (undocumented), otherwise the documented top-level window. With
-    /// <c>isUsingOverage</c> (undocumented), also whether usage credits are paying, even when it has no readings.
+    /// <c>isUsingOverage</c> (undocumented), also whether usage credits are paying, even when it has no readings. When
+    /// they aren't, a request let through (<c>status</c> other than <c>rejected</c>) with a limit still used up, in the
+    /// grace window (<c>rateLimitGraceActive</c>) or with credits in use (<c>overageInUse</c>), both undocumented, doesn't
+    /// say they stopped (<see cref="CreditsReport.StillUsedUp"/>).
     /// </summary>
     public static UsageSnapshot? FromRateLimitEvent(JsonObject rateLimitInfo, DateTimeOffset now)
     {
@@ -91,7 +94,10 @@ public static partial class UsageParser
             {
                 return Snapshot(limits, now, UsageSource.RateLimitEvent);
             }
-            var report = new CreditsReport(usingCredits, rateLimitInfo.GetString("rateLimitType"), rateLimitInfo.GetTime("resetsAt"), now);
+            var stillUsedUp = !usingCredits && rateLimitInfo.GetString("status") != "rejected"
+                && (rateLimitInfo.GetBool("overageInUse") == true || rateLimitInfo.GetBool("rateLimitGraceActive") == true
+                    || limits.Any(l => l.Percent >= 100 && (l.ResetsAt is null || l.ResetsAt > now)));
+            var report = new CreditsReport(usingCredits, rateLimitInfo.GetString("rateLimitType"), rateLimitInfo.GetTime("resetsAt"), now, stillUsedUp);
             return (Snapshot(limits, now, UsageSource.RateLimitEvent) ?? new UsageSnapshot([], now, UsageSource.RateLimitEvent)) with { CreditsReport = report };
         }
         catch (Exception)
@@ -191,7 +197,9 @@ public static partial class UsageParser
     /// </list>
     /// Readings kept from <paramref name="previous"/> keep the time they were reported. Only <c>get_usage</c> reports
     /// the plan's usage credits, and only a <c>rate_limit_event</c> whether they're paying, so each is kept until its own
-    /// source says again (DESIGN.md §6, "Usage credits").
+    /// source says again (DESIGN.md §6, "Usage credits"). Claude Code's word that they're paying is kept over a later one
+    /// that they aren't but doesn't say they stopped (<see cref="CreditsReport.SaysStopped"/>): every tab's <c>claude</c>
+    /// reports its own requests, and one paid for some other way doesn't end the others'.
     /// </summary>
     public static UsageSnapshot Merge(UsageSnapshot? previous, UsageSnapshot update)
     {
@@ -225,7 +233,9 @@ public static partial class UsageParser
         }
         var merged = keptAny ? update with { Limits = limits } : update;
         var credits = update.Source == UsageSource.GetUsage ? update.Credits : previous.Credits;
-        var report = update.CreditsReport ?? previous.CreditsReport;
+        var report = update.CreditsReport is { IsUsing: false, SaysStopped: false } && previous.CreditsReport is { IsUsing: true }
+            ? previous.CreditsReport
+            : update.CreditsReport ?? previous.CreditsReport;
         return credits == merged.Credits && report == merged.CreditsReport ? merged : merged with { Credits = credits, CreditsReport = report };
     }
 

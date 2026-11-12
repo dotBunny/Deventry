@@ -512,34 +512,37 @@
           <StackPanel.IsVisible>
             <MultiBinding Converter="{x:Static BoolConverters.Or}">
               <Binding Path="Usage.IsUsingCredits" FallbackValue="False" />
-              <Binding Path="IsDemo" />
+              <Binding Path="ShowsDemoBanner" />
               <Binding Path="ServiceStatus.ShowBanner" />
-              <Binding Path="Account.NeedsSignIn" />
+              <Binding Path="Account.ShowsSignInBanner" />
               <Binding Path="Usage.HasAlert" FallbackValue="False" />
             </MultiBinding>
           </StackPanel.IsVisible>
 
-          <!-- Usage credits pay for Claude (DESIGN.md §6, "Usage credits"): no Dismiss, it goes when they stop paying -->
+          <!-- Usage credits pay for Claude (DESIGN.md §6, "Usage credits"), until they stop, or dismissed until they start again -->
           <Border Name="CreditsNotice" Classes="statusbanner" IsVisible="{Binding Usage.IsUsingCredits, FallbackValue=False}">
-            <Grid ColumnDefinitions="*,Auto">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
               <TextBlock TextWrapping="Wrap" VerticalAlignment="Center">
                 <Run FontWeight="SemiBold" Text="Using usage credits." />
                 <Run Text="{Binding Usage.CreditsNotice, FallbackValue=''}" />
               </TextBlock>
               <Button Grid.Column="1" Classes="flat" Content="Manage on claude.ai" Command="{Binding Usage.OpenCreditsSettingsCommand, FallbackValue={x:Null}}"
                       VerticalAlignment="Center" ToolTip.Tip="Your plan's usage on claude.ai, in your browser: where usage credits are turned off or capped" />
+              <Button Grid.Column="2" Classes="flat" Content="Dismiss" Command="{Binding Usage.DismissCreditsNoticeCommand, FallbackValue={x:Null}}"
+                      VerticalAlignment="Center" ToolTip.Tip="Hide this until usage credits start paying again" />
             </Grid>
           </Border>
 
           <!-- A demo (DESIGN.md §11, "Demo mode"): what it is, and the way out -->
-          <Border Name="DemoBanner" Classes="statusbanner info" IsVisible="{Binding IsDemo}">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <Border Name="DemoBanner" Classes="statusbanner info" IsVisible="{Binding ShowsDemoBanner}">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
               <TextBlock TextWrapping="Wrap" VerticalAlignment="Center">
                 <Run FontWeight="SemiBold" Text="This is a demo," />
                 <Run Text="with made-up projects and a stand-in for Claude. Nothing in it reaches Claude or your account." />
               </TextBlock>
               <Button Grid.Column="1" Classes="flat" Content="Leave demo" Command="{Binding LeaveDemoCommand}" VerticalAlignment="Center"
                       ToolTip.Tip="Close the demo; what it made goes with it" />
+              <Button Grid.Column="2" Classes="flat" Content="Dismiss" Command="{Binding DismissDemoBannerCommand}" VerticalAlignment="Center" />
             </Grid>
           </Border>
 
@@ -557,13 +560,15 @@
           </Border>
 
           <!-- Claude Code needs a sign-in mid-session (DESIGN.md §11): a banner across all tabs, which stay open -->
-          <Border Classes="statusbanner" IsVisible="{Binding Account.NeedsSignIn}">
-            <Grid ColumnDefinitions="*,Auto">
+          <Border Name="SignInBanner" Classes="statusbanner" IsVisible="{Binding Account.ShowsSignInBanner}">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
               <TextBlock TextWrapping="Wrap" VerticalAlignment="Center">
                 <Run FontWeight="SemiBold" Text="Claude Code needs you to sign in." />
                 <Run Text="Messages you send wait until you have." />
               </TextBlock>
-              <Button Grid.Column="1" Classes="accent" Content="Sign in" Command="{Binding Account.BeginSignInCommand}" />
+              <Button Grid.Column="1" Classes="accent" Content="Sign in" Command="{Binding Account.BeginSignInCommand}" VerticalAlignment="Center" />
+              <Button Grid.Column="2" Classes="flat" Content="Dismiss" Command="{Binding Account.DismissSignInBannerCommand}" VerticalAlignment="Center"
+                      ToolTip.Tip="Hide this; the account menu still has Sign in" />
             </Grid>
           </Border>
 

@@ -49,7 +49,7 @@ If you signed in from a terminal, choose **I've already signed in**. Deventry as
 
 ## In the middle of a session
 
-If Claude Code loses its sign-in while Deventry is running, a banner runs across the top of every tab: *Claude Code needs you to sign in.* The tabs stay open. **Sign in** on the banner opens the same screen as a window over the main one, which you can close. If Deventry isn't in front, you also get one notification, whatever the number of tabs.
+If Claude Code loses its sign-in while Deventry is running, a banner runs across the top of every tab: *Claude Code needs you to sign in.* The tabs stay open. **Sign in** on the banner opens the same screen as a window over the main one, which you can close. **Dismiss** hides the banner until Claude Code needs a sign-in again; the header's account menu still has **Sign in**, and messages you send still wait for it. If Deventry isn't in front, you also get one notification, whatever the number of tabs.
 
 Your account, its plan and **Sign out…** are in the header's account menu: see [Your Claude sign-in](../accounts/your-claude-sign-in.md). Settings → Claude Code has **Sign in** and **Sign out…** too.
 

@@ -471,9 +471,27 @@ public sealed class UsageTracker : IAsyncDisposable
         });
         _services.Dispatcher.Post(() =>
         {
+            LogCredits(Current, snapshot);
             Current = snapshot;
             Updated?.Invoke(snapshot);
         });
+    }
+
+    /// <summary>Logs usage credits starting or stopping to pay, with what said so (DESIGN.md §6, "Usage credits").</summary>
+    private void LogCredits(UsageSnapshot? before, UsageSnapshot after)
+    {
+        var now = _services.Time.GetUtcNow();
+        var paying = CreditUse.From(after, now);
+        if ((CreditUse.From(before, now) is not null) == (paying is not null))
+        {
+            return;
+        }
+        var report = after.CreditsReport;
+        _logger.LogInformation(
+            "Usage credits {Change} ({Source}): Claude Code last said paying={Paying} stillUsedUp={StillUsedUp} limit={Limit} at {At}; the poll said enabled={Enabled} at {PolledAt}; session {Session}%.",
+            paying is null ? "stopped paying" : $"pay until {paying.Until?.ToString("O") ?? "unknown"}",
+            after.Source, report?.IsUsing, report?.StillUsedUp, report?.LimitType, report?.At.ToString("O"),
+            after.Credits?.IsEnabled, after.Credits?.At.ToString("O"), after.Session?.Percent);
     }
 
     private async Task<System.Text.Json.Nodes.JsonObject> GetUsageAsync(CancellationToken cancellationToken)

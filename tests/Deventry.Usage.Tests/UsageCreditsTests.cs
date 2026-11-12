@@ -84,6 +84,10 @@ public sealed class UsageCreditsTests
         Assert.Null(CreditUse.From(Session(100) with { Credits = On, CreditsReport = notPaying with { At = Now.AddMinutes(1) } }, Now.AddMinutes(1)));
         // It said so before the poll that found the session used up, as when it's used up elsewhere, on claude.ai.
         Assert.NotNull(CreditUse.From(Session(100) with { Credits = On with { At = Now.AddMinutes(1) }, CreditsReport = notPaying }, Now.AddMinutes(1)));
+        // It said so of a request let through past the limit, which doesn't say they stopped: the poll decides.
+        var pastTheLimit = notPaying with { At = Now.AddMinutes(1), StillUsedUp = true };
+        Assert.NotNull(CreditUse.From(Session(100) with { Credits = On, CreditsReport = pastTheLimit }, Now.AddMinutes(1)));
+        Assert.Null(CreditUse.From(Session(100) with { CreditsReport = pastTheLimit }, Now.AddMinutes(1)));
     }
 
     [Fact]

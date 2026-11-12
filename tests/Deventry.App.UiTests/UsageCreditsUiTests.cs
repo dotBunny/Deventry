@@ -17,13 +17,13 @@ using Deventry.Usage;
 namespace Deventry.App.UiTests;
 
 /// <summary>
-/// The notice while usage credits pay for Claude (DESIGN.md §6, "Usage credits"): right under the header, with no
-/// Dismiss, in each style's caution colors, until they stop paying.
+/// The notice while usage credits pay for Claude (DESIGN.md §6, "Usage credits"): right under the header, in each
+/// style's caution colors, until they stop paying, or dismissed until they start again.
 /// </summary>
 public class UsageCreditsUiTests
 {
     [AvaloniaFact]
-    public async Task The_notice_sits_under_the_header_without_dismiss_until_credits_stop_paying()
+    public async Task The_notice_sits_under_the_header_until_credits_stop_paying_or_it_is_dismissed()
     {
         await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
         await using var tracker = new UsageTracker(h.Services, new UsageStore(Path.Combine(h.Root, "usage.db"), h.Time));
@@ -41,17 +41,24 @@ public class UsageCreditsUiTests
         Assert.Equal(1, dock.Children.IndexOf(banners));
         var page = dock.Children[^1];
         Assert.Equal(notice.TranslatePoint(new Point(0, notice.Bounds.Height), window)!.Value.Y + 6, page.TranslatePoint(default, window)!.Value.Y, 3);
-        var button = Assert.Single(notice.GetVisualDescendants().OfType<Button>());
-        Assert.Equal("Manage on claude.ai", button.Content);
+        var buttons = notice.GetVisualDescendants().OfType<Button>().ToList();
+        Assert.Equal(["Manage on claude.ai", "Dismiss"], buttons.Select(b => b.Content));
         var described = UiText.Describe(notice);
 
-        button.Command!.Execute(null);
+        buttons[0].Command!.Execute(null);
         UiText.Settle(window);
         Assert.Equal([AccountViewModel.ClaudeUsageUrl], h.Platform.OpenedUrls);
 
         h.Time.Advance(TimeSpan.FromMinutes(1));
         tracker.OnRateLimitEvent(RateLimitEvent(0.02, resets.AddHours(5), usingCredits: false));
         await UiText.SettleUntilAsync(window, () => !Notice(window).IsEffectivelyVisible, "the notice gone");
+
+        // Paying again, in the next window, and dismissed.
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        tracker.OnRateLimitEvent(RateLimitEvent(1.0, resets.AddHours(5), usingCredits: true));
+        await UiText.SettleUntilAsync(window, () => Notice(window).IsEffectivelyVisible, "the notice again");
+        Notice(window).GetVisualDescendants().OfType<Button>().Single(b => Equals(b.Content, "Dismiss")).Command!.Execute(null);
+        await UiText.SettleUntilAsync(window, () => !Notice(window).IsEffectivelyVisible, "the notice dismissed");
 
         // With no banner left, the gap goes too.
         usage.DismissAlertCommand.Execute(null);

@@ -36,7 +36,7 @@ Settings → Claude Code shows the same account line, with **Sign in** and **Sig
 
 ## Signing in again
 
-The banner's **Sign in** opens the sign-in dialog and starts signing in. [Signing in](../getting-started/signing-in.md) walks through it, and [Signing in](../troubleshooting/signing-in.md) in Troubleshooting covers when it fails.
+The banner's **Sign in** opens the sign-in dialog and starts signing in. So does **Sign in** in the header's account menu, which is there while Claude Code needs a sign-in, with the banner dismissed too. [Signing in](../getting-started/signing-in.md) walks through it, and [Signing in](../troubleshooting/signing-in.md) in Troubleshooting covers when it fails.
 
 ## The Default account
 

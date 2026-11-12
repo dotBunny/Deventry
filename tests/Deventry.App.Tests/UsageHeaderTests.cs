@@ -95,6 +95,72 @@ public class UsageHeaderTests
     }
 
     [Fact]
+    public async Task The_credits_notice_stays_through_a_request_let_through_past_the_limit()
+    {
+        await using var h = new TabTestHarness();
+        await using var tracker = new UsageTracker(h.Services, new UsageStore(Path.Combine(h.Root, "usage.db"), h.Time));
+        using var header = new UsageViewModel(h.Services, tracker);
+        var resets = h.Time.GetUtcNow().AddHours(1);
+        tracker.OnRateLimitEvent(Event(0.97, resets, 0.60, usingCredits: false));
+        await TabTestHarness.Eventually(() => header.HasData, "the first reading");
+        h.Time.Advance(TimeSpan.FromMinutes(10));
+        tracker.OnRateLimitEvent(Event(1.0, resets, 0.61, usingCredits: true));
+        await TabTestHarness.Eventually(() => header.IsUsingCredits, "the notice");
+
+        // Another tab's request, let through past the limit, as one at a lower priority is: paid for some other way.
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        tracker.OnRateLimitEvent(Event(1.02, resets, 0.61, usingCredits: false));
+        await TabTestHarness.Eventually(() => header.Session.PercentText == "102%", "the reading");
+        Assert.True(header.IsUsingCredits);
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        tracker.OnRateLimitEvent(Event(1.03, resets, 0.61, usingCredits: true));
+        await TabTestHarness.Eventually(() => header.Session.PercentText == "103%", "the next reading");
+        Assert.Single(h.Notifier.Shown, n => n.Title == CreditUse.Title);
+
+        // Refused, as once their cap is reached.
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        tracker.OnRateLimitEvent(Event(1.03, resets, 0.61, usingCredits: false, status: "rejected"));
+        await TabTestHarness.Eventually(() => !header.IsUsingCredits, "the notice gone");
+    }
+
+    [Fact]
+    public async Task The_sessions_alerts_give_way_to_the_credits_notice_which_can_be_dismissed_until_credits_start_again()
+    {
+        await using var h = new TabTestHarness();
+        await using var tracker = new UsageTracker(h.Services, new UsageStore(Path.Combine(h.Root, "usage.db"), h.Time));
+        using var header = new UsageViewModel(h.Services, tracker);
+        var resets = h.Time.GetUtcNow().AddHours(1);
+        tracker.OnRateLimitEvent(Event(0.70, resets, 0.60));
+        await TabTestHarness.Eventually(() => header.HasData, "the first reading");
+        h.Time.Advance(TimeSpan.FromMinutes(10));
+        tracker.OnRateLimitEvent(Event(0.92, resets, 0.61));
+        // Past 90%, and on pace to hit the limit.
+        await TabTestHarness.Eventually(() => header.HasAlert, "the alert");
+        Assert.True(header.Alert!.GivesWayToCredits);
+
+        h.Time.Advance(TimeSpan.FromMinutes(5));
+        tracker.OnRateLimitEvent(Event(1.0, resets, 0.62, usingCredits: true));
+        await TabTestHarness.Eventually(() => header.IsUsingCredits, "the notice");
+        Assert.False(header.HasAlert);
+
+        header.DismissCreditsNoticeCommand.Execute(null);
+        Assert.False(header.IsUsingCredits);
+        Assert.Null(header.CreditsNotice);
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        tracker.OnRateLimitEvent(Event(1.01, resets, 0.62, usingCredits: true));
+        await TabTestHarness.Eventually(() => header.Session.PercentText == "101%", "the next reading");
+        h.Time.Advance(TimeSpan.FromSeconds(30));
+        Assert.False(header.IsUsingCredits);
+
+        // They stop, and start again.
+        tracker.OnRateLimitEvent(Event(1.01, resets, 0.62, usingCredits: false, status: "rejected"));
+        h.Time.Advance(TimeSpan.FromMinutes(1));
+        tracker.OnRateLimitEvent(Event(1.02, resets, 0.62, usingCredits: true));
+        await TabTestHarness.Eventually(() => header.IsUsingCredits, "the notice again");
+        Assert.False(header.HasAlert);
+    }
+
+    [Fact]
     public async Task The_credits_notice_says_what_get_usage_reports_was_spent()
     {
         await using var h = new TabTestHarness();
@@ -453,11 +519,11 @@ public class UsageHeaderTests
         Assert.Equal(["its new name", "fix the build", "A closed tab"], rows.Select(r => r.Name));
     }
 
-    private static RateLimitEventMessage Event(double session, DateTimeOffset sessionResets, double weekly, bool? usingCredits = null)
+    private static RateLimitEventMessage Event(double session, DateTimeOffset sessionResets, double weekly, bool? usingCredits = null, string? status = null)
     {
         var info = new JsonObject
         {
-            ["status"] = usingCredits == true ? "rejected" : "allowed",
+            ["status"] = status ?? (usingCredits == true ? "rejected" : "allowed"),
             ["unifiedWindows"] = new JsonObject
             {
                 ["five_hour"] = new JsonObject { ["utilization"] = session, ["resetsAt"] = sessionResets.ToUnixTimeSeconds() },

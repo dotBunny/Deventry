@@ -345,9 +345,9 @@ items:
   - id: "rate_limit_info.status"
     kind: field
     status: documented
-    usedIn: src/Deventry.Core/Sessions/AutoContinueMonitor.cs
+    usedIn: src/Deventry.Core/Sessions/AutoContinueMonitor.cs, src/Deventry.Usage/UsageParser.cs
     docs: https://code.claude.com/docs/en/agent-sdk/typescript
-    test: AutoContinueMonitorTests, AutoContinueTests
+    test: AutoContinueMonitorTests, AutoContinueTests, UsageParserTests
   - id: "resetsAt"
     kind: field
     status: documented
@@ -1575,7 +1575,19 @@ items:
     status: undocumented
     usedIn: src/Deventry.Usage/UsageParser.cs, src/Deventry.Usage/UsageCredits.cs, src/Deventry.Core/Sessions/AutoContinueMonitor.cs, src/Deventry.App/ViewModels/TabViewModel.UsageCredits.cs
     test: UsageParserTests, UsageCreditsTests, UsageHeaderTests, UsageCreditsUiTests, AutoContinueMonitorTests, UsageCreditsTabTests
-    fallback: rate_limit_info.isUsingOverage, with rateLimitType and resetsAt for the used-up limit (status rejected, overageStatus allowed). Without it, the notice shows from get_usage alone, rate_limits.extra_usage.is_enabled with the session or weekly limit at 100%, a poll late and without a model's own limit. A tab that doesn't use usage credits stops a turn on it, and treats such a rejection as one the turn got past rather than the limit; without it, the tab holds messages by the poll alone, and a turn already running on credits isn't stopped.
+    fallback: rate_limit_info.isUsingOverage, with rateLimitType and resetsAt for the used-up limit (status rejected, overageStatus allowed). Without it, the notice shows from get_usage alone, rate_limits.extra_usage.is_enabled with the session or weekly limit at 100%, a poll late and without a model's own limit. A tab that doesn't use usage credits stops a turn on it, and treats such a rejection as one the turn got past rather than the limit; without it, the tab holds messages by the poll alone, and a turn already running on credits isn't stopped. False says credits stopped only on a rejected request, or one let through with no limit used up and neither rateLimitGraceActive nor overageInUse; any other is a request paid some other way, and the word that they pay stands.
+  - id: "rateLimitGraceActive"
+    kind: field
+    status: undocumented
+    usedIn: src/Deventry.Usage/UsageParser.cs
+    test: UsageParserTests
+    fallback: rate_limit_info.rateLimitGraceActive, true while Claude Code is in its grace window past a used-up limit. With isUsingOverage false, it keeps the word that usage credits pay rather than ending it. Without it, the event's unifiedWindows still show the limit used up and do the same.
+  - id: "overageInUse"
+    kind: field
+    status: undocumented
+    usedIn: src/Deventry.Usage/UsageParser.cs
+    test: UsageParserTests
+    fallback: rate_limit_info.overageInUse, true while usage credits are in use, even for a request they didn't pay for. With isUsingOverage false, it keeps the word that they pay rather than ending it. Without it, only the event's windows and status decide.
   - id: "/usage"
     kind: command
     status: documented

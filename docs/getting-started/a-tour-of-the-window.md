@@ -24,7 +24,7 @@ The header is always visible, and it's the window's title bar: drag its gaps to 
 - **Settings**, its icon, before the window's buttons: see [The Settings window](../settings/the-settings-window.md).
 - On a Mac the traffic lights are at the header's left, before the logo. To have your system's title bar over the header instead, turn on Settings → Appearance → **Use the system's title bar**; Linux always has it. See [Windows, macOS and Linux](../reference/windows-macos-and-linux.md).
 
-A banner can run across the top, under the header: Claude's service status when there's an incident, **Claude Code needs you to sign in.**, or a usage alert. Each has a button to deal with it or **Dismiss**.
+A banner can run across the top, under the header: usage credits paying for Claude, Claude's service status when there's an incident, **Claude Code needs you to sign in.**, or a usage alert. Each has a button to deal with it, and **Dismiss**.
 
 ## The sidebar
 

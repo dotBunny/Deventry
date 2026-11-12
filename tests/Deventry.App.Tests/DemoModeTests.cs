@@ -77,6 +77,7 @@ public class DemoModeTests
         {
             Assert.DoesNotContain(StandInClaude.Variable, h.Services.ClaudeVariables.Keys);
             Assert.False(new MainWindowViewModel(h.Services).IsDemo);
+            Assert.False(new MainWindowViewModel(h.Services).ShowsDemoBanner);
         }
 
         await using var demo = new TabTestHarness(demo: new DemoMode(Path.Combine(Path.GetTempPath(), "deventry-demo-test")));
@@ -84,6 +85,10 @@ public class DemoModeTests
         // There's no demo of the demo.
         Assert.False(new DemoStarter(demo.Services).IsOffered);
         var main = new MainWindowViewModel(demo.Services);
+        Assert.True(main.IsDemo);
+        Assert.True(main.ShowsDemoBanner);
+        main.DismissDemoBannerCommand.Execute(null);
+        Assert.False(main.ShowsDemoBanner);
         Assert.True(main.IsDemo);
         var left = false;
         main.ExitRequested += () => left = true;

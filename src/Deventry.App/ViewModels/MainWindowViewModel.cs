@@ -83,12 +83,24 @@ public sealed partial class MainWindowViewModel(AppServices services, string? in
     /// <summary>The header just says Deventry: no plan usage to show, and no API key's spend.</summary>
     public bool ShowsTitle => !HasUsage && !ShowsSpend;
 
-    /// <summary>This is a demo (DESIGN.md §11, "Demo mode"): its banner shows, with <b>Leave demo</b>.</summary>
+    /// <summary>This is a demo (DESIGN.md §11, "Demo mode").</summary>
     public bool IsDemo => Services.Demo is not null;
+
+    /// <summary>The demo's banner, with <b>Leave demo</b>: until dismissed, for as long as this demo runs.</summary>
+    public bool ShowsDemoBanner => IsDemo && !_demoBannerDismissed;
+
+    private bool _demoBannerDismissed;
 
     /// <summary><b>Leave demo</b>: closes it, as closing its window does, and its folder goes as it closes.</summary>
     [RelayCommand]
     private void LeaveDemo() => ExitRequested?.Invoke();
+
+    [RelayCommand]
+    private void DismissDemoBanner()
+    {
+        _demoBannerDismissed = true;
+        OnPropertyChanged(nameof(ShowsDemoBanner));
+    }
 
     /// <summary>
     /// Set by the window: it's too narrow for the session's meter beside everything else in the header, so the plan and

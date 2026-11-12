@@ -37,4 +37,4 @@ Then it starts again. It can't read your projects or run anything, and nothing y
 
 ## Leaving it
 
-A banner across the top of the demo's window says it's a demo. **Leave demo**, at its right, closes the demo, as closing its window does, and what it made goes with it. Nothing in it touches your settings, your tabs, your History or Claude Code's own files.
+A banner across the top of the demo's window says it's a demo. **Leave demo**, at its right, closes the demo, as closing its window does, and what it made goes with it. **Dismiss** hides the banner for as long as the demo runs. Nothing in it touches your settings, your tabs, your History or Claude Code's own files.

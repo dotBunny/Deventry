@@ -169,6 +169,26 @@ public sealed class UsageParserTests
         Assert.Equal(new CreditsReport(true, "seven_day_opus", UsageFixtures.WeekResetsAt, Now), snapshot.CreditsReport);
     }
 
+    [Theory]
+    // The recorded event: let through, with the session at 12%.
+    [InlineData("""{"status":"allowed","overageStatus":"rejected","isUsingOverage":false,"unifiedWindows":{"five_hour":{"utilization":0.12,"resetsAt":1790648400}}}""", true)]
+    // Rejected, and credits didn't pay: they were refused.
+    [InlineData("""{"status":"rejected","overageStatus":"rejected","isUsingOverage":false,"unifiedWindows":{"five_hour":{"utilization":1.0,"resetsAt":1790648400}}}""", true)]
+    // Let through with the session used up, as a request past the limit at a lower priority is.
+    [InlineData("""{"status":"allowed","isUsingOverage":false,"unifiedWindows":{"five_hour":{"utilization":1.04,"resetsAt":1790648400}}}""", false)]
+    [InlineData("""{"status":"allowed","isUsingOverage":false,"unifiedWindows":{"seven_day":{"utilization":1.0,"resetsAt":1790766000}}}""", false)]
+    [InlineData("""{"status":"allowed","rateLimitType":"five_hour","utilization":1.0,"resetsAt":1790648400,"isUsingOverage":false}""", false)]
+    // In the grace window past the limit, or with credits paying for something else.
+    [InlineData("""{"status":"allowed","isUsingOverage":false,"rateLimitGraceActive":true}""", false)]
+    [InlineData("""{"status":"allowed_warning","isUsingOverage":false,"overageInUse":true,"unifiedWindows":{"five_hour":{"utilization":0.4,"resetsAt":1790648400}}}""", false)]
+    public void Rate_limit_event_saying_usage_credits_arent_paying_says_they_stopped_only_with_no_limit_used_up(string json, bool stopped)
+    {
+        var report = UsageParser.FromRateLimitEvent(Parse(json), Now)!.CreditsReport!;
+
+        Assert.False(report.IsUsing);
+        Assert.Equal(stopped, report.SaysStopped);
+    }
+
     [Fact]
     public void Rate_limit_event_reads_the_unified_windows()
     {
@@ -469,6 +489,23 @@ public sealed class UsageParserTests
         var afterPoll = UsageParser.Merge(afterEvent, UsageFixtures.Snapshot(Now.AddMinutes(5), 100));
         Assert.Null(afterPoll.Credits);
         Assert.Equal(afterEvent.CreditsReport, afterPoll.CreditsReport);
+    }
+
+    [Fact]
+    public void Claude_Code_saying_credits_pay_stays_until_it_says_they_stopped()
+    {
+        var paying = UsageParser.FromRateLimitEvent(Parse("""{"status":"rejected","overageStatus":"allowed","isUsingOverage":true,"rateLimitType":"five_hour","resetsAt":1790648400}"""), Now)!;
+        // Another tab's request, let through past the limit: paid for some other way.
+        var pastTheLimit = UsageParser.FromRateLimitEvent(Parse("""{"status":"allowed","isUsingOverage":false,"unifiedWindows":{"five_hour":{"utilization":1.02,"resetsAt":1790648400}}}"""), Now.AddMinutes(1))!;
+        var refused = UsageParser.FromRateLimitEvent(Parse("""{"status":"rejected","overageStatus":"rejected","isUsingOverage":false,"rateLimitType":"five_hour","resetsAt":1790648400}"""), Now.AddMinutes(2))!;
+
+        var merged = UsageParser.Merge(paying, pastTheLimit);
+        Assert.Same(paying.CreditsReport, merged.CreditsReport);
+        Assert.Equal(102, merged.Session!.Percent);
+
+        Assert.Same(refused.CreditsReport, UsageParser.Merge(merged, refused).CreditsReport);
+        // With no word that they were paying, the latest word stands.
+        Assert.Same(pastTheLimit.CreditsReport, UsageParser.Merge(refused, pastTheLimit).CreditsReport);
     }
 
     private static JsonObject Parse(string json) => JsonNode.Parse(json)!.AsObject();

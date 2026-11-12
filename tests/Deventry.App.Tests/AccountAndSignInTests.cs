@@ -79,6 +79,30 @@ public class AccountAndSignInTests
     }
 
     [Fact]
+    public async Task The_banner_can_be_dismissed_until_Claude_Code_needs_a_sign_in_again()
+    {
+        await using var h = new TabTestHarness();
+        var account = new AccountViewModel(h.Services);
+        account.OnSignedIn(SignedIn);
+        account.RequireSignIn(notify: false);
+        Assert.True(account.ShowsSignInBanner);
+
+        account.DismissSignInBannerCommand.Execute(null);
+
+        Assert.False(account.ShowsSignInBanner);
+        Assert.True(account.NeedsSignIn);
+        // Claude Code may still report the old sign-in: the account menu offers Sign in all the same.
+        Assert.True(account.CanBeginSignIn);
+        account.RequireSignIn(notify: false);
+        Assert.False(account.ShowsSignInBanner);
+
+        account.OnSignedIn(SignedIn);
+        Assert.False(account.CanBeginSignIn);
+        account.RequireSignIn(notify: false);
+        Assert.True(account.ShowsSignInBanner);
+    }
+
+    [Fact]
     public async Task Clicking_the_notification_opens_the_sign_in_dialog_ready_to_start()
     {
         await using var h = new TabTestHarness();

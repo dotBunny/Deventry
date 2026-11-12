@@ -105,9 +105,25 @@ public sealed partial class AccountViewModel(AppServices services) : ViewModelBa
 
     // ---- Signing in mid-session (DESIGN.md §11, "Signing in") -------------------------------------------------------
 
-    /// <summary>The banner across all tabs: <i>"Claude Code needs you to sign in."</i></summary>
+    /// <summary>Claude Code needs a sign-in mid-session: the banner across all tabs, <i>"Claude Code needs you to sign in."</i></summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsSignInBanner), nameof(CanBeginSignIn))]
     public partial bool NeedsSignIn { get; set; }
+
+    /// <summary>The banner shows while Claude Code needs a sign-in, unless dismissed: then not until it needs one again.</summary>
+    public bool ShowsSignInBanner => NeedsSignIn && !_signInBannerDismissed;
+
+    private bool _signInBannerDismissed;
+
+    /// <summary>The banner's <b>Dismiss</b>. The account menu still offers <b>Sign in</b>, and messages still wait for it.</summary>
+    [RelayCommand]
+    private void DismissSignInBanner()
+    {
+        _signInBannerDismissed = true;
+        OnPropertyChanged(nameof(ShowsSignInBanner));
+    }
+
+    partial void OnNeedsSignInChanged(bool value) => _signInBannerDismissed &= !value;
 
     /// <summary>The sign-in dialog, while it's open.</summary>
     [ObservableProperty]
@@ -116,8 +132,11 @@ public sealed partial class AccountViewModel(AppServices services) : ViewModelBa
 
     public bool HasSignIn => SignIn is not null;
 
-    /// <summary>The account menu's and Settings' <b>Sign in</b>: signed out, and not already signing in.</summary>
-    public bool CanBeginSignIn => IsSignedOut && !HasSignIn;
+    /// <summary>
+    /// The account menu's and Settings' <b>Sign in</b>: signed out, or Claude Code needs a sign-in (its banner may be
+    /// dismissed), and not already signing in.
+    /// </summary>
+    public bool CanBeginSignIn => (IsSignedOut || NeedsSignIn) && !HasSignIn;
 
     /// <summary>
     /// A tab found Claude Code signed out. Shows the banner, and sends an OS notification unless Deventry is in front
