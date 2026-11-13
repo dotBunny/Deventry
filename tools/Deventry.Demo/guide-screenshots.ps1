@@ -180,7 +180,7 @@ if (Test-Wanted 'getting-started/sign-in') {
 # As the demo is.
 if (Test-Wanted 'getting-started/new-tab', 'tabs/sidebar', 'tabs/info-card', 'tabs/command-palette', 'conversation/tool-calls',
     'conversation/scratch-pad', 'conversation/media', 'composer/composer', 'changes/changed-files', 'project-tools/project-page', 'tabs/tool-windows', 'usage/usage-window',
-    'settings/settings-window', 'settings/appearance', 'settings/search', 'settings/project-tools', 'settings/about', 'accounts/settings-accounts', 'away/remote-clients',
+    'settings/settings-window', 'settings/appearance', 'settings/search', 'settings/project-tools', 'settings/about', 'accounts/settings-accounts', 'away/remote-clients', 'away/remote-clients-discord',
     'tabs/tab-settings', 'project-files/files-tab', 'project-files/markdown-preview') {
     Use-Deventry @{} {
         Show-Tabs
@@ -268,6 +268,20 @@ if (Test-Wanted 'getting-started/new-tab', 'tabs/sidebar', 'tabs/info-card', 'ta
             Select-ListItem $settings 'Telegram'
             Save-Window $settings $path
             # Settings opens where it was left: back on General, at the top, for the shots after.
+            Send-ElementCommand 'scroll' (Find-ById $settings 'SidebarList') @{ lines = -40 } | Out-Null
+            Wait-Until { Find-ByType $settings 'ListItem' 'General' } 'General in the sidebar' 10
+            Select-ListItem $settings 'General'
+            Close-Other $settings
+        }
+
+        # Remote clients → Discord, before a bot is set up: the switch, what Discord can read, the bot and pairing.
+        Shot 'away/remote-clients-discord' {
+            param($path)
+            $settings = Open-Settings
+            Send-ElementCommand 'scroll' (Find-ById $settings 'SidebarList') @{ lines = 40 } | Out-Null
+            Wait-Until { Find-ByType $settings 'ListItem' 'Discord' } 'Discord in the sidebar' 10
+            Select-ListItem $settings 'Discord'
+            Save-Window $settings $path
             Send-ElementCommand 'scroll' (Find-ById $settings 'SidebarList') @{ lines = -40 } | Out-Null
             Wait-Until { Find-ByType $settings 'ListItem' 'General' } 'General in the sidebar' 10
             Select-ListItem $settings 'General'
