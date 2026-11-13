@@ -90,7 +90,7 @@
           <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
           <!-- A word about the page after its name, such as Off for a project type switched off: the page can still be
                picked -->
-          <Border Classes="settingchip" Margin="-4,0,0,0" VerticalAlignment="Center"
+          <Border Classes="settingchip" Classes.caution="{Binding IsTagCaution}" Margin="-4,0,0,0" VerticalAlignment="Center"
                   IsVisible="{Binding Tag, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
             <TextBlock Text="{Binding Tag}" />
           </Border>

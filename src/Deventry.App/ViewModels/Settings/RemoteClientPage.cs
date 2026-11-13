@@ -31,7 +31,7 @@ public sealed class PairedAccountRow(RemoteAccount account, string pairedAt, Act
 /// <summary>
 /// One kind of remote client's page in Settings → Remote clients (DESIGN.md §18, "Remote clients"), drawn from what the
 /// kind declares (<see cref="IRemoteClientType"/>), so a kind needs no page or view of its own: its switch, what its
-/// service can read, its own account and secret, and the accounts paired with it with pairing a phone. Telegram's is
+/// service can read, its own account and secret, and the accounts paired with it with pairing an account. Telegram's is
 /// the first. What every client shares is on <see cref="AllClientsPage"/>. All of it this computer's: a client is run by
 /// one machine, and its secret is in this machine's credential store.
 /// </summary>
@@ -77,8 +77,24 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
 
     public override string Description => Type.Description;
 
-    /// <summary><i>Off</i> beside its name in the sidebar while it isn't used; the page can still be picked.</summary>
-    public override string? NavTag => IsOn ? null : "Off";
+    /// <summary>
+    /// Beside its name in the sidebar: <i>Off</i> while it isn't used, and otherwise its state, as the header's icon
+    /// ranks it: <i>Connected</i>, <i>Connecting…</i>, or <i>Not paired</i> and <i>Needs you</i> in the caution colors.
+    /// </summary>
+    public override string? NavTag => !IsOn ? "Off" : Remote.StateOf(Kind) switch
+    {
+        { Status: RemoteClientStatus.Failed } => NeedsYou,
+        { Status: RemoteClientStatus.Connected } when Pairing.Accounts.Count == 0 => NotPaired,
+        { Status: RemoteClientStatus.Connected } => "Connected",
+        // Connecting, or not started yet: Deventry starts the clients once the tabs are up.
+        _ => "Connecting…",
+    };
+
+    public override bool IsNavTagCaution => NavTag is NeedsYou or NotPaired;
+
+    private const string NeedsYou = "Needs you";
+
+    private const string NotPaired = "Not paired";
 
     public void Dispose()
     {
@@ -89,6 +105,7 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
     private void OnRemoteChanged()
     {
         RefreshAccounts();
+        OnPropertyChanged(nameof(NavTag));
         OnPropertyChanged(nameof(HasSecret));
         OnPropertyChanged(nameof(IdentityText));
         OnPropertyChanged(nameof(StateText));
@@ -254,7 +271,7 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
         OnPropertyChanged(nameof(HasAccounts));
     }
 
-    /// <summary>A phone can be paired: the client has its secret. Its account's name makes the QR code; without it, the code is sent by hand.</summary>
+    /// <summary>An account can be paired: the client has its secret. Its account's name makes the QR code; without it, the code is sent by hand.</summary>
     public bool CanPair => HasSecret && IsCredentialStoreAvailable;
 
     public string CanPairTip => $"Set the {Type.SecretName} first";
@@ -299,7 +316,7 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
     [ObservableProperty]
     public partial string PairingTimeLeft { get; private set; } = "";
 
-    /// <summary><b>Pair a phone…</b>: a new code, its QR code, and the time it has left.</summary>
+    /// <summary><b>Pair an account…</b>: a new code, its QR code, and the time it has left.</summary>
     [RelayCommand]
     private void StartPairing()
     {

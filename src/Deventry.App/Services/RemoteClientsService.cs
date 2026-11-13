@@ -88,7 +88,7 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
 
     public IRemoteClientType Type(string kind) => Types.First(t => t.Kind == kind);
 
-    /// <summary>Pairing a phone with the client of <paramref name="kind"/>, and the accounts paired with it.</summary>
+    /// <summary>Pairing an account with the client of <paramref name="kind"/>, and the accounts paired with it.</summary>
     public RemotePairing PairingOf(string kind) => _pairings[kind];
 
     /// <summary>The client of <paramref name="kind"/>, while it's on.</summary>

@@ -123,7 +123,7 @@ public class RemoteClientsIndicatorTests
         await using var indicator = await StartAsync("telegram");
 
         Assert.Equal(RemoteIndicatorLevel.Trouble, indicator.Read(v => v.Level));
-        Assert.Equal("Telegram: connected, but no phone is paired", indicator.Read(v => v.Clients.Single().Line));
+        Assert.Equal("Telegram: connected, but no account is paired", indicator.Read(v => v.Clients.Single().Line));
     }
 
     [Fact]

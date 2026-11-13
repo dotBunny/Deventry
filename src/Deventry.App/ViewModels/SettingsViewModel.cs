@@ -91,6 +91,17 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         Perforce = new PerforcePage(_context);
         AllClients = new AllClientsPage(_context);
         Clients = [.. services.RemoteClients.Types.Select(type => new RemoteClientPage(_context, type))];
+        foreach (var client in Clients)
+        {
+            // A client's tag follows its state, which changes without a setting changing.
+            client.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(SettingsPage.NavTag))
+                {
+                    RefreshNavTags();
+                }
+            };
+        }
         AllTicketProviders = new AllTicketProvidersPage(_context);
         TicketProviders = [.. services.Tickets.Types.Select(type => new TicketProviderPage(_context, type))];
         Advanced = new AdvancedPage(_context, ClaudeCode);
@@ -243,7 +254,10 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
     {
         foreach (var entry in NavEntries.Where(e => !e.IsHeading))
         {
-            entry.Tag = Pages.FirstOrDefault(p => p.Title == entry.Category)?.NavTag;
+            var page = Pages.FirstOrDefault(p => p.Title == entry.Category);
+            // Its look first, so the tag never shows with the last one's.
+            entry.IsTagCaution = page?.IsNavTagCaution == true;
+            entry.Tag = page?.NavTag;
         }
     }
 
@@ -281,7 +295,7 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
             NavEntries.Add(SettingsNavEntry.Heading(heading));
             foreach (var page in categories.Select(category => _categoryPages.First(p => p.Title == category)))
             {
-                NavEntries.Add(SettingsNavEntry.Page(page.Title, page.IconKey, page.NavTag));
+                NavEntries.Add(SettingsNavEntry.Page(page.Title, page.IconKey, page.NavTag, page.IsNavTagCaution));
             }
         }
         OnPropertyChanged(nameof(SelectedNavEntry));

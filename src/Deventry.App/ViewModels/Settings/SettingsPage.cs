@@ -41,6 +41,9 @@ public abstract class SettingsPage : ViewModelBase, ISettingsSource
     /// <summary>A word after its name in the sidebar, such as <i>Off</i> for a project type switched off; null for none.</summary>
     public virtual string? NavTag => null;
 
+    /// <summary>The tag says the page needs the user, such as a remote client stopped: it's in the caution colors.</summary>
+    public virtual bool IsNavTagCaution => false;
+
     protected SettingsContext Context { get; }
 
     protected AppServices Services => Context.Services;

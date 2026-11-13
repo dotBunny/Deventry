@@ -120,10 +120,15 @@ public sealed partial class SettingsNavEntry : ObservableObject
     [ObservableProperty]
     public partial string? Tag { get; set; }
 
+    /// <summary>The tag says the page needs the user: it's in the caution colors.</summary>
+    [ObservableProperty]
+    public partial bool IsTagCaution { get; set; }
+
     public static SettingsNavEntry Heading(string title) => new(title, null, true);
 
     /// <summary>What a screen reader reads for it: its name.</summary>
     public override string ToString() => Title;
 
-    public static SettingsNavEntry Page(string title, string iconKey, string? tag = null) => new(title, iconKey, false) { Tag = tag };
+    public static SettingsNavEntry Page(string title, string iconKey, string? tag = null, bool isTagCaution = false) =>
+        new(title, iconKey, false) { Tag = tag, IsTagCaution = isTagCaution };
 }

@@ -56,7 +56,7 @@
       <!-- Paired with: only these accounts are answered -->
       <c:SettingRow Key="{Binding PairedKey}" IsStacked="True">
         <StackPanel Spacing="8">
-          <TextBlock Classes="small muted" Text="No phone is paired yet." IsVisible="{Binding !HasAccounts}" />
+          <TextBlock Classes="small muted" Text="No account is paired yet." IsVisible="{Binding !HasAccounts}" />
           <ItemsControl ItemsSource="{Binding Accounts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -86,7 +86,7 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Button Content="Pair a phone…" Command="{Binding StartPairingCommand}" IsEnabled="{Binding CanPair}" IsVisible="{Binding IsNotPairing}"
+          <Button Content="Pair an account…" Command="{Binding StartPairingCommand}" IsEnabled="{Binding CanPair}" IsVisible="{Binding IsNotPairing}"
                   HorizontalAlignment="Left" ToolTip.Tip="{Binding CanPairTip}" ToolTip.ShowOnDisabled="True" />
           <Border Classes="settingsnote" IsVisible="{Binding IsPairing}">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">

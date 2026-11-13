@@ -494,16 +494,38 @@ public class RemoteClientsTests
     }
 
     [Fact]
-    public async Task Telegram_is_Off_in_the_sidebar_until_the_bot_is_used()
+    public async Task Telegram_is_Off_in_the_sidebar_until_the_bot_is_used_and_needs_you_without_its_token()
     {
         await using var h = new TabTestHarness();
         using var settings = new SettingsViewModel(h.Services, null);
         var entry = settings.NavEntries.Single(e => e.Title == "Telegram");
         Assert.Equal("Off", entry.Tag);
+        Assert.False(entry.IsTagCaution);
 
         h.OnUiThread(() => settings.Client("telegram").IsOn = true);
 
-        Assert.Null(entry.Tag);
+        // On with no token, it can't start.
+        await TabTestHarness.Eventually(() => entry.Tag == "Needs you", "the tag");
+        Assert.True(entry.IsTagCaution);
+    }
+
+    [Fact]
+    public async Task A_connected_clients_tag_says_it_is_not_paired_until_an_account_is_then_connected()
+    {
+        await using var remote = await StartAsync();
+        using var settings = new SettingsViewModel(remote.H.Services, null);
+        var entry = settings.NavEntries.Single(e => e.Title == "Telegram");
+
+        await TabTestHarness.Eventually(() => entry.Tag == "Not paired", "not paired");
+        Assert.True(entry.IsTagCaution);
+
+        var code = remote.Service.PairingOf("telegram").Start();
+        Assert.Equal(PairingOutcome.Paired, remote.Service.PairingOf("telegram").TryPair(code.Code, 11, "Matt", "reapazor"));
+
+        await TabTestHarness.Eventually(() => entry.Tag == "Connected", "connected");
+        Assert.False(entry.IsTagCaution);
+        remote.Client.Become(new RemoteClientState(RemoteClientStatus.Failed, "Telegram didn't accept the bot's token."));
+        await TabTestHarness.Eventually(() => entry.Tag == "Needs you", "needs you");
     }
 
     [Fact]

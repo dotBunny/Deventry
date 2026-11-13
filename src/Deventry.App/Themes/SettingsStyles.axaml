@@ -306,6 +306,14 @@
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
   </Style>
+  <!-- A tag that says the page needs the user, such as a remote client stopped -->
+  <Style Selector="Border.settingchip.caution">
+    <Setter Property="Background" Value="{DynamicResource CautionBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CautionBorderBrush}" />
+  </Style>
+  <Style Selector="Border.settingchip.caution > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
+  </Style>
 
   <!-- What's going on now, a question asked in place, or the details of one thing in a list: a quiet box. -->
   <Style Selector="Border.settingsnote">
