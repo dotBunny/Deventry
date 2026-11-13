@@ -256,7 +256,7 @@ public sealed partial class ShellViewModel
                 "Folder", () => OpenFolderAsync(folder), Detail: folder));
         }
 
-        foreach (var category in SettingsSidebar.Categories(_services.ProjectTools.Detector.Types))
+        foreach (var category in SettingsSidebar.Categories(_services.ProjectTools.Detector.Types, _services.RemoteClients.Types))
         {
             entries.Add(new PaletteEntry(category, "Settings", () => OpenSettingsAtAsync(category)));
         }

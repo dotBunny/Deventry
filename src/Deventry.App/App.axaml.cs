@@ -23,6 +23,7 @@ using Deventry.Platform.Files;
 using Deventry.Platform.LoginShell;
 using Deventry.Platform.Notifications;
 using Deventry.Platform.Power;
+using Deventry.Platform.Presence;
 using Deventry.Platform.Processes;
 using Deventry.Platform.ProjectTools;
 using Deventry.Platform.Shell;
@@ -91,6 +92,7 @@ public partial class App : Application
                 loginItems: LoginLaunch.CreateItems(launcher, TimeProvider.System),
                 systemMotion: SystemMotion.CreateForCurrentOS(launcher, TimeProvider.System),
                 trash: Trash.CreateForCurrentOS(launcher, TimeProvider.System),
+                userPresence: UserPresences.CreateForCurrentOS(launcher, TimeProvider.System),
                 loggerFactory: loggers,
                 demo: Demo.DemoMode.FromEnvironment());
             if (_services.Demo is not null)

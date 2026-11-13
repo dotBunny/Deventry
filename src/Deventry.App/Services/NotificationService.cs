@@ -73,6 +73,9 @@ public sealed class NotificationService : IDisposable
     /// <returns>Whether it was sent.</returns>
     public bool Notify(NotificationKind kind, string title, string body, string? tabId = null, string? key = null, CheckInSettings? checkIns = null)
     {
+        // The remote clients have switches of their own for these (DESIGN.md §18, "Remote clients"); the tabs tell them
+        // the rest themselves.
+        _services.RemoteClients.OnAppNotification(kind, title, body, tabId);
         if (!IsEnabled(kind, checkIns) || !_notifier.IsAvailable)
         {
             return false;
@@ -129,6 +132,8 @@ public sealed class NotificationService : IDisposable
     {
         IsAppActive = active;
         _services.RemoteControl.SetAppActive(active);
+        // Deventry at the back counts as away for the remote clients (DESIGN.md §18).
+        _services.RemoteClients.SetAppActive(active);
         if (active)
         {
             SetFlashing(false);

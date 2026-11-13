@@ -322,7 +322,8 @@ public sealed partial class TabViewModel
     /// turns here, the message isn't sent but stays in the composer, to be read again against them. Returns whether the
     /// message was held back.
     /// </summary>
-    private async Task<bool> CheckLibraryBeforeSendingAsync()
+    /// <param name="via">The remote client the message came from, whose message isn't in the composer (DESIGN.md §18, "Remote clients").</param>
+    private async Task<bool> CheckLibraryBeforeSendingAsync(string? via = null)
     {
         // One still to read its conversation looks as its start reads it.
         var due = _session is null ? _restoredTranscript && _starting is null : !_sentSinceStart;
@@ -341,7 +342,9 @@ public sealed partial class TabViewModel
         }
         if (!IsReadOnly)
         {
-            _conversation.AddNote("Your message wasn't sent, so you can read it again against what's new. It's still in the composer.");
+            _conversation.AddNote(via is null
+                ? "Your message wasn't sent, so you can read it again against what's new. It's still in the composer."
+                : $"Your message from {via} wasn't sent, so you can read it again against what's new.");
         }
         return true;
     }

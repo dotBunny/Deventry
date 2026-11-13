@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Deventry.App.Conversation;
 using Deventry.App.Services;
 using Deventry.Core.Protocol;
+using Deventry.Core.Remote;
 using Deventry.Core.Sessions;
 using Deventry.Core.Threads;
 using CommunityToolkit.Mvvm.Input;
@@ -19,6 +20,15 @@ public sealed partial class ThreadSendApproval(string name, string message)
     public string Title { get; } = $"Send this to {name}?";
 
     public string Message { get; } = message;
+
+    /// <summary>The sub-thread it would go to.</summary>
+    public string Recipient { get; } = name;
+
+    /// <summary>What the remote clients know it by (DESIGN.md §18, "Remote clients").</summary>
+    internal string Id { get; } = $"thread-{Guid.NewGuid():N}"[..19];
+
+    /// <summary>The remote client that answered it, when one did.</summary>
+    internal string? AnsweredFrom { get; set; }
 
     /// <summary>True to send, false not to.</summary>
     internal TaskCompletionSource<bool> Answer { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -314,9 +324,11 @@ public sealed partial class TabViewModel
         _waitingOnUser.Add(approval);
         _checkIns.SetWaitingOnUser(true);
         UpdateStatus();
-        var body = $"Claude wants to send a message to {name}.";
+        var remote = ToRemotePrompt(approval);
+        var body = RemoteMessages.PromptLine(remote, Agent);
         _services.Notifications.Notify(NotificationKind.NeedsInput, DisplayName, body, Id);
         _shell.Announce($"{DisplayName}: {body}");
+        Remote.OnPromptWaiting(this, remote);
         return approval;
     }
 
@@ -325,6 +337,7 @@ public sealed partial class TabViewModel
         ThreadApprovals.Remove(approval);
         OnPropertyChanged(nameof(HasThreadStrip));
         PermissionResolved(approval);
+        OnApprovalResolvedForRemote(approval);
     }
 
     /// <summary>Hands the message to <paramref name="subThread"/>, and waits on it. Returns whether it waits for its turn to end.</summary>

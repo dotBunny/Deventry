@@ -654,7 +654,7 @@ internal sealed class TabTestHarness : IAsyncDisposable
         Services = new AppServices(AppPaths.Under(_root), launcher is FakeP4 ? launcher : new NoRealP4Launcher(launcher ?? new ProcessLauncher()), Time, Platform, dispatcher ?? new InlineDispatcher(), processTrees: Trees, notifier: Notifier,
             appInstaller: appInstaller, httpHandler: http ?? new OfflineHandler(), appVersion: appVersion ?? TestVersion, loginShell: loginShell,
             projectToolPaths: otherPrograms, sleepBlocker: SleepBlocker, loginItems: LoginItems, systemMotion: SystemMotion,
-            trash: Trash, demo: demo);
+            trash: Trash, userPresence: Presence, demo: demo);
         Services.Notifications.UseBadge(Notifier);
         // The machine running the tests doesn't decide whether the Claude app is available (its ANTHROPIC_BASE_URL, say).
         Services.RemoteControl.EnvironmentVariable = _ => null;
@@ -709,6 +709,9 @@ internal sealed class TabTestHarness : IAsyncDisposable
 
     /// <summary>Stands in for the OS's reduce-motion setting (DESIGN.md §3, "Accessibility").</summary>
     public FakeSystemMotion SystemMotion { get; } = new();
+
+    /// <summary>Stands in for whether the user is at the computer, for the remote clients (DESIGN.md §18, "Remote clients").</summary>
+    public FakeUserPresence Presence { get; } = new();
 
     /// <summary>Stands in for the OS's trash (DESIGN.md §18, "Project files", "Renaming and deleting"): never the user's own.</summary>
     public FakeTrash Trash { get; private set; } = null!;

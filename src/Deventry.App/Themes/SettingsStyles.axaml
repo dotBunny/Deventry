@@ -318,6 +318,11 @@
   <Style Selector="controls|AppearanceScope.claude Border.settingsnote">
     <Setter Property="CornerRadius" Value="10" />
   </Style>
+  <!-- One to read before turning something on, such as what Telegram can see (DESIGN.md §18, "Remote clients"). -->
+  <Style Selector="Border.settingsnote.caution">
+    <Setter Property="Background" Value="{DynamicResource CautionBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource CautionBorderBrush}" />
+  </Style>
   <!-- A license or notices under its row in About: scrolling on its own past a screenful, so the page stays a list. -->
   <Style Selector="ScrollViewer.licensetext">
     <Setter Property="MaxHeight" Value="320" />

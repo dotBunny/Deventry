@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:Deventry.App.ViewModels.Settings"
+             xmlns:services="using:Deventry.App.Services"
+             xmlns:c="using:Deventry.App.Controls"
+             x:Class="Deventry.App.Views.Settings.RemoteClientPageView" ClipToBounds="False"
+             x:DataType="settings:RemoteClientPage">
+  <!-- A kind of remote client's page in Remote clients (DESIGN.md §18), drawn from what the kind declares, so a kind
+       needs no view of its own: its switch, its account and secret, and the accounts paired with it -->
+  <StackPanel Spacing="32">
+    <c:SettingsSection Key="{Binding Kind}">
+      <c:SettingRow Key="{Binding EnabledKey}">
+        <ToggleSwitch IsChecked="{Binding IsOn}" AutomationProperties.Name="{Binding SwitchTitle}" />
+        <c:SettingRow.Details>
+          <Border Classes="settingsnote caution" Margin="0,4,0,0">
+            <TextBlock Classes="small" TextWrapping="Wrap" Text="{Binding Privacy}" />
+          </Border>
+        </c:SettingRow.Details>
+      </c:SettingRow>
+
+      <!-- The bot: its name, its state, and its token, which goes only to the credential store -->
+      <c:SettingRow Key="{Binding AccountKey}" IsStacked="True">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="small warning" TextWrapping="Wrap" Text="{Binding CredentialStoreUnavailableText}" IsVisible="{Binding !IsCredentialStoreAvailable}" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock FontWeight="SemiBold" Text="{Binding IdentityText}" VerticalAlignment="Center" />
+            <TextBlock Classes="small muted" Text="{Binding StateText}" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding !IsTrouble}" />
+          </StackPanel>
+          <TextBlock Classes="small warning" Text="{Binding StateText}" TextWrapping="Wrap" IsVisible="{Binding IsTrouble}" />
+          <StackPanel Spacing="8" IsVisible="{Binding HasFix}">
+            <TextBlock Classes="small" TextWrapping="Wrap" Text="{Binding Fix.Explanation, FallbackValue=''}" />
+            <Button Content="{Binding Fix.Label, FallbackValue=''}" Command="{Binding ApplyFixCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsSettingSecret}" IsEnabled="{Binding IsCredentialStoreAvailable}">
+            <Button Content="{Binding SetSecretText}" Command="{Binding StartSettingSecretCommand}" />
+            <Button Content="Remove…" Command="{Binding SecretRemoval.AskCommand}" IsVisible="{Binding HasSecret}" />
+          </StackPanel>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding IsSettingSecret}">
+            <TextBox Text="{Binding NewSecret}" PasswordChar="•" PlaceholderText="{Binding SecretPlaceholder}" AutomationProperties.Name="{Binding SecretName}" />
+            <Button Grid.Column="1" Classes="accent" Content="{Binding SaveSecretText}" Command="{Binding SaveSecretCommand}" />
+            <Button Grid.Column="2" Content="Cancel" Command="{Binding CancelSecretCommand}" />
+          </Grid>
+          <TextBlock Classes="small warning" TextWrapping="Wrap" Text="{Binding SecretError}" IsVisible="{Binding SecretError, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <Border Classes="settingsnote" IsVisible="{Binding SecretRemoval.IsOpen}">
+            <StackPanel Spacing="8">
+              <TextBlock TextWrapping="Wrap" Text="{Binding RemoveSecretText}" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="accent" Content="Remove" Command="{Binding SecretRemoval.ConfirmCommand}" />
+                <Button Content="Cancel" Command="{Binding SecretRemoval.CancelCommand}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </c:SettingRow>
+
+      <!-- Paired with: only these accounts are answered -->
+      <c:SettingRow Key="{Binding PairedKey}" IsStacked="True">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="small muted" Text="No phone is paired yet." IsVisible="{Binding !HasAccounts}" />
+          <ItemsControl ItemsSource="{Binding Accounts}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="8" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="settings:PairedAccountRow">
+                <StackPanel Spacing="8">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Name}" />
+                      <TextBlock Classes="small muted" Text="{Binding Detail}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Unpair…" Command="{Binding Unpairing.AskCommand}" AutomationProperties.Name="{Binding UnpairName}" />
+                  </Grid>
+                  <Border Classes="settingsnote" IsVisible="{Binding Unpairing.IsOpen}">
+                    <StackPanel Spacing="8">
+                      <TextBlock TextWrapping="Wrap" Text="Unpair this account? The bot stops answering it. Pair it again with a new code." />
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="accent" Content="Unpair" Command="{Binding Unpairing.ConfirmCommand}" />
+                        <Button Content="Cancel" Command="{Binding Unpairing.CancelCommand}" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Content="Pair a phone…" Command="{Binding StartPairingCommand}" IsEnabled="{Binding CanPair}" IsVisible="{Binding IsNotPairing}"
+                  HorizontalAlignment="Left" ToolTip.Tip="{Binding CanPairTip}" ToolTip.ShowOnDisabled="True" />
+          <Border Classes="settingsnote" IsVisible="{Binding IsPairing}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+              <Border Background="White" CornerRadius="6" Padding="6" VerticalAlignment="Top" IsVisible="{Binding HasPairingQr}">
+                <Image Source="{Binding PairingQrPng, Converter={x:Static services:ImageFiles.Full}}" Width="160" Height="160"
+                       RenderOptions.BitmapInterpolationMode="None" AutomationProperties.Name="A QR code to scan with your phone, with the pairing code" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="8">
+                <TextBlock TextWrapping="Wrap" Text="{Binding PairingSteps}" />
+                <SelectableTextBlock Classes="output" Text="{Binding PairingCommand}" />
+                <TextBlock Classes="small muted" Text="{Binding PairingCode, StringFormat='The code is {0}.'}" />
+                <TextBlock Classes="small muted" Text="{Binding PairingTimeLeft}" />
+                <Button Content="Cancel" Command="{Binding CancelPairingCommand}" HorizontalAlignment="Left" />
+              </StackPanel>
+            </Grid>
+          </Border>
+        </StackPanel>
+      </c:SettingRow>
+    </c:SettingsSection>
+  </StackPanel>
+</UserControl>

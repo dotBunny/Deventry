@@ -86,6 +86,7 @@ public sealed partial class TabViewModel
         _awaitingReply.Clear();
         NoteHeldMessages();
         _shell.OnAuthenticationRequired();
+        Remote.OnTabFailed(this, Core.Remote.RemoteMessages.SignInAtDesk, needsSignIn: true);
     }
 
     /// <summary>The session couldn't start because Claude Code isn't signed in: it starts again after the sign-in.</summary>

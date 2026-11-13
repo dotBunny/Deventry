@@ -67,6 +67,21 @@ public sealed partial class WorkingLine(
     [ObservableProperty]
     public partial string Detail { get; private set; } = "";
 
+    /// <summary>When the turn being counted started; null while none is (DESIGN.md §18, "Remote clients").</summary>
+    public DateTimeOffset? StartedAt
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _running ? _startedAt : null;
+            }
+        }
+    }
+
+    /// <summary>What the running tools are doing, such as "Reading Player.cs", whatever the fun words say; null when none runs.</summary>
+    public string? Activity => _activity;
+
     /// <summary>Starts counting a turn. A turn that's already counting carries on, for example after a prompt was answered.</summary>
     public void Start()
     {

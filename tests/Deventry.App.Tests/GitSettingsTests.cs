@@ -17,7 +17,7 @@ public class GitSettingsTests
         await using var h = new TabTestHarness();
         using var settings = new SettingsViewModel(h.Services, null);
 
-        Assert.Equal([SettingsCategory.Git, SettingsCategory.Perforce], settings.Categories.TakeLast(2));
+        Assert.Equal([SettingsCategory.Git, SettingsCategory.Perforce], settings.Categories.SkipWhile(c => c != SettingsCategory.Git).Take(2));
         Assert.Equal("IconBranch", settings.Git.IconKey);
         Assert.False(string.IsNullOrEmpty(settings.Git.Description));
         Assert.Equal(["tabRows", "worktrees", "git", "projectFiles"], settings.Git.Groups.Select(g => g.Key));

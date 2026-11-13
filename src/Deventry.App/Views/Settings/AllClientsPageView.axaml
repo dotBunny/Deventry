@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:Deventry.App.ViewModels.Settings"
+             xmlns:c="using:Deventry.App.Controls"
+             x:Class="Deventry.App.Views.Settings.AllClientsPageView" ClipToBounds="False"
+             x:DataType="settings:AllClientsPage">
+  <!-- Remote clients → All clients (DESIGN.md §18): what they can do, and when they send messages -->
+  <StackPanel Spacing="32">
+    <c:SettingsSection Key="access">
+      <c:SettingRow Key="remoteClients.access" IsStacked="True">
+        <StackPanel Classes="options">
+          <RadioButton GroupName="RemoteAccess" Content="Watch" IsChecked="{Binding AccessWatch}"
+                       ToolTip.Tip="The tabs, Claude's replies, changed files and usage, and messages when things happen" />
+          <RadioButton GroupName="RemoteAccess" Content="Watch and answer prompts" IsChecked="{Binding AccessAnswer}"
+                       ToolTip.Tip="And allow or deny, answer a question, approve a plan or keep planning" />
+          <RadioButton GroupName="RemoteAccess" Content="Watch, answer, send messages and stop Claude" IsChecked="{Binding AccessFull}"
+                       ToolTip.Tip="And send a tab a message, stop it, and start a stopped tab again" />
+          <TextBlock Classes="small muted" TextWrapping="Wrap" Margin="0,4,0,0"
+                     Text="A message from your phone is the same as typing it here: Claude can run what it could here, in the tab's permission mode." />
+        </StackPanel>
+      </c:SettingRow>
+      <c:SettingRow Key="remoteClients.openTabs">
+        <ToggleSwitch IsChecked="{Binding OpenTabs}" />
+      </c:SettingRow>
+    </c:SettingsSection>
+
+    <c:SettingsSection Key="messages">
+      <c:SettingRow Key="remoteClients.needsInput">
+        <ToggleSwitch IsChecked="{Binding SendNeedsInput}" />
+      </c:SettingRow>
+      <c:SettingRow Key="remoteClients.turnFinished">
+        <ToggleSwitch IsChecked="{Binding SendTurnFinished}" />
+      </c:SettingRow>
+      <c:SettingRow Key="remoteClients.processErrors">
+        <ToggleSwitch IsChecked="{Binding SendProcessErrors}" />
+      </c:SettingRow>
+      <c:SettingRow Key="remoteClients.usageAlerts">
+        <ToggleSwitch IsChecked="{Binding SendUsageAlerts}" />
+      </c:SettingRow>
+      <c:SettingRow Key="remoteClients.projectActions">
+        <ToggleSwitch IsChecked="{Binding SendProjectActions}" />
+      </c:SettingRow>
+      <c:SettingRow Key="remoteClients.when" IsStacked="True">
+        <StackPanel Classes="options">
+          <RadioButton GroupName="RemoteWhen" Content="While I'm away" IsChecked="{Binding WhenAway}" />
+          <TextBlock Classes="small muted" TextWrapping="Wrap" Margin="28,0,0,4" Text="{Binding AwayText}" />
+          <RadioButton GroupName="RemoteWhen" Content="Always, silently while I'm at the desk" IsChecked="{Binding WhenAlways}" />
+        </StackPanel>
+      </c:SettingRow>
+      <c:SettingRow Key="remoteClients.awayAfterMinutes">
+        <NumericUpDown Minimum="1" Maximum="60" Increment="1" FormatString="0" Value="{Binding AwayAfterMinutes}" Width="120"
+                       AutomationProperties.Name="Minutes without the keyboard or mouse before you count as away" />
+      </c:SettingRow>
+      <c:SettingRow Key="remoteClients.detail" IsStacked="True">
+        <StackPanel Classes="options">
+          <RadioButton GroupName="RemoteDetail" Content="Everything" IsChecked="{Binding SayEverything}"
+                       ToolTip.Tip="The replies, commands, paths and files, as Deventry shows them" />
+          <RadioButton GroupName="RemoteDetail" Content="Just what happened" IsChecked="{Binding SayJustWhatHappened}"
+                       ToolTip.Tip="Only the tab's name and what happened; a prompt's Show sends its detail when asked" />
+        </StackPanel>
+      </c:SettingRow>
+    </c:SettingsSection>
+  </StackPanel>
+</UserControl>

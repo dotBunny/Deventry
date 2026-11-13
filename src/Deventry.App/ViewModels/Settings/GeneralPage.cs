@@ -43,6 +43,9 @@ public sealed partial class GeneralPage : SettingsPage, IDisposable
             Setting("claudeCode.keepAwakeWhileConnected", "Also while tabs are connected to the Claude app",
                 s => s.ClaudeCode.KeepAwakeWhileConnected, (s, v) => s.ClaudeCode.KeepAwakeWhileConnected = v,
                 "So the Claude app can still reach them. The screen can still turn off.", keywords: ["remote control", "phone"]),
+            Setting("remoteClients.keepAwake", "Also while a remote client is on",
+                s => s.RemoteClients.KeepAwake, (s, v) => s.RemoteClients.KeepAwake = v,
+                "A sleeping computer can't answer the Telegram bot. The screen can still turn off.", keywords: ["telegram", "bot", "phone"]),
         ]);
         Section("updates", "Updates and status",
         [
@@ -220,6 +223,13 @@ public sealed partial class GeneralPage : SettingsPage, IDisposable
     }
 
     /// <summary><b>Also while tabs are connected to the Claude app</b>: system sleep only; the display can still sleep.</summary>
+    /// <summary><b>Also while a remote client is on</b> (DESIGN.md §18, "Remote clients").</summary>
+    public bool KeepAwakeWhileRemoteClient
+    {
+        get => Settings.RemoteClients.KeepAwake;
+        set => Set(value, v => Settings.RemoteClients.KeepAwake = v);
+    }
+
     public bool KeepAwakeWhileConnected
     {
         get => Settings.ClaudeCode.KeepAwakeWhileConnected;
