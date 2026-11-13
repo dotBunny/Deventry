@@ -68,6 +68,9 @@ internal static unsafe partial class ObjC
     public static nint Send(nint receiver, string selector, nint a, nint b, nint c) =>
         ((delegate* unmanaged<nint, nint, nint, nint, nint, nint>)MsgSendPointer)(receiver, Sel(selector), a, b, c);
 
+    public static nint Send(nint receiver, string selector, nint a, nint b, nint c, nint d) =>
+        ((delegate* unmanaged<nint, nint, nint, nint, nint, nint, nint>)MsgSendPointer)(receiver, Sel(selector), a, b, c, d);
+
     /// <summary>For selectors whose first argument is an NSUInteger, such as an options mask.</summary>
     public static nint Send(nint receiver, string selector, nuint a, nint b) =>
         ((delegate* unmanaged<nint, nint, nuint, nint, nint>)MsgSendPointer)(receiver, Sel(selector), a, b);
