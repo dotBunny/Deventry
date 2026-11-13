@@ -27,6 +27,7 @@ public sealed partial class ProjectSettingsViewModel : ViewModelBase, IDisposabl
         _tools = tools;
         Folder = folder;
         LoadLinks();
+        LoadTicketSources();
         LoadActionRows(ProjectFileScope.Shared);
         LoadActionRows(ProjectFileScope.Local);
         ProjectActionFiles =

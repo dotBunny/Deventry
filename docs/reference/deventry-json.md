@@ -104,6 +104,25 @@ Any other word in braces makes the link greyed out: "Unknown placeholder …: us
 
 `icon` is the picture the folder's group shows in the sidebar in place of its colored dot: a PNG, ICO, JPEG, BMP, GIF or WebP of at most 1 MB. Its path is read from the project's folder (`Assets/logo.png`), or it can be a full path. The local file's wins over the shared one's. One that can't be shown, because it isn't there, it's too big, it's another kind of file or it's on a network share, is skipped with a reason, and the group keeps its dot. The project's **Group** page, in its [project settings](../settings/project-settings.md), sets it. See [A group's icon](../tabs/folder-groups.md#a-groups-icon).
 
+## Tickets
+
+`tickets` lists where the project's [tickets](../project-tools/tickets.md) come from, the shared file's first:
+
+```json
+"tickets": [
+  { "provider": "github", "repository": "dotBunny/NightOwl" },
+  { "provider": "github", "repository": "studio/engine", "server": "github.studio.example" },
+  { "provider": "youtrack", "server": "https://dotbunny.youtrack.cloud", "project": "NO", "query": "#Unresolved", "name": "NightOwl" }
+]
+```
+
+- `provider` is `github` or `youtrack`.
+- For GitHub, `repository` is `owner/name`, and `server` a GitHub Enterprise server's address (github.com without one).
+- For YouTrack, `server` and `project` (its short name) are needed, and `query` narrows its tickets in YouTrack's query words.
+- `name` is what the Tickets tab's source menu calls it.
+
+With neither file naming any, a folder whose git remote is on GitHub has that repository's issues. An empty list, `"tickets": []`, names none, and turns that off. The project's **Tickets** page, in its [project settings](../settings/project-settings.md), edits them.
+
 ## What's skipped
 
 Deventry reads both files tolerantly:

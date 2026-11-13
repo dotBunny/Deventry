@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:Deventry.App.ViewModels.Settings"
+             xmlns:c="using:Deventry.App.Controls"
+             x:Class="Deventry.App.Views.Settings.AllTicketProvidersPageView" ClipToBounds="False"
+             x:DataType="settings:AllTicketProvidersPage">
+  <!-- Tickets → All providers (DESIGN.md §18, "Tickets"): working on a ticket -->
+  <StackPanel Spacing="32">
+    <c:SettingsSection Key="working">
+      <c:SettingRow Key="tickets.workIn" IsStacked="True">
+        <StackPanel Classes="options">
+          <RadioButton GroupName="TicketWorkIn" Content="A new tab" IsChecked="{Binding WorkInTab}"
+                       ToolTip.Tip="In the project's folder, as the group's + opens one" />
+          <RadioButton GroupName="TicketWorkIn" Content="A new tab in a worktree" IsChecked="{Binding WorkInWorktree}"
+                       ToolTip.Tip="In a worktree named for the ticket, issue-142, on its own branch; a folder outside git has a new tab" />
+        </StackPanel>
+      </c:SettingRow>
+      <c:SettingRow Key="tickets.nameTabs">
+        <ToggleSwitch IsChecked="{Binding NameTabs}" />
+      </c:SettingRow>
+      <c:SettingRow Key="tickets.includeComments">
+        <ToggleSwitch IsChecked="{Binding IncludeComments}" />
+      </c:SettingRow>
+    </c:SettingsSection>
+  </StackPanel>
+</UserControl>

@@ -43,6 +43,9 @@ public sealed class AppSettings
 
     public NotificationSettings Notifications { get; set; } = new();
 
+    /// <summary>Settings → Tickets (DESIGN.md §18, "Tickets"): the trackers' servers, and working on a ticket. Per machine.</summary>
+    public TicketSettings Tickets { get; set; } = new();
+
     /// <summary>Settings → Remote clients (DESIGN.md §18): the tabs from a phone, through a Telegram bot. Per machine.</summary>
     public RemoteClientSettings RemoteClients { get; set; } = new();
 

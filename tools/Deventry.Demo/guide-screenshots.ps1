@@ -72,8 +72,10 @@ function Test-Wanted([string[]] $names) {
 }
 
 # Starts Deventry on the demo afresh in the first theme, runs $steps with $window and $deventry set, and closes it.
-function Use-Deventry([hashtable] $environment, [scriptblock] $steps) {
+# $prepare runs between writing the demo and starting Deventry, such as to give a project a file of its own.
+function Use-Deventry([hashtable] $environment, [scriptblock] $steps, [scriptblock] $prepare = $null) {
     New-DemoContent $build.Demo $Work $Projects 'standard' $Themes[0]
+    if ($prepare) { & $prepare }
     $script:deventry = Start-Deventry $build.App $Work $environment
     Set-Themes $Themes $Themes[0]
     try {
@@ -472,6 +474,35 @@ if (Test-Wanted 'project-tools/editor-log') {
             Remove-Item $standIn -Force -ErrorAction SilentlyContinue
         }
     }
+}
+
+# Starfall's tickets (DESIGN.md §18, "Tickets", "The guide's pictures"): a source in its deventry.local.json, and
+# DEVENTRY_DEMO_TICKETS, which has Deventry answer GitHub's API for that repository itself, so nothing reaches GitHub.
+if (Test-Wanted 'project-tools/tickets', 'project-tools/tickets-work-on-it') {
+    $source = '{ "tickets": [ { "provider": "github", "repository": "starfall-studio/starfall" } ] }'
+    Use-Deventry @{ DEVENTRY_DEMO_TICKETS = '1' } {
+        Hide-ToolWindows $window
+        Shot 'project-tools/tickets' {
+            param($path)
+            # Starfall's group alone has a source, so its row alone has the button.
+            Wait-Until { Find-ByText $window 'Tickets' -Optional } 'the Tickets button' 30
+            Invoke-ByText $window 'Tickets'
+            Wait-Until { Find-ByText $window '#142 Grappling hook detaches on slopes, open' -Optional } 'the tickets read' 30
+            Send-Click (Find-ByText $window '#142 Grappling hook detaches on slopes, open')
+            Wait-Until { Find-ByText $window 'Work on it' -Optional } 'the ticket read' 30
+            # Its text and comments lay out in the background.
+            Wait-Settled $window 1000
+            Save-Window $window $path
+        }
+        Shot 'project-tools/tickets-work-on-it' {
+            param($path)
+            Wait-Until { Find-ByText $window 'Work on it' -Optional } 'the ticket read' 30
+            Invoke-ByText $window 'Work on it'
+            Wait-Until { Find-ByText $window '#142 Grappling hook detaches on slopes' -Optional } 'the new tab' 30
+            Wait-Settled $window 1000
+            Save-Window $window $path
+        }
+    } { Set-Content -Encoding utf8 (Join-Path $Projects 'starfall\deventry.local.json') $source }
 }
 
 # Sending prompts, which stay in the conversations: each in its own tab.

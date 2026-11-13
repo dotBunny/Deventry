@@ -419,5 +419,7 @@ public sealed partial class ShellViewModel
         }
         // And the sidebar at Claude Code's sessions, for ones a terminal started meanwhile (DESIGN.md §4, "Claude Code's projects").
         RefreshClaudeProjects();
+        // And each group at its ticket sources, for its Tickets button (DESIGN.md §18, "Tickets").
+        UpdateAllTicketSources();
     }
 }

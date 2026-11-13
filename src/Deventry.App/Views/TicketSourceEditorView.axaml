@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Deventry.App.ViewModels"
+             xmlns:tickets="using:Deventry.Core.Tickets"
+             x:Class="Deventry.App.Views.TicketSourceEditorView"
+             x:DataType="vm:TicketSourceEditorViewModel">
+  <!-- A ticket source on the project settings' Tickets page (DESIGN.md §18, "Tickets") -->
+  <Border Classes="dialog" Width="460">
+    <StackPanel Spacing="8">
+      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="16" />
+      <TextBlock Text="Provider" />
+      <ComboBox ItemsSource="{Binding Types}" SelectedItem="{Binding SelectedType}" HorizontalAlignment="Stretch" AutomationProperties.Name="Provider">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="tickets:ITicketProviderType">
+            <TextBlock Text="{Binding Name}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Text="{Binding ServerTitle}" Margin="0,4,0,0" />
+      <TextBox Text="{Binding Server}" PlaceholderText="{Binding ServerPlaceholder}" AutomationProperties.Name="Server" />
+      <TextBlock Classes="small error" Text="{Binding ServerProblem}" TextWrapping="Wrap" IsVisible="{Binding HasServerProblem}" />
+      <TextBlock Text="{Binding ProjectWord}" Margin="0,4,0,0" />
+      <TextBox Text="{Binding Project}" PlaceholderText="{Binding ProjectPlaceholder}" AutomationProperties.Name="{Binding ProjectWord}" />
+      <TextBlock Classes="small error" Text="{Binding ProjectProblem}" TextWrapping="Wrap" IsVisible="{Binding HasProjectProblem}" />
+      <StackPanel Spacing="8" IsVisible="{Binding HasQuery}">
+        <TextBlock Text="Query" Margin="0,4,0,0" />
+        <TextBox Text="{Binding Query}" PlaceholderText="for example: #Unresolved Subsystem: Gameplay" AutomationProperties.Name="Query" />
+        <TextBlock Classes="muted small" TextWrapping="Wrap" Text="Narrows the project's tickets, in YouTrack's query words; empty for all of them." />
+      </StackPanel>
+      <TextBlock Text="Name" Margin="0,4,0,0" />
+      <TextBox Text="{Binding Name}" PlaceholderText="for example: Engine (what it reads shows when it's empty)" AutomationProperties.Name="Name" />
+      <StackPanel Spacing="4" IsVisible="{Binding AsksForFile}" Margin="0,4,0,0">
+        <TextBlock Text="Save in" />
+        <RadioButton GroupName="TicketSourceFile" Content="{Binding LocalText}" IsChecked="{Binding SaveToLocal}" />
+        <RadioButton GroupName="TicketSourceFile" Content="{Binding SharedText}" IsChecked="{Binding SaveToShared}" />
+      </StackPanel>
+      <TextBlock Text="{Binding FileText}" IsVisible="{Binding !AsksForFile}" Margin="0,4,0,0" />
+      <TextBlock Classes="muted small" Text="{Binding FileNote}" TextWrapping="Wrap" />
+      <TextBlock Classes="small error" Text="{Binding FileProblem}" TextWrapping="Wrap" IsVisible="{Binding HasFileProblem}" />
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+        <Button Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
+        <Button Classes="accent" Content="Save" Command="{Binding SaveCommand}" IsDefault="True" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

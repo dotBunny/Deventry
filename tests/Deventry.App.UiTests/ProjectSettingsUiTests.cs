@@ -162,7 +162,7 @@ public class ProjectSettingsUiTests
         list.ScrollIntoView(settings.NavEntries[^1]);
         UiText.Settle(window);
         Drawn();
-        Assert.Equal(new[] { "Deventry", "Claude", "Your work", SettingsSidebar.ProjectTools, SettingsSidebar.SourceControl, SettingsSidebar.RemoteClients }.Order(StringComparer.Ordinal),
+        Assert.Equal(new[] { "Deventry", "Claude", "Your work", SettingsSidebar.ProjectTools, SettingsSidebar.SourceControl, SettingsSidebar.Tickets, SettingsSidebar.RemoteClients }.Order(StringComparer.Ordinal),
             headings.Order(StringComparer.Ordinal));
         window.Close();
     }

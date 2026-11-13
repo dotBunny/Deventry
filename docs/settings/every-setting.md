@@ -298,6 +298,33 @@ The second page under **Source control**. None of this page syncs.
 | A password for a server and user, with **Save password** and **Forget password** | Stored password | None | [Perforce](../project-tools/perforce.md) |
 | Each folder's server and user, with **Add folder…** | Per-folder server and user | None | [Perforce](../project-tools/perforce.md) |
 
+## Tickets
+
+None of this group syncs, and a tab can't change it for itself. A server's token is in your computer's credential store.
+
+### All providers
+
+| Setting | Section | Default | Explained in |
+|---|---|---|---|
+| **Work on a ticket in**: **A new tab** or **A new tab in a worktree** | Working on a ticket | A new tab | [Tickets](../project-tools/tickets.md#work-on-a-ticket) |
+| **Name new tabs after their ticket** | Working on a ticket | On | [Tickets](../project-tools/tickets.md#work-on-a-ticket) |
+| **Include the ticket's comments** | Working on a ticket | On | [Tickets](../project-tools/tickets.md#work-on-a-ticket) |
+
+### GitHub
+
+| Setting | Section | Default | Explained in |
+|---|---|---|---|
+| Each server's **Sign in with**, with **Set token…**, and **Add a GitHub Enterprise server…** | Servers | github.com, Nothing (public repositories only) | [Tickets](../project-tools/tickets.md#sign-in) |
+| **Find a project's repository from its git remote** | Projects | On | [Tickets](../project-tools/tickets.md#where-a-projects-tickets-come-from) |
+| **Let Deventry change tickets** | Changing tickets | Off | [Tickets](../project-tools/tickets.md#change-a-ticket) |
+
+### YouTrack
+
+| Setting | Section | Default | Explained in |
+|---|---|---|---|
+| Each server, with **Set token…**, and **Add a YouTrack server…** | Servers | None | [Tickets](../project-tools/tickets.md#sign-in) |
+| **Let Deventry change tickets** | Changing tickets | Off | [Tickets](../project-tools/tickets.md#change-a-ticket) |
+
 ## Remote clients
 
 None of this group syncs, and a tab can't change it for itself. A client's secret, such as a bot's token, is in your computer's credential store, and the paired accounts with Deventry's state.

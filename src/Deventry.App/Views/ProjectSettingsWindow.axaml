@@ -96,6 +96,9 @@
                 <DataTemplate DataType="settings:ProjectLinksPage">
                   <pages:ProjectLinksPageView />
                 </DataTemplate>
+                <DataTemplate DataType="settings:ProjectTicketsPage">
+                  <pages:ProjectTicketsPageView />
+                </DataTemplate>
                 <DataTemplate DataType="settings:ProjectActionsPage">
                   <pages:ProjectActionsPageView />
                 </DataTemplate>
@@ -124,6 +127,9 @@
                 </DataTemplate>
                 <DataTemplate DataType="vm:ProjectLinkEditorViewModel">
                   <views:ProjectLinkEditorView />
+                </DataTemplate>
+                <DataTemplate DataType="vm:TicketSourceEditorViewModel">
+                  <views:TicketSourceEditorView />
                 </DataTemplate>
               </ContentControl.DataTemplates>
             </ContentControl>

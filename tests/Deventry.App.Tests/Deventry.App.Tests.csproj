@@ -26,6 +26,8 @@
     <Compile Include="..\Deventry.Core.Tests\Support\FakeP4.cs" Link="Support\FakeP4.cs" />
     <!-- Answers Deventry's own web requests (Claude's status page) from a table, so nothing reaches the network. -->
     <Compile Include="..\Deventry.Core.Tests\Support\FakeHttpHandler.cs" Link="Support\FakeHttpHandler.cs" />
+    <!-- GitHub's issues, answered by a fake (DESIGN.md §18, "Tickets"). -->
+    <Compile Include="..\Deventry.Core.Tests\Support\FakeGitHub.cs" Link="Support\FakeGitHub.cs" />
     <!-- The login entry, kept in memory (DESIGN.md §9, "Starting at login"). -->
     <Compile Include="..\Deventry.Core.Tests\Support\FakeLoginItems.cs" Link="Support\FakeLoginItems.cs" />
     <!-- Claude's status page during a real incident (DESIGN.md §18, "Service status"). -->

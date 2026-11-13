@@ -21,7 +21,8 @@ public sealed partial class ShellViewModel
 
     /// <summary>Opens a new tab that works in a new worktree of <paramref name="folder"/>'s repository, and selects it.</summary>
     /// <param name="opened">Runs on the new tab before it's selected and started, such as making it a sub-thread.</param>
-    public async Task OpenWorktreeTabAsync(string folder, Action<TabViewModel>? opened = null)
+    /// <param name="named">The worktree's name, such as a ticket's <c>issue-142</c>; <c>-2</c> and on are added when it's taken. Two words Deventry picks without it.</param>
+    public async Task OpenWorktreeTabAsync(string folder, Action<TabViewModel>? opened = null, string? named = null)
     {
         if (!Directory.Exists(folder))
         {
@@ -36,9 +37,11 @@ public sealed partial class ShellViewModel
         }
         // Not one a folder, another tab or a branch left behind already has: Claude Code would meet that branch.
         var branches = await new GitWorktrees(_services.Git).BranchesAsync(root);
-        var name = GitWorktrees.NewName(_services.Random, candidate =>
-            Directory.Exists(GitWorktrees.PathFor(root, candidate)) || AllTabs.Any(t => t.State.NewWorktree == candidate)
-            || branches.Contains(GitWorktrees.BranchPrefix + candidate));
+        bool Taken(string candidate) => Directory.Exists(GitWorktrees.PathFor(root, candidate)) || AllTabs.Any(t => t.State.NewWorktree == candidate)
+            || branches.Contains(GitWorktrees.BranchPrefix + candidate);
+        var name = named is { Length: > 0 }
+            ? Enumerable.Range(1, 99).Select(n => n == 1 ? named : $"{named}-{n}").FirstOrDefault(c => !Taken(c)) ?? GitWorktrees.NewName(_services.Random, Taken)
+            : GitWorktrees.NewName(_services.Random, Taken);
         FolderHistory.Touch(_services.State, main, _services.Time.GetUtcNow(), _services.Settings.NewTabs.RecentFolderLimit);
         var state = new TabState
         {

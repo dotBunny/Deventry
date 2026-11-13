@@ -1,7 +1,7 @@
 ---
 title: Perforce
 parent: Project tools
-nav_order: 7
+nav_order: 8
 summary: "In a Perforce workspace, Claude runs p4 commands through its Bash tool."
 ---
 

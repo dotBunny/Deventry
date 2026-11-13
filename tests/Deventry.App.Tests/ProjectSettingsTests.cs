@@ -78,7 +78,7 @@ public class ProjectSettingsTests
         Assert.Same(h.Shell.Groups.Single(g => g.Tabs.Contains(tab)), project.Group);
 
         // Its pages, in its sidebar; it opens at Links, and a page picked there shows.
-        Assert.Equal([ProjectSettingsWindowViewModel.LinksPage, ProjectSettingsWindowViewModel.ActionsPage, ProjectSettingsWindowViewModel.SolutionPage, ProjectSettingsWindowViewModel.ToolsPage, ProjectSettingsWindowViewModel.GroupPage],
+        Assert.Equal([ProjectSettingsWindowViewModel.LinksPage, ProjectSettingsWindowViewModel.TicketsPage, ProjectSettingsWindowViewModel.ActionsPage, ProjectSettingsWindowViewModel.SolutionPage, ProjectSettingsWindowViewModel.ToolsPage, ProjectSettingsWindowViewModel.GroupPage],
             settings.NavEntries.Select(e => e.Title));
         Assert.IsType<ProjectLinksPage>(settings.CurrentPage);
         settings.SelectedNavEntry = settings.NavEntries.Single(e => e.Title == ProjectSettingsWindowViewModel.ToolsPage);
@@ -960,7 +960,7 @@ public class ProjectSettingsTests
         await using var h = new TabTestHarness();
         using var settings = new SettingsViewModel(h.Services, null);
 
-        Assert.Equal(["Deventry", "Claude", "Your work", SettingsSidebar.ProjectTools, SettingsSidebar.SourceControl, SettingsSidebar.RemoteClients],
+        Assert.Equal(["Deventry", "Claude", "Your work", SettingsSidebar.ProjectTools, SettingsSidebar.SourceControl, SettingsSidebar.Tickets, SettingsSidebar.RemoteClients],
             settings.NavEntries.Where(e => e.IsHeading).Select(e => e.Title));
         // About is a window of its own, not a page (DESIGN.md §14, "About").
         Assert.Equal(["General", "Appearance", "Conversation", "Notifications", "Keyboard"], PagesUnder(settings, "Deventry"));
@@ -969,6 +969,8 @@ public class ProjectSettingsTests
         Assert.Equal(["Sessions", "Files and diffs"], PagesUnder(settings, "Your work"));
         Assert.Equal(["All tools", "Unreal Engine", "Unity", "Godot"], PagesUnder(settings, SettingsSidebar.ProjectTools));
         Assert.Equal(["Git", "Perforce"], PagesUnder(settings, SettingsSidebar.SourceControl));
+        // What every ticket provider shares, then a page for each provider (DESIGN.md §18, "Tickets").
+        Assert.Equal(["All providers", "GitHub", "YouTrack"], PagesUnder(settings, SettingsSidebar.Tickets));
         // What every remote client shares, then a page for each client (DESIGN.md §18, "Remote clients").
         Assert.Equal(["All clients", "Telegram", "Discord"], PagesUnder(settings, SettingsSidebar.RemoteClients));
         Assert.Equal(h.Services.ProjectTools.Detector.Types.Select(t => t.Name), settings.ProjectTypes.Select(p => p.Title));

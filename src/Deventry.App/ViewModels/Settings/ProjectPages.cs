@@ -24,6 +24,20 @@ public sealed class ProjectLinksPage : ProjectPage
     public override string Description => "Web links in the project's menu in the sidebar; a click opens one in the browser.";
 }
 
+/// <summary>The project's <b>Tickets</b> (DESIGN.md §18, "Tickets"): where its tickets come from, from both of its files.</summary>
+public sealed class ProjectTicketsPage : ProjectPage
+{
+    public ProjectTicketsPage(SettingsContext context, ProjectSettingsViewModel project) : base(context, ProjectSettingsWindowViewModel.TicketsPage, project) =>
+        Section("tickets", "Ticket sources",
+        [
+            Info("project.tickets", "Where the project's tickets come from", keywords: ["tickets", "issues", "github", "youtrack", "tracker", "repository", "deventry.json"]),
+        ]);
+
+    public override string IconKey => "IconTicket";
+
+    public override string Description => "Where the project's Tickets tab reads its tickets from: GitHub repositories and YouTrack projects.";
+}
+
 /// <summary>The project's <b>Actions</b> (DESIGN.md §18, "Custom actions"), the editor that was in Tab settings….</summary>
 public sealed class ProjectActionsPage : ProjectPage
 {

@@ -93,6 +93,10 @@ public partial class App : Application
                 systemMotion: SystemMotion.CreateForCurrentOS(launcher, TimeProvider.System),
                 trash: Trash.CreateForCurrentOS(launcher, TimeProvider.System),
                 userPresence: UserPresences.CreateForCurrentOS(launcher, TimeProvider.System),
+                // The guide's pictures of the Tickets tab: the demo's GitHub issues, answered without the network (DESIGN.md §18, "Tickets").
+                httpHandler: Environment.GetEnvironmentVariable(Core.Demo.DemoTickets.Variable) is { Length: > 0 }
+                    ? new Core.Demo.DemoTickets(TimeProvider.System) { InnerHandler = new System.Net.Http.SocketsHttpHandler { AutomaticDecompression = System.Net.DecompressionMethods.All } }
+                    : null,
                 loggerFactory: loggers,
                 demo: Demo.DemoMode.FromEnvironment());
             if (_services.Demo is not null)

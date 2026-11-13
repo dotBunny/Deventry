@@ -131,10 +131,26 @@ public sealed partial class TabGroupViewModel : ObservableObject
     public bool HasNoFiles => Files is null;
 
     /// <summary>
+    /// The group's Tickets tab (DESIGN.md §18, "Tickets"), after its Project Files tab; null while it isn't open. It
+    /// keeps the group in the sidebar as the Files tab does.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasTickets))]
+    public partial TicketsViewModel? Tickets { get; set; }
+
+    public bool HasTickets => Tickets is not null;
+
+    partial void OnTicketsChanged(TicketsViewModel? value) => OnProjectOnlyChanged();
+
+    /// <summary>The folder has a ticket source, so its row has the <b>Tickets</b> button; the shell reads it off the UI thread.</summary>
+    [ObservableProperty]
+    public partial bool HasTicketSources { get; set; }
+
+    /// <summary>
     /// Neither a session tab nor its Project Files tab is open, and the group isn't one of Claude Code's projects: it
     /// leaves the sidebar.
     /// </summary>
-    public bool IsEmpty => Tabs.Count == 0 && Files is null && !IsClaudeProject;
+    public bool IsEmpty => Tabs.Count == 0 && Files is null && Tickets is null && !IsClaudeProject;
 
     /// <summary>
     /// A folder Claude Code has sessions in, kept in the sidebar while Settings → Tabs → <b>Show Claude Code's projects
@@ -146,7 +162,7 @@ public sealed partial class TabGroupViewModel : ObservableObject
     public partial bool IsClaudeProject { get; set; }
 
     /// <summary>One of Claude Code's projects with nothing open in it: its menu has no <b>Close group</b>.</summary>
-    public bool IsProjectOnly => IsClaudeProject && Tabs.Count == 0 && Files is null;
+    public bool IsProjectOnly => IsClaudeProject && Tabs.Count == 0 && Files is null && Tickets is null;
 
     public bool CanClose => !IsProjectOnly;
 

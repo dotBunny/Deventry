@@ -91,10 +91,12 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         Perforce = new PerforcePage(_context);
         AllClients = new AllClientsPage(_context);
         Clients = [.. services.RemoteClients.Types.Select(type => new RemoteClientPage(_context, type))];
+        AllTicketProviders = new AllTicketProvidersPage(_context);
+        TicketProviders = [.. services.Tickets.Types.Select(type => new TicketProviderPage(_context, type))];
         Advanced = new AdvancedPage(_context, ClaudeCode);
-        _groups = SettingsSidebar.Groups(types, services.RemoteClients.Types);
+        _groups = SettingsSidebar.Groups(types, services.RemoteClients.Types, services.Tickets.Types);
         Categories = [.. _groups.SelectMany(g => g.Categories)];
-        SettingsPage[] pages = [General, Appearance, Conversation, Notifications, Keyboard, ClaudeCode, Accounts, Tabs, Usage, Advanced, Sessions, Files, AllTools, .. ProjectTypes, Git, Perforce, AllClients, .. Clients];
+        SettingsPage[] pages = [General, Appearance, Conversation, Notifications, Keyboard, ClaudeCode, Accounts, Tabs, Usage, Advanced, Sessions, Files, AllTools, .. ProjectTypes, Git, Perforce, AllTicketProviders, .. TicketProviders, AllClients, .. Clients];
         _categoryPages = [.. Categories.Select(category => pages.Single(p => p.Title == category))];
         foreach (var page in _categoryPages)
         {
@@ -129,6 +131,10 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         {
             client.Dispose();
         }
+        foreach (var provider in TicketProviders)
+        {
+            provider.Dispose();
+        }
         ClaudeCode.Dispose();
         Accounts.Dispose();
         Git.Dispose();
@@ -150,6 +156,15 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
 
     /// <summary>A page for each kind of remote client, after All clients (DESIGN.md §18, "Remote clients").</summary>
     public IReadOnlyList<RemoteClientPage> Clients { get; }
+
+    /// <summary>Settings → Tickets → All providers (DESIGN.md §18, "Tickets").</summary>
+    public AllTicketProvidersPage AllTicketProviders { get; }
+
+    /// <summary>A page for each ticket provider, after All providers (DESIGN.md §18, "Tickets").</summary>
+    public IReadOnlyList<TicketProviderPage> TicketProviders { get; }
+
+    /// <summary>The page of the ticket provider of <paramref name="kind"/>.</summary>
+    public TicketProviderPage TicketProvider(string kind) => TicketProviders.Single(p => p.Kind == kind);
 
     /// <summary>The page of the remote client of <paramref name="kind"/>.</summary>
     public RemoteClientPage Client(string kind) => Clients.Single(p => p.Kind == kind);

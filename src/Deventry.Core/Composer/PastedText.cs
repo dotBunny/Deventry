@@ -19,9 +19,16 @@ public static class PastedText
     /// <summary>Over <see cref="LargeBytes"/> in UTF-8. A UTF-16 character is at most 3 bytes there, so a short paste isn't counted.</summary>
     public static bool IsLarge(string? text) => text is not null && text.Length > LargeBytes / 3 && Encoding.UTF8.GetByteCount(text) > LargeBytes;
 
-    /// <summary>What the attachment says: <c>Pasted text · 1,204 lines · 48 KB</c>.</summary>
+    /// <summary>
+    /// What the attachment says: <c>Pasted text · 1,204 lines · 48 KB</c>, or for a ticket <b>Work on it</b> put there,
+    /// <c>GitHub issue #142 · 3 comments · 4 KB</c> (DESIGN.md §18, "Tickets").
+    /// </summary>
     public static string Describe(string text)
     {
+        if (Tickets.TicketPrompt.Describe(text) is { } ticket)
+        {
+            return ticket;
+        }
         var lines = CountLines(text);
         var kilobytes = (int)Math.Ceiling(Encoding.UTF8.GetByteCount(text) / 1024.0);
         return string.Create(CultureInfo.CurrentCulture, $"Pasted text · {lines:N0} {(lines == 1 ? "line" : "lines")} · {kilobytes:N0} KB");
