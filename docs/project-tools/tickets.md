@@ -11,6 +11,8 @@ summary: "A project's GitHub and YouTrack issues in a tab beside Project Files, 
 
 A project's tickets, from the trackers it uses, in a tab of the project's own beside Project Files: the list, a ticket's text and comments, and **Work on it**, which starts a tab on the ticket with the ticket in its message, ready for you to send. GitHub's issues and YouTrack's issues are the first trackers Deventry reads.
 
+{% include shot.html name="guide/project-tools/tickets" alt="The starfall group's Tickets tab under its Project Files row: the open GitHub issues listed at the left with their labels, age and comments, and issue #142 at the right with its state, assignee and milestone, Work on it and Open on GitHub, its text and three comments." %}
+
 ## Open the Tickets tab
 
 A group whose folder has a ticket source has a **Tickets** button on its row, a ticket's outline, between the project's icon and **Project files**. Click it, or choose **Tickets** in the group's menu (under **Folder**), or **Open tickets** in the command palette. The tab opens as the group's second row, under its Project Files tab, or is selected when it's open.
@@ -46,6 +48,8 @@ In a narrow pane, the ticket takes the list's place, with **← Tickets** to go 
 - The message box has the ticket as an attachment, *GitHub issue #142 · 3 comments · 4 KB*, with *Work on this ticket.* typed under it. **Nothing is sent** until you send it: say what you want done, and read what the ticket asks first. Anyone can file an issue on a public repository, and its text goes to Claude, marked as the tracker's text rather than yours.
 - Its arrow offers **In a new tab** and **In a new tab in a worktree**, a [worktree](../tabs/worktree-tabs.md) named for the ticket (`issue-142`, on the branch `worktree-issue-142`). Settings → Tickets → **All providers** → **Work on a ticket in** chooses what the button does by itself.
 - The tab is named after the ticket, *#142 Grappling hook detaches on slopes*, as a rename would name it; **Reset name** gives it Claude Code's name back.
+
+{% include shot.html name="guide/project-tools/tickets-work-on-it" alt="A new tab in the starfall group named #142 Grappling hook detaches on slopes, its message box holding the ticket as an attachment, GitHub issue #142 · 3 comments · 1 KB, with Work on this ticket. typed under it, nothing sent yet." %}
 
 The tab remembers its ticket: its [info card](../tabs/the-tab-info-card.md) has a **Ticket** row, its menu has **Open ticket**, which goes back to it in the Tickets tab, and the ticket shows **Tab on it** with **Go to tab**. A copy of the tab keeps it.
 
