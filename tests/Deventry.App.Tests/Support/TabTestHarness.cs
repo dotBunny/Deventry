@@ -428,6 +428,9 @@ internal sealed class InlineDispatcher : IUiDispatcher
         return task!;
     }
 
+    /// <summary>This thread holds the UI lock: it's running work as if on the UI thread.</summary>
+    public static bool IsOnUiThread => UiThread.IsHeldByCurrentThread;
+
     /// <summary>Evaluates <paramref name="read"/> as if on the UI thread, so it can't see a collection mid-change.</summary>
     public static T Read<T>(Func<T> read)
     {
@@ -805,8 +808,13 @@ internal sealed class TabTestHarness : IAsyncDisposable
     /// Waits until <paramref name="condition"/> holds, read the way the UI thread would (<see cref="InlineDispatcher.Read"/>),
     /// by the clock (<see cref="Waiting.UntilAsync"/>). Some waits are on real processes (git, for the file index).
     /// </summary>
-    public static Task Eventually(Func<bool> condition, string? what = null) =>
-        Waiting.UntilAsync(() => InlineDispatcher.Read(condition), what);
+    /// <param name="poll">
+    /// Run before each look, outside the UI lock: advancing the harness's clock goes here, never in
+    /// <paramref name="condition"/>. Under the lock, an advance waits for a timer another thread is running, which waits
+    /// for the lock, and every test in the process waits with them (<see cref="HarnessClock"/>).
+    /// </param>
+    public static Task Eventually(Func<bool> condition, string? what = null, Action? poll = null) =>
+        Waiting.UntilAsync(() => InlineDispatcher.Read(condition), what, poll: poll);
 
     public async ValueTask DisposeAsync()
     {

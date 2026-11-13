@@ -730,11 +730,7 @@ public class ToolWindowsTests
         Assert.Equal("2 files changed · 2 reviewed", tab.ChangedFiles.Summary);
         EmitEdit(h, "e2", yours);
         // Git is asked once the edits pause.
-        await TabTestHarness.Eventually(() =>
-        {
-            h.Time.Advance(ChangedFilesViewModel.GitRefreshDelay);
-            return tab.ChangedFiles.Files.SingleOrDefault(r => r.FileName == "notes.md") is { LatestChange: "e2", IsReviewed: false };
-        }, "Claude's change");
+        await TabTestHarness.Eventually(() => tab.ChangedFiles.Files.SingleOrDefault(r => r.FileName == "notes.md") is { LatestChange: "e2", IsReviewed: false }, "Claude's change", poll: () => h.Time.Advance(ChangedFilesViewModel.GitRefreshDelay));
         Assert.True(tab.ChangedFiles.Files.Single(r => r.FileName == "a.cs").IsReviewed);
     }
 
@@ -783,11 +779,7 @@ public class ToolWindowsTests
         h.Time.Advance(ChangedFilesViewModel.GitRefreshDelay * 4);
         Assert.Equal(2, Volatile.Read(ref statuses));
         tab.IsSelected = true;
-        await TabTestHarness.Eventually(() =>
-        {
-            h.Time.Advance(ChangedFilesViewModel.GitRefreshDelay);
-            return Volatile.Read(ref statuses) == 3;
-        }, "the listing once it's shown");
+        await TabTestHarness.Eventually(() => Volatile.Read(ref statuses) == 3, "the listing once it's shown", poll: () => h.Time.Advance(ChangedFilesViewModel.GitRefreshDelay));
     }
 
     [Fact]

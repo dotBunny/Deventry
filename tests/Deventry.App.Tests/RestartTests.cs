@@ -286,11 +286,7 @@ public class RestartTests
         using var restarts = NewBuildReady(h, new ShellHost(h.Shell), output);
 
         var restarting = restarts.RestartAsync();
-        await TabTestHarness.Eventually(() =>
-        {
-            h.Time.Advance(TimeSpan.FromSeconds(1));
-            return restarting.IsCompleted;
-        }, "the restart to give up");
+        await TabTestHarness.Eventually(() => restarting.IsCompleted, "the restart to give up", poll: () => h.Time.Advance(TimeSpan.FromSeconds(1)));
 
         Assert.False(await restarting);
         Assert.True(launcher.Processes.Single().Killed);

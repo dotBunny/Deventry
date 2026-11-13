@@ -184,20 +184,12 @@ public class TabMarkTests
         // already seen.
         await TabTestHarness.Eventually(() => tab.State.Tokens.Total == 120 && !tab.IsWorking, "the turn to finish");
         tab.SetSyncToLibrary(true);
-        await TabTestHarness.Eventually(() =>
-        {
-            h.Time.Advance(TimeSpan.FromSeconds(1));
-            return h.Services.Library.CheckLease("s1") is LeaseStatus.Mine;
-        }, "the first copy");
+        await TabTestHarness.Eventually(() => h.Services.Library.CheckLease("s1") is LeaseStatus.Mine, "the first copy", poll: () => h.Time.Advance(TimeSpan.FromSeconds(1)));
         Assert.Null(Record().Mark);
 
         Pick(tab, TabMark.Star);
 
-        await TabTestHarness.Eventually(() =>
-        {
-            h.Time.Advance(TimeSpan.FromSeconds(1));
-            return Record().Mark == "star";
-        }, "the record");
+        await TabTestHarness.Eventually(() => Record().Mark == "star", "the record", poll: () => h.Time.Advance(TimeSpan.FromSeconds(1)));
 
         SessionRecord Record() => h.Services.Library.Library.List().Single(e => e.Record.SessionId == "s1").Record;
     }

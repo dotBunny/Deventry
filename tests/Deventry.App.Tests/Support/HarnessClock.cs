@@ -16,8 +16,17 @@ internal sealed class HarnessClock(DateTimeOffset start) : FakeTimeProvider(star
     private static int _inCallback;
 
     /// <summary>Advances the clock, and waits for the timers that came due to have run, wherever they run.</summary>
+    /// <exception cref="Xunit.Sdk.XunitException">
+    /// It was advanced from under the UI lock (<see cref="InlineDispatcher"/>), where waiting for a timer another thread
+    /// runs, which itself waits for the lock, would hold every test in the process for <see cref="Waiting.Timeout"/>.
+    /// </exception>
     public new void Advance(TimeSpan delta)
     {
+        if (_inCallback == 0 && InlineDispatcher.IsOnUiThread)
+        {
+            Assert.Fail("The harness's clock was advanced under the UI lock, as from a condition of TabTestHarness.Eventually: "
+                + "advance it in Eventually's poll instead, outside the lock.");
+        }
         base.Advance(delta);
         Settle();
     }

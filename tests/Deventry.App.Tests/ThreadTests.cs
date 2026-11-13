@@ -118,11 +118,7 @@ public class ThreadTests
         h.Transport.EmitTo(0, ThreadScript.SendMessage("hk1", "Art page", "Build it."));
         await TabTestHarness.Eventually(() => plan.ThreadApprovals.Count == 1, "the approval");
         // The wait starts just after the card shows: the clock moves on until it has run out.
-        await TabTestHarness.Eventually(() =>
-        {
-            h.Time.Advance(TimeSpan.FromMinutes(1));
-            return Answer(h, 0, "hk1") is not null;
-        }, "the approval to run out");
+        await TabTestHarness.Eventually(() => Answer(h, 0, "hk1") is not null, "the approval to run out", poll: () => h.Time.Advance(TimeSpan.FromMinutes(1)));
 
         Assert.Equal(ThreadMessages.NotAnswered("Art page"), Answer(h, 0, "hk1")!["hookSpecificOutput"]!["permissionDecisionReason"]!.GetValue<string>());
         await TabTestHarness.Eventually(() => plan.ThreadApprovals.Count == 0, "the card to go");

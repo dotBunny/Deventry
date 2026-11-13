@@ -196,10 +196,9 @@ public class SharedTurnsTests
         SessionUsage? usage = null;
         await TabTestHarness.Eventually(() =>
         {
-            machine.Harness.Time.Advance(TimeSpan.FromSeconds(1));
             usage = File.Exists(file) ? SessionUsageFile.Read(AtomicFile.ReadAllText(file)) : null;
             return usage?.Turns.Count == turns;
-        }, $"{turns} turns in the library");
+        }, $"{turns} turns in the library", poll: () => machine.Harness.Time.Advance(TimeSpan.FromSeconds(1)));
         return usage!;
     }
 

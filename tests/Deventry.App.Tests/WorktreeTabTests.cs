@@ -36,7 +36,9 @@ public class WorktreeTabTests
     internal static async Task<(TabViewModel Tab, string Path)> WorktreeTabAsync(TabTestHarness h, bool realWorktree)
     {
         await h.Shell.OpenWorktreeTabAsync(h.WorkFolder);
-        var tab = h.Shell.SelectedTab!;
+        // Without one, what the shell said instead, such as git not finding the repository.
+        var tab = h.Shell.SelectedTab ?? throw new Xunit.Sdk.XunitException(
+            $"No worktree tab opened: {h.Shell.Confirmation?.Title ?? "nothing said"}{(h.Shell.Confirmation is { } notice ? $" ({notice.Message})" : "")}");
         await TabTestHarness.Eventually(() => tab.Status == TabStatus.Idle && tab.IsSettled, "the tab to start");
         var name = tab.State.NewWorktree!;
         var path = GitWorktrees.PathFor(h.WorkFolder, name);

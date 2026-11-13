@@ -262,12 +262,11 @@ public class ChangedFilesTrackingTests
         // A commit from a terminal writes the index.
         h.FolderWatcher.Changed(Path.Combine(gitFolder, "index"));
 
-        await TabTestHarness.Eventually(() =>
+        await TabTestHarness.Eventually(() => Volatile.Read(ref statuses) == 2, "git asked again", poll: () =>
         {
             h.Time.Advance(ChangedFilesViewModel.DiskSettleDelay);
             h.Time.Advance(ChangedFilesViewModel.GitRefreshDelay);
-            return Volatile.Read(ref statuses) == 2;
-        }, "git asked again");
+        });
     }
 
     [Fact]
