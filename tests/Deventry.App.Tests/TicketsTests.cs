@@ -149,6 +149,26 @@ public class TicketsTests
     }
 
     [Fact]
+    public async Task A_used_up_limit_says_until_when_and_to_sign_in()
+    {
+        var github = GitHub();
+        github.Answer = _ => FakeGitHub.LimitUsedUp(new DateTimeOffset(2026, 11, 13, 15, 20, 0, TimeSpan.Zero));
+        await using var h = new TabTestHarness(http: github);
+        Sources(h);
+        await h.OpenTabAsync();
+        var group = h.Shell.Groups.Single();
+        await TabTestHarness.Eventually(() => group.HasTicketSources, "the Tickets button");
+
+        InlineDispatcher.Run(() => h.Shell.OpenTicketsCommand.Execute(group));
+        var tickets = group.Tickets!;
+        await TabTestHarness.Eventually(() => tickets.HasListError, "the error");
+
+        Assert.StartsWith("GitHub's limit for this computer is used up until ", tickets.ListError);
+        Assert.EndsWith(". Sign in for a higher one.", tickets.ListError);
+        Assert.True(tickets.ErrorOffersSettings);
+    }
+
+    [Fact]
     public async Task No_source_says_so_and_offers_to_add_one()
     {
         await using var h = new TabTestHarness(http: GitHub());

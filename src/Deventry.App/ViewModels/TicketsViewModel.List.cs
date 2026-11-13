@@ -386,8 +386,9 @@ public sealed partial class TicketsViewModel
         ListError = error switch
         {
             null => null,
-            { Kind: TicketErrorKind.RateLimited, Until: { } until } =>
-                $"{name}'s limit for this computer is used up until {TimeZoneInfo.ConvertTime(until, _services.Time.LocalTimeZone).ToString("t", System.Globalization.CultureInfo.CurrentCulture)}. Sign in for a higher one.",
+            { Kind: TicketErrorKind.RateLimited, Until: { } until } => SignInOf(failed.Source) == TicketSignIn.None
+                ? $"{name}'s limit for this computer is used up until {Clock(until)}. Sign in for a higher one."
+                : $"{name}'s limit for your account is used up until {Clock(until)}.",
             { Kind: TicketErrorKind.Refused } when SignInOf(failed.Source) != TicketSignIn.None =>
                 $"{error.Message} Check how Deventry signs in to {failed.Source.ServerName} in Settings → Tickets → {name}.",
             _ => error.Message,
@@ -395,6 +396,10 @@ public sealed partial class TicketsViewModel
     }
 
     private TicketSignIn SignInOf(TicketSource source) => _services.Tickets.SignInOf(source.Provider, source.Server);
+
+    /// <summary>A time today as the clock shows it: <i>15:20</i>.</summary>
+    private string Clock(DateTimeOffset time) =>
+        TimeZoneInfo.ConvertTime(time, _services.Time.LocalTimeZone).ToString("t", System.Globalization.CultureInfo.CurrentCulture);
 
     private TicketRowViewModel Row(TicketSource source, Ticket ticket) => new(source, ticket, TabsOn(source, ticket.Id).Count, _services.Time);
 
