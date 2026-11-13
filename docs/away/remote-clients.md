@@ -89,9 +89,10 @@ In Discord:
 
 1. In Settings → Remote clients → **Discord**, choose **Pair a phone…**. Deventry shows a QR code, **Open the link**, and a code like `7KQ2-M9XD`.
 2. Scan the QR code with your phone's camera, or choose **Open the link** on this computer, and choose **Add to My Apps**. The bot is on your Discord account now.
-3. In any chat in Discord, send `/pair` with the code. Only you see its answer, and the bot writes to you in its direct messages: *Paired with Deventry on DESK.*
+3. In any chat in Discord, send `/pair` with the code. Only you see its answer.
+4. Discord doesn't let a bot write to you before you've written to it, so the answer asks you to: open the bot's profile from the answer, choose **Message**, and send it `/help`. The bot answers in its direct messages, which is where it writes to you from then on.
 
-Discord may not let a bot write to you before you've written to it. If the answer to `/pair` says so, open the bot's profile from the answer, choose **Message**, and send it `/help`.
+If you've already written to the bot in its direct messages, send `/pair` there instead, and it welcomes you at once: *Paired with Deventry on DESK.*
 
 ## What the bot sends
 

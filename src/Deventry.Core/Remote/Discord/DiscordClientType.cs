@@ -52,8 +52,8 @@ public sealed class DiscordClientType : IRemoteClientType
     public string PairingCommand(string code) => $"/pair {code}";
 
     public string PairingSteps(bool hasLink) => hasLink
-        ? "Scan the code with your phone's camera, or open its link, to add the bot to your Discord account: choose Add to My Apps. Then send it this, in any chat:"
-        : "Once the bot is on your Discord account, send it this, in any chat:";
+        ? "Scan the code with your phone's camera, or open its link, to add the bot to your Discord account: choose Add to My Apps. Then send it this in any chat, and write to it once in its direct messages, as its answer asks:"
+        : "Once the bot is on your Discord account, send it this in any chat, and write to it once in its direct messages, as its answer asks:";
 
     public IRemoteClient Create(RemoteClientContext context) =>
         new DiscordClient(new DiscordApi(context.Http, context.Time, context.Secret, context.UserAgent), () => new DiscordWebSocket(context.UserAgent), context.Secret,

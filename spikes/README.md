@@ -64,7 +64,7 @@ Everything the scripts create goes under `<OS temp>/claudette-spikes/`: the work
 
 ## Discord: an app on your account
 
-`discord/user-install.mjs` (2026-11-13) checks whether a Discord app installed to your own account, and in no server, could be Deventry's remote client (DESIGN.md §18, "Remote clients"). Discord documents that such an app's commands and buttons work in a DM with its bot, but not whether the bot can message you first without sharing a server with you, which Deventry needs to say a tab is waiting. Deventry's Discord client is built as if it can (DESIGN.md §18, "Discord"); this says whether it does. It uses your Discord account and an app you make for it, costs nothing, and needs no `claude`.
+`discord/user-install.mjs` (2026-11-13) checks whether a Discord app installed to your own account, and in no server, could be Deventry's remote client (DESIGN.md §18, "Remote clients"). Discord documents that such an app's commands and buttons work in a DM with its bot, but not whether the bot can message you first without sharing a server with you, which Deventry needs to say a tab is waiting. Found on 2026-11-13: it can't until you've written to it, and can once you have (DESIGN.md §18, "Discord"). The rest of the steps check what's still to watch. It uses your Discord account and an app you make for it, costs nothing, and needs no `claude`.
 
 1. In the [Developer Portal](https://discord.com/developers/applications), make a **New Application**. Under **Installation**, in **Installation Contexts**, tick **User Install** and untick **Guild Install**.
 2. Under **Bot**, **Reset Token** and copy it. Leave the privileged intents off: the DM's text should arrive without them.
