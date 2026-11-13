@@ -30,6 +30,9 @@ public sealed class TicketSettings
     /// <summary>Each provider's own settings, by its kind (<c>github</c>).</summary>
     public Dictionary<string, TicketProviderSettings> Providers { get; set; } = new(StringComparer.Ordinal);
 
+    /// <summary>A provider's settings as they are; null while it has none, which reads as its defaults.</summary>
+    public TicketProviderSettings? Find(string kind) => Providers.GetValueOrDefault(kind);
+
     /// <summary>A provider's settings, made when it has none yet.</summary>
     public TicketProviderSettings For(string kind)
     {

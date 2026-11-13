@@ -105,6 +105,8 @@ public sealed class GitHubTicketsType : ITicketProviderType
         return entry;
     }
 
+    public bool FindsFromGit => true;
+
     public TicketSource? FromRemote(string remoteUrl, IReadOnlyCollection<string> servers) =>
         GitHubRemote.Parse(remoteUrl) is { } remote && servers.Any(s => TicketServers.Same(s, remote.Server))
             ? new TicketSource(KindId, remote.Server, remote.Repository, null, null, TicketSourceOrigin.Git)

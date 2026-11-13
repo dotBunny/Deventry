@@ -97,6 +97,38 @@
         </Button.ContextMenu>
       </Button>
     </DataTemplate>
+    <!-- A group's Tickets tab's row (DESIGN.md §18, "Tickets"): after its Project Files tab's, a ticket's outline, its name,
+         and how many tickets are open, or in the caution color what went wrong. Like the Files tab's, it can be dragged onto a
+         pane. -->
+    <DataTemplate x:Key="TicketsRow" DataType="vm:TicketsViewModel">
+      <Button Classes="tab tabrow filesrow" Classes.selected="{Binding IsSelected}" Classes.dragged="{Binding IsDragged}"
+              Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).SelectTicketsCommand}" CommandParameter="{Binding}"
+              ToolTip.Tip="{Binding RowTip}" ToolTip.ShowDelay="600" ToolTip.Placement="Right" AutomationProperties.Name="{Binding DisplayName}">
+        <Grid ColumnDefinitions="14,*,Auto" ColumnSpacing="6">
+          <Path VerticalAlignment="Top" Margin="0,3,0,0" Data="{StaticResource IconTicket}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.2"
+                Width="11" Height="11" Stretch="Uniform" />
+          <StackPanel Grid.Column="1" Spacing="1">
+            <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Classes="muted small" Classes.warning="{Binding RowIsWarning}" Text="{Binding RowDetail}" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="flat closetab" Padding="4" VerticalAlignment="Top" ToolTip.Tip="Close" AutomationProperties.Name="Close tickets"
+                  Command="{Binding CloseCommand}">
+            <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.4" Width="8" Height="8" Stretch="Uniform" />
+          </Button>
+        </Grid>
+        <Button.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Open beside" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenBesideCommand, FallbackValue={x:Null}}" CommandParameter="{Binding}"
+                      IsVisible="{Binding !IsShown}" ToolTip.Tip="Shows the project's tickets beside the tab you're in" />
+            <MenuItem Header="Close pane" Command="{Binding ClosePaneCommand}" IsVisible="{Binding IsInSplit}"
+                      ToolTip.Tip="Takes it off the screen; it stays open in the sidebar" />
+            <MenuItem Header="Refresh" Command="{Binding RefreshCommand}" />
+            <Separator />
+            <MenuItem Header="Close" Command="{Binding CloseCommand}" />
+          </ContextMenu>
+        </Button.ContextMenu>
+      </Button>
+    </DataTemplate>
     <!-- Its square on the rail. -->
     <!-- The project's icon on its group's row and in the rail (DESIGN.md §18, "Project tools"): its kind's, or a folder's
          without a project; a busy dot in its place while a job runs -->
@@ -175,6 +207,24 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
       </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="TicketsSquare" DataType="vm:TicketsViewModel">
+      <Button Classes="tab" Classes.selected="{Binding IsSelected}" Width="38" Height="34" Padding="0" HorizontalAlignment="Center"
+              HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+              Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).SelectTicketsCommand}" CommandParameter="{Binding}"
+              ToolTip.Tip="{Binding RowTip}" ToolTip.Placement="Right" AutomationProperties.Name="{Binding DisplayName}">
+        <Path Data="{StaticResource IconTicket}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.2" Width="12" Height="12" Stretch="Uniform"
+              HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Button.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Open beside" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenBesideCommand, FallbackValue={x:Null}}" CommandParameter="{Binding}"
+                      IsVisible="{Binding !IsShown}" />
+            <MenuItem Header="Close pane" Command="{Binding ClosePaneCommand}" IsVisible="{Binding IsInSplit}" />
+            <Separator />
+            <MenuItem Header="Close" Command="{Binding CloseCommand}" />
+          </ContextMenu>
+        </Button.ContextMenu>
+      </Button>
     </DataTemplate>
     <DataTemplate x:Key="ProjectFilesSquare" DataType="vm:ProjectFilesViewModel">
       <Button Classes="tab" Classes.selected="{Binding IsSelected}" Width="38" Height="34" Padding="0" HorizontalAlignment="Center"
@@ -520,7 +570,7 @@
                 <Border Classes="groupband" Classes.pinned="{Binding IsPinned}" Classes.lastpinned="{Binding IsLastPinned}"
                         Classes.afterpinned="{Binding HasDividerAbove}">
                   <StackPanel>
-                    <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
                       <!-- Group label: click to collapse; right-click for group actions -->
                       <Button Classes="flat grouplabel" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="4,4"
                               ToolTip.Tip="{Binding Summary}" AutomationProperties.Name="{Binding Label}"
@@ -565,6 +615,10 @@
                             <MenuItem Classes="menusection" Header="Folder" IsEnabled="False" />
                             <MenuItem Header="Open project files" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenProjectFilesCommand}" CommandParameter="{Binding}">
                               <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconFiles}" /></MenuItem.Icon>
+                            </MenuItem>
+                            <!-- The project's tickets (DESIGN.md §18, "Tickets"): an empty tab says how to add a source -->
+                            <MenuItem Header="Tickets" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenTicketsCommand}" CommandParameter="{Binding}">
+                              <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconTicket}" /></MenuItem.Icon>
                             </MenuItem>
                             <!-- History listing only this project's sessions (DESIGN.md §9, "History") -->
                             <MenuItem Header="History for this folder" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenHistoryForGroupCommand}" CommandParameter="{Binding}">
@@ -620,12 +674,18 @@
                           </Flyout>
                         </Button.Flyout>
                       </Button>
+                      <!-- The group's Tickets tab (DESIGN.md §18, "Tickets"), while its folder has a ticket source: opens it, or selects it -->
+                      <Button x:Name="TicketsButton" Grid.Column="2" Classes="flat" Padding="6" ToolTip.Tip="Tickets" AutomationProperties.Name="Tickets"
+                              IsVisible="{Binding HasTicketSources}"
+                              Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenTicketsCommand}" CommandParameter="{Binding}" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconTicket}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.2" Width="11" Height="11" Stretch="Uniform" />
+                      </Button>
                       <!-- The group's Project Files tab (DESIGN.md §18, "Project files"): opens it, or selects it -->
-                      <Button x:Name="ProjectFilesButton" Grid.Column="2" Classes="flat" Padding="6" ToolTip.Tip="Project files" AutomationProperties.Name="Project files"
+                      <Button x:Name="ProjectFilesButton" Grid.Column="3" Classes="flat" Padding="6" ToolTip.Tip="Project files" AutomationProperties.Name="Project files"
                               Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenProjectFilesCommand}" CommandParameter="{Binding}" VerticalAlignment="Center">
                         <Path Data="{StaticResource IconFiles}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.2" Width="11" Height="11" Stretch="Uniform" />
                       </Button>
-                      <Button Grid.Column="3" Classes="flat" Padding="6" ToolTip.Tip="New tab in this folder" AutomationProperties.Name="New tab in this folder"
+                      <Button Grid.Column="4" Classes="flat" Padding="6" ToolTip.Tip="New tab in this folder" AutomationProperties.Name="New tab in this folder"
                               Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).NewTabInGroupCommand}" CommandParameter="{Binding}" VerticalAlignment="Center">
                         <Path Data="{StaticResource IconPlus}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.4" Width="9" Height="9" Stretch="Uniform" />
                       </Button>
@@ -635,6 +695,7 @@
                     <controls:SideLine x:Name="GroupLine" Margin="9,2,0,0" Padding="8,0,0,0" LineBrush="{Binding Brush}" LineThickness="2" IsVisible="{Binding IsExpanded}">
                       <StackPanel Spacing="1">
                       <ContentControl Content="{Binding Files}" IsVisible="{Binding HasFiles}" ContentTemplate="{StaticResource ProjectFilesRow}" />
+                      <ContentControl Content="{Binding Tickets}" IsVisible="{Binding HasTickets}" ContentTemplate="{StaticResource TicketsRow}" />
                       <!-- Unclipped, as the rows are, so a row's chevron can sit out on the line -->
                       <ItemsControl ItemsSource="{Binding Tabs}" ClipToBounds="False">
                         <ItemsControl.ItemsPanel>
@@ -943,6 +1004,11 @@
                                               ToolTip.Tip="What claude --resume takes">
                                       <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconCopy}" /></MenuItem.Icon>
                                     </MenuItem>
+                                    <!-- The ticket the tab was started on (DESIGN.md §18, "Tickets") -->
+                                    <MenuItem Header="Open ticket" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenTabTicketCommand}" CommandParameter="{Binding}"
+                                              IsVisible="{Binding HasTicket}" ToolTip.Tip="The ticket this tab was started on, in the project's Tickets tab">
+                                      <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconTicket}" /></MenuItem.Icon>
+                                    </MenuItem>
                                     <Separator />
                                     <MenuItem Classes="menusection" Header="Other devices" IsEnabled="False" />
                                     <!-- The item ticks itself as it's clicked, then runs the command, so the binding stays one-way -->
@@ -1237,6 +1303,10 @@
                         <MenuItem Header="Open project files" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenProjectFilesCommand}" CommandParameter="{Binding}">
                           <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconFiles}" /></MenuItem.Icon>
                         </MenuItem>
+                        <!-- The project's tickets (DESIGN.md §18, "Tickets"): an empty tab says how to add a source -->
+                        <MenuItem Header="Tickets" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenTicketsCommand}" CommandParameter="{Binding}">
+                          <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconTicket}" /></MenuItem.Icon>
+                        </MenuItem>
                         <!-- History listing only this project's sessions (DESIGN.md §9, "History") -->
                         <MenuItem Header="History for this folder" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenHistoryForGroupCommand}" CommandParameter="{Binding}">
                           <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconHistory}" /></MenuItem.Icon>
@@ -1289,6 +1359,7 @@
                     </Button.Flyout>
                   </Button>
                   <ContentControl Content="{Binding Files}" IsVisible="{Binding HasFiles}" ContentTemplate="{StaticResource ProjectFilesSquare}" />
+                  <ContentControl Content="{Binding Tickets}" IsVisible="{Binding HasTickets}" ContentTemplate="{StaticResource TicketsSquare}" />
                   <ItemsControl ItemsSource="{Binding Tabs}" IsVisible="{Binding IsExpanded}">
                     <ItemsControl.ItemsPanel>
                       <ItemsPanelTemplate>
@@ -1419,6 +1490,11 @@
                               <MenuItem Header="Copy session ID" Command="{Binding CopySessionIdCommand}" IsVisible="{Binding HasSessionId}"
                                         ToolTip.Tip="What claude --resume takes">
                                 <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconCopy}" /></MenuItem.Icon>
+                              </MenuItem>
+                              <!-- The ticket the tab was started on (DESIGN.md §18, "Tickets") -->
+                              <MenuItem Header="Open ticket" Command="{Binding $parent[UserControl].((vm:ShellViewModel)DataContext).OpenTabTicketCommand}" CommandParameter="{Binding}"
+                                        IsVisible="{Binding HasTicket}" ToolTip.Tip="The ticket this tab was started on, in the project's Tickets tab">
+                                <MenuItem.Icon><Path Classes="menuicon" Data="{StaticResource IconTicket}" /></MenuItem.Icon>
                               </MenuItem>
                               <Separator />
                               <MenuItem Classes="menusection" Header="Other devices" IsEnabled="False" />
@@ -1685,6 +1761,12 @@
             <DataTemplate DataType="vm:ProjectFilesViewModel">
               <Border Classes="island">
                 <views:ProjectFilesView />
+              </Border>
+            </DataTemplate>
+            <!-- A group's Tickets tab (DESIGN.md §18, "Tickets") -->
+            <DataTemplate DataType="vm:TicketsViewModel">
+              <Border Classes="island">
+                <views:TicketsView />
               </Border>
             </DataTemplate>
             <!-- A project run's log (DESIGN.md §18, "Project tools", "A run's log") -->

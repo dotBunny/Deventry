@@ -418,10 +418,23 @@ public static class ProjectFile
 
     /// <summary>
     /// Replaces one file's <c>tickets</c> with <paramref name="entries"/>, keeping its other keys, and writes it indented,
-    /// as <see cref="WriteLinks"/> does. Creates the file when there's none.
+    /// as <see cref="WriteLinks"/> does. Creates the file when there's none. With none left, <c>tickets</c> goes, rather
+    /// than an empty list, which would turn finding a source from git off: the project's settings removing the last
+    /// source bring the one from git back.
     /// </summary>
     /// <exception cref="InvalidOperationException">The file exists but isn't JSON.</exception>
-    public static void WriteTickets(string folder, ProjectFileScope scope, IEnumerable<JsonNode?> entries) => WriteList(folder, scope, "tickets", entries);
+    public static void WriteTickets(string folder, ProjectFileScope scope, IEnumerable<JsonNode?> entries)
+    {
+        var list = entries.ToList();
+        if (list.Count == 0)
+        {
+            WriteValue(folder, scope, "tickets", null);
+        }
+        else
+        {
+            WriteList(folder, scope, "tickets", list);
+        }
+    }
 
     private static void WriteList(string folder, ProjectFileScope scope, string key, IEnumerable<JsonNode?> entries)
     {

@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Deventry.App.ViewModels"
+             xmlns:settings="using:Deventry.App.ViewModels.Settings"
+             xmlns:c="using:Deventry.App.Controls"
+             x:Class="Deventry.App.Views.Settings.ProjectTicketsPageView" ClipToBounds="False"
+             x:DataType="settings:ProjectTicketsPage">
+  <!-- The project's Tickets (DESIGN.md §14, "The project's settings"; §18, "Tickets"). Saved as each change is made. -->
+  <StackPanel x:Name="TicketsPage" Spacing="16">
+    <c:SettingsSection Key="tickets" Description="Shared sources are in deventry.json, committed with the project; yours alone are in deventry.local.json. With neither naming any, a GitHub repository is found from the git remote. Saving rewrites the file, so comments in it are dropped.">
+      <c:SettingRow Key="project.tickets" Title="" IsStacked="True">
+        <StackPanel Spacing="10" DataContext="{Binding Project}" x:DataType="vm:ProjectSettingsViewModel">
+          <ItemsControl ItemsSource="{Binding TicketFileErrors}" IsVisible="{Binding HasTicketFileErrors}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <TextBlock Classes="small error" Text="{Binding}" TextWrapping="Wrap" />
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <TextBlock Classes="muted small" Text="No ticket sources yet." IsVisible="{Binding !HasTicketSources}" />
+          <ListBox ItemsSource="{Binding TicketSources}" SelectedItem="{Binding SelectedTicketSource}" MaxHeight="300"
+                   IsVisible="{Binding HasTicketSources}" AutomationProperties.Name="Ticket sources">
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="vm:ProjectTicketRow">
+                <StackPanel Spacing="1">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Classes="muted small" Text="{Binding FileText}" VerticalAlignment="Center" />
+                  </Grid>
+                  <TextBlock Classes="muted small" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" IsVisible="{Binding !HasProblem}" />
+                  <TextBlock Classes="small warning" Text="{Binding Problem}" TextWrapping="Wrap" IsVisible="{Binding HasProblem}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <WrapPanel ItemSpacing="6" LineSpacing="6">
+            <Button Content="Add…" Command="{Binding AddTicketSourceCommand}" />
+            <Button Content="Edit…" Command="{Binding EditTicketSourceCommand}" />
+            <Button Content="Remove" Command="{Binding RemoveTicketSourceCommand}" />
+            <Button Content="Move up" Command="{Binding MoveTicketSourceUpCommand}" />
+            <Button Content="Move down" Command="{Binding MoveTicketSourceDownCommand}" />
+          </WrapPanel>
+          <TextBlock Classes="small error" Text="{Binding TicketSourcesError}" TextWrapping="Wrap" IsVisible="{Binding HasTicketSourcesError}" />
+        </StackPanel>
+      </c:SettingRow>
+    </c:SettingsSection>
+  </StackPanel>
+</UserControl>

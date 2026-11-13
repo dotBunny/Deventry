@@ -225,6 +225,12 @@
                 <DataTemplate DataType="settings:NotificationsPage">
                   <pages:NotificationsPageView />
                 </DataTemplate>
+                <DataTemplate DataType="settings:AllTicketProvidersPage">
+                  <pages:AllTicketProvidersPageView />
+                </DataTemplate>
+                <DataTemplate DataType="settings:TicketProviderPage">
+                  <pages:TicketProviderPageView />
+                </DataTemplate>
                 <DataTemplate DataType="settings:AllClientsPage">
                   <pages:AllClientsPageView />
                 </DataTemplate>

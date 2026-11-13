@@ -100,6 +100,9 @@ public interface ITicketProviderType
     /// <summary>A source as a <c>tickets</c> entry: <paramref name="raw"/>'s other fields kept, its own written over them.</summary>
     JsonObject ToJson(TicketSource source, JsonNode? raw = null);
 
+    /// <summary>It finds a project's source from its git remote (GitHub's), which Settings can turn off.</summary>
+    bool FindsFromGit { get; }
+
     /// <summary>
     /// The source a folder whose git remote is <paramref name="remoteUrl"/> has, when the remote is on one of
     /// <paramref name="servers"/>; null otherwise, and for a provider that finds none from git.

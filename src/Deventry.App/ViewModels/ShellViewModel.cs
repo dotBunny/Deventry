@@ -368,12 +368,15 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         }
         // The Project Files tabs come back every time, as pinned tabs do (DESIGN.md §18, "Project files").
         RestoreProjectFiles();
+        // And the Tickets tabs (DESIGN.md §18, "Tickets").
+        RestoreTickets();
         RestoreGroupOrder();
         // Claude Code's projects, or the offer to show them (DESIGN.md §4, "Claude Code's projects").
         StartClaudeProjects();
         RestorePanes(snapshot is null ? state.PaneTabIds : snapshot.PaneTabIds);
         var selectedId = snapshot?.SelectedTabId ?? state.SelectedTabId;
-        Selected = OpenTabs.FirstOrDefault(t => t.Id == selectedId) ?? AllTabs.FirstOrDefault() ?? (IShellTab?)Groups.Select(g => g.Files).FirstOrDefault(f => f is not null);
+        Selected = OpenTabs.FirstOrDefault(t => t.Id == selectedId) ?? AllTabs.FirstOrDefault()
+            ?? (IShellTab?)Groups.Select(g => g.Files).FirstOrDefault(f => f is not null) ?? Groups.Select(g => g.Tickets).FirstOrDefault(t => t is not null);
         UpdatePanes();
         SaveTabs();
         foreach (var tab in AllTabs.Where(t => snapshot?.RunningTabIds.Contains(t.Id) == true))
@@ -505,6 +508,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         OnPropertyChanged(nameof(HasTabs));
         // Its session leaves the group's past sessions (DESIGN.md §4, "Claude Code's projects").
         ApplyClaudeProjects();
+        OnTicketTabsChanged();
     }
 
     /// <summary>The group of <paramref name="folder"/>, made with its remembered color and name when it isn't open.</summary>
@@ -524,6 +528,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         group.MakeFolderTools = MakeFolderTools;
         SetUpGroupAccount(group);
         Groups.Add(group);
+        UpdateTicketSources(group);
         // A pinned group goes up among the pinned ones, and the others keep their place.
         OrderGroups();
         UpdateGroupLabels();
@@ -700,6 +705,10 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         {
             return;
         }
+        if (group?.Tickets is { } tickets)
+        {
+            CloseTickets(tickets);
+        }
         await CloseAllAndTidyAsync(group?.Tabs.Where(t => !t.IsPinned).ToArray() ?? []);
     }
 
@@ -715,6 +724,11 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         if (SelectedFiles is { } files)
         {
             return files.CloseShowingOrTabAsync();
+        }
+        if (SelectedTickets is { } tickets)
+        {
+            CloseTickets(tickets);
+            return Task.CompletedTask;
         }
         if (SelectedRun is { } run)
         {
@@ -755,12 +769,13 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
             var remaining = AllTabs.ToList();
             Selected = _panes.Count > 0 ? _panes[Math.Min(pane, _panes.Count - 1)]
                 : remaining.Count > 0 ? remaining[Math.Clamp(index, 0, remaining.Count - 1)]
-                : group?.Files ?? Groups.Select(g => g.Files).FirstOrDefault(f => f is not null);
+                : (IShellTab?)group?.Files ?? (IShellTab?)group?.Tickets ?? Groups.Select(g => g.Files).FirstOrDefault(f => f is not null);
         }
         else if (closedPanes > 0)
         {
             UpdatePanes();
         }
+        OnTicketTabsChanged();
         SaveTabs();
         OnTabStatusChanged();
         _services.RemoteClients.OnTabClosed(tab);
@@ -814,7 +829,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         }
         if (SelectedTab is null)
         {
-            var first = SelectedFiles?.Group.Tabs.FirstOrDefault() is { } groupFirst ? tabs.IndexOf(groupFirst)
+            var first = (SelectedFiles?.Group ?? SelectedTickets?.Group)?.Tabs.FirstOrDefault() is { } groupFirst ? tabs.IndexOf(groupFirst)
                 : SelectedLog is { } log && TabOf(log) is { } owner ? tabs.IndexOf(owner) + 1
                 : 0;
             SelectedTab = tabs[(offset > 0 ? first : first - 1 + tabs.Count) % tabs.Count];
@@ -1158,6 +1173,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
     {
         var tabs = AllTabs.ToArray();
         var files = Groups.Select(g => g.Files).OfType<ProjectFilesViewModel>().ToArray();
+        var tickets = Groups.Select(g => g.Tickets).OfType<TicketsViewModel>().ToArray();
         var selected = _services.State.SelectedTabId;
         var panes = _services.State.PaneTabIds;
         _services.EditorLogs.Follow([], []);
@@ -1171,6 +1187,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         OpenTabs.Clear();
         OnPropertyChanged(nameof(HasTabs));
         await Task.WhenAll(files.Select(f => f.DisposeAsync().AsTask()));
+        await Task.WhenAll(tickets.Select(t => t.DisposeAsync().AsTask()));
         // A turn is left as it is, not interrupted, so Claude Code can carry it on after the restart.
         await Task.WhenAll(tabs.Select(t => t.CloseAsync(killProcesses: true, interruptTurn: false).AsTask()));
         OnTabStatusChanged();
@@ -1338,6 +1355,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         // One of Claude Code's projects with nothing open is placed by its sessions, not saved (DESIGN.md §4, "Claude Code's projects").
         state.GroupOrder = Groups.Where(g => !g.IsProjectOnly).Select(g => g.Folder).ToList();
         state.ProjectFiles = Groups.Select(g => g.Files).OfType<ProjectFilesViewModel>().Select(f => f.CaptureState()).ToList();
+        state.Tickets = Groups.Select(g => g.Tickets).OfType<TicketsViewModel>().Select(t => t.CaptureState()).ToList();
         _services.SaveState();
     }
 
@@ -1365,6 +1383,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         ToolWindows.Dispose();
         IdleUnloadTicker.Stop();
         await Task.WhenAll(Groups.Select(g => g.Files).OfType<ProjectFilesViewModel>().ToArray().Select(f => f.DisposeAsync().AsTask()));
+        await Task.WhenAll(Groups.Select(g => g.Tickets).OfType<TicketsViewModel>().ToArray().Select(t => t.DisposeAsync().AsTask()));
         await Task.WhenAll(AllTabs.ToArray().Select(t => t.DisposeAsync().AsTask()));
     }
 }

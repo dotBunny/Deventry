@@ -397,6 +397,10 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
             {
                 rows.Add(new InfoRow("Branch", branch));
             }
+            if (TicketRow is { } ticket)
+            {
+                rows.Add(ticket);
+            }
             AddWorktreeRows(rows);
             AddAccountInfoRows(rows);
             rows.Add(new InfoRow("Model", $"{ModelName ?? "Default"} · {EffortName}"));

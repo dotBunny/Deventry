@@ -130,6 +130,7 @@ public partial class ShellView : UserControl
             { DataContext: TabViewModel { IsRenaming: false } tab } when button.Classes.Contains("tab") => tab,
             // A Project Files tab's row, and a run's, only go out to the panes (DESIGN.md §18, "Project files", "Project tools").
             { DataContext: ProjectFilesViewModel files } when button.Classes.Contains("tab") => files,
+            { DataContext: TicketsViewModel tickets } when button.Classes.Contains("tab") => tickets,
             { DataContext: ProjectRunViewModel run } when button.Classes.Contains("runrow") => run,
             { DataContext: EditorLogViewModel log } when button.Classes.Contains("logrow") => log,
             { DataContext: TabGroupViewModel group } when button.Classes.Contains("grouplabel") => group,

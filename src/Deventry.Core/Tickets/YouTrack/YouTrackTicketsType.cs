@@ -96,6 +96,8 @@ public sealed class YouTrackTicketsType : ITicketProviderType
         }
     }
 
+    public bool FindsFromGit => false;
+
     /// <summary>YouTrack isn't found from git: a project's files name its sources.</summary>
     public TicketSource? FromRemote(string remoteUrl, IReadOnlyCollection<string> servers) => null;
 

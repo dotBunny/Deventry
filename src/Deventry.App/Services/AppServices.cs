@@ -176,6 +176,7 @@ public sealed class AppServices : IAsyncDisposable
         Perforce = new PerforceService(this, credentials ?? new UnavailableCredentialStore());
         Accounts = new AccountsService(this, credentials ?? new UnavailableCredentialStore());
         RemoteClients = new RemoteClientsService(this, credentials ?? new UnavailableCredentialStore(), userPresence ?? new NoUserPresence());
+        Tickets = new TicketsService(this, credentials ?? new UnavailableCredentialStore());
         ProjectTools = new ProjectToolsService(this, systemProcesses, unrealRegistry ?? NoUnrealEngineRegistry.Instance, otherPrograms);
         ServiceStatus = new ServiceStatusService(this);
         LiveSessions = new LiveSessionsService(this, systemProcesses);
@@ -370,6 +371,12 @@ public sealed class AppServices : IAsyncDisposable
     /// Telegram's and Discord's, started once the tabs are up.
     /// </summary>
     public RemoteClientsService RemoteClients { get; }
+
+    /// <summary>
+    /// The ticket providers (DESIGN.md §18, "Tickets"): GitHub's and YouTrack's servers, their tokens, and a folder's
+    /// ticket sources, for the groups' Tickets tabs.
+    /// </summary>
+    public TicketsService Tickets { get; }
 
     /// <summary>
     /// Keeping the computer from sleeping (DESIGN.md §9, "Keeping the computer awake"): Settings → General's <b>Keep

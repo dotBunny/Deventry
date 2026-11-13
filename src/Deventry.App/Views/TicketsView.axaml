@@ -1,0 +1,278 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Deventry.App.ViewModels"
+             xmlns:tickets="using:Deventry.Core.Tickets"
+             xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
+             x:Class="Deventry.App.Views.TicketsView"
+             x:DataType="vm:TicketsViewModel">
+  <!-- A folder group's Tickets tab (DESIGN.md §18, "Tickets"): the list at the left, the ticket chosen at the right, and in
+       a narrow pane the ticket in the list's place. The list's look is the Files tab's explorer's. -->
+  <UserControl.Styles>
+    <StyleInclude Source="avares://Deventry/Themes/ConversationStyles.axaml" />
+    <StyleInclude Source="avares://Deventry/Themes/ProjectFilesStyles.axaml" />
+    <Style Selector="TextBlock.tickettitle">
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="ListBox.tickets ListBoxItem">
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="Border.ticketsection">
+      <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+      <Setter Property="BorderThickness" Value="0,1,0,0" />
+      <Setter Property="Padding" Value="0,12,0,0" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- A pane's header, with tabs side by side (DESIGN.md §18, "Split panes") -->
+    <Border x:Name="PaneHeader" Classes="paneheader" Classes.focused="{Binding IsSelected}" IsVisible="{Binding IsInSplit}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Border Classes="panecolor" Background="{Binding PaneColor, Converter={x:Static vm:Converters.ColorBrush}}" />
+          <TextBlock Classes="small" FontWeight="SemiBold" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Classes="muted small" Text="{Binding Folder}" TextTrimming="PathSegmentEllipsis" VerticalAlignment="Center" />
+        <Button Grid.Column="2" Classes="flat" Padding="6,4" VerticalAlignment="Center" Command="{Binding ClosePaneCommand}"
+                ToolTip.Tip="Close pane: the tab stays open in the sidebar" AutomationProperties.Name="Close pane">
+          <Path Data="{StaticResource IconClose}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.4" Width="8" Height="8" Stretch="Uniform" />
+        </Button>
+      </Grid>
+    </Border>
+
+    <Grid x:Name="Body" Grid.Row="1" ColumnDefinitions="Auto,*">
+      <!-- The list ("The list") -->
+      <Border x:Name="ListColumn" Classes="explorer" Width="320" IsVisible="{Binding ShowsList}">
+        <DockPanel>
+          <Border DockPanel.Dock="Top" Classes="explorerheader">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="4">
+              <TextBlock Classes="explorertitle" Text="Tickets" />
+              <ComboBox Grid.Column="1" Classes="small" ItemsSource="{Binding SourceChoices}" SelectedItem="{Binding SelectedSource}"
+                        IsVisible="{Binding HasSeveralSources}" MaxWidth="200" HorizontalAlignment="Left" AutomationProperties.Name="Ticket source" />
+              <Button Grid.Column="2" Classes="flat" Padding="6,4" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh (F5)" AutomationProperties.Name="Refresh">
+                <Path Data="{StaticResource IconRestart}" Stroke="{DynamicResource MutedTextBrush}" StrokeThickness="1.3" Width="11" Height="11" Stretch="Uniform" />
+              </Button>
+              <Button Grid.Column="3" Classes="flat" Padding="6,4" ToolTip.Tip="More" AutomationProperties.Name="More ticket actions">
+                <Path Data="{StaticResource IconMore}" Fill="{DynamicResource MutedTextBrush}" Width="12" Height="12" Stretch="None" />
+                <Button.Flyout>
+                  <MenuFlyout>
+                    <MenuItem Header="Open in the browser" Command="{Binding OpenListInBrowserCommand}" IsEnabled="{Binding HasSources}"
+                              ToolTip.Tip="The source's own list of tickets" />
+                    <MenuItem Header="Ticket sources…" Command="{Binding EditSourcesCommand}" ToolTip.Tip="Where the project's tickets come from, in its settings" />
+                    <MenuItem Header="{Binding ProviderSettingsText}" Command="{Binding OpenProviderSettingsCommand}" ToolTip.Tip="Its servers, and how Deventry signs in" />
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
+            </Grid>
+          </Border>
+
+          <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="10,4,10,8">
+            <TextBox x:Name="FilterBox" Text="{Binding FilterText}" PlaceholderText="Filter tickets" ToolTip.Tip="{Binding FilterTip}"
+                     AutomationProperties.Name="Filter tickets" IsEnabled="{Binding HasSources}" />
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6" IsEnabled="{Binding HasSources}">
+              <ComboBox Classes="small" ItemsSource="{x:Static vm:TicketsViewModel.StateChoices}" SelectedItem="{Binding SelectedState}"
+                        AutomationProperties.Name="Which tickets" />
+              <ToggleButton Grid.Column="1" Classes="small" Content="Mine" IsChecked="{Binding Mine}" IsVisible="{Binding CanFilterMine}"
+                            ToolTip.Tip="Only those assigned to you" />
+              <ComboBox Grid.Column="3" Classes="small" ItemsSource="{x:Static vm:TicketsViewModel.SortChoices}" SelectedItem="{Binding SelectedSort}"
+                        AutomationProperties.Name="Sort" />
+            </Grid>
+            <ItemsControl ItemsSource="{Binding SourceProblems}" IsVisible="{Binding HasSourceProblems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Classes="small warning" Text="{Binding}" TextWrapping="Wrap" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Spacing="6" IsVisible="{Binding HasListError}">
+              <TextBlock Classes="small warning" Text="{Binding ListError}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Classes="small" Content="Try again" Command="{Binding RefreshCommand}" />
+                <Button Classes="small" Content="Settings" Command="{Binding OpenProviderSettingsCommand}" IsVisible="{Binding ErrorOffersSettings}" />
+              </StackPanel>
+            </StackPanel>
+          </StackPanel>
+
+          <Border DockPanel.Dock="Bottom" Padding="10,6" IsVisible="{Binding HasRows}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Classes="muted small" Text="{Binding ShownText}" VerticalAlignment="Center" />
+              <Button Classes="flat small" Content="Load more" Command="{Binding LoadMoreCommand}" IsVisible="{Binding CanLoadMore}" />
+            </StackPanel>
+          </Border>
+
+          <Panel>
+            <ListBox x:Name="TicketList" Classes="tickets" ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedRow}" AutomationProperties.Name="Tickets"
+                     Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate DataType="vm:TicketRowViewModel">
+                  <Grid ColumnDefinitions="12,*" ColumnSpacing="6" ToolTip.Tip="{Binding Tip}" AutomationProperties.Name="{Binding AccessibleName}">
+                    <Ellipse x:Name="StateDot" Width="7" Height="7" VerticalAlignment="Top" Margin="0,6,0,0" Fill="{DynamicResource AccentStatusBrush}"
+                             IsVisible="{Binding IsOpen}" />
+                    <Ellipse Width="7" Height="7" VerticalAlignment="Top" Margin="0,6,0,0" Fill="{DynamicResource MutedTextBrush}" IsVisible="{Binding !IsOpen}" />
+                    <StackPanel Grid.Column="1" Spacing="1">
+                      <TextBlock TextTrimming="CharacterEllipsis">
+                        <Run Text="{Binding Key}" FontWeight="SemiBold" />
+                        <Run Text="{Binding Title}" />
+                      </TextBlock>
+                      <TextBlock Classes="muted small" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel Spacing="10" Margin="16,12" IsVisible="{Binding HasEmptyText}">
+              <TextBlock Classes="muted" Text="{Binding EmptyText}" TextWrapping="Wrap" />
+              <Button Content="Add a ticket source…" Command="{Binding EditSourcesCommand}" IsVisible="{Binding OffersAddSource}" HorizontalAlignment="Left" />
+            </StackPanel>
+            <TextBlock Classes="muted" Text="Loading…" Margin="16,12" IsVisible="{Binding IsLoading}" VerticalAlignment="Top" />
+          </Panel>
+        </DockPanel>
+      </Border>
+
+      <!-- The ticket chosen ("A ticket") -->
+      <ScrollViewer x:Name="TicketColumn" Grid.Column="1" IsVisible="{Binding ShowsTicket}" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="20,14,20,24" Spacing="10" MaxWidth="900" HorizontalAlignment="Stretch">
+          <Button Classes="flat small" Content="← Tickets" Command="{Binding BackToListCommand}" IsVisible="{Binding IsNarrow}" HorizontalAlignment="Left" />
+          <TextBlock Classes="muted" Text="Choose a ticket to read it, and Work on it to start a tab on it."
+                     IsVisible="{Binding !HasDetail}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted small" Text="Loading the ticket…" IsVisible="{Binding IsDetailLoading}" />
+          <TextBlock Classes="small warning" Text="{Binding DetailError}" TextWrapping="Wrap" IsVisible="{Binding HasDetailError}" />
+
+          <ContentControl Content="{Binding Detail}" IsVisible="{Binding HasDetail}">
+            <ContentControl.ContentTemplate>
+              <DataTemplate DataType="vm:TicketDetailViewModel">
+                <StackPanel Spacing="10">
+                  <SelectableTextBlock Classes="tickettitle" TextWrapping="Wrap">
+                    <Run Text="{Binding Key}" Foreground="{DynamicResource MutedTextBrush}" />
+                    <Run Text=" " />
+                    <Run Text="{Binding Title}" />
+                  </SelectableTextBlock>
+                  <TextBlock Classes="muted small" Text="{Binding StateLine}" TextWrapping="Wrap" />
+                  <TextBlock Classes="small" Text="{Binding FieldsLine}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
+                             ToolTip.Tip="{Binding FieldsLine}" IsVisible="{Binding HasFields}" />
+                  <!-- The open tabs started on it ("Tabs remember their ticket") -->
+                  <ItemsControl ItemsSource="{Binding Tabs}" IsVisible="{Binding HasTabs}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:TabViewModel">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Classes="small muted" Text="Tab on it:" VerticalAlignment="Center" />
+                          <TextBlock Classes="small" Text="{Binding DisplayName}" VerticalAlignment="Center" MaxWidth="360" TextTrimming="CharacterEllipsis" />
+                          <Button Classes="flat small" Content="Go to tab" CommandParameter="{Binding}"
+                                  Command="{Binding $parent[UserControl].((vm:TicketsViewModel)DataContext).GoToTabCommand, FallbackValue={x:Null}}" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </DataTemplate>
+            </ContentControl.ContentTemplate>
+          </ContentControl>
+
+          <!-- Its actions ("Work on it", "Writing back") -->
+          <WrapPanel ItemSpacing="8" LineSpacing="8" IsVisible="{Binding HasDetail}">
+            <SplitButton x:Name="WorkOnIt" Classes="accent" Command="{Binding WorkOnItCommand}" ToolTip.Tip="{Binding WorkOnItTip}"
+                         AutomationProperties.Name="Work on it" IsEnabled="{Binding CanWorkOnIt}">
+              <TextBlock Text="Work on it" />
+              <SplitButton.Flyout>
+                <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem Header="In a new tab" Command="{Binding WorkOnItCommand}" CommandParameter="tab" />
+                  <MenuItem Header="In a new tab in a worktree" Command="{Binding WorkOnItCommand}" CommandParameter="worktree" IsVisible="{Binding CanUseWorktree}"
+                            ToolTip.Tip="A worktree named for the ticket, on its own branch" />
+                </MenuFlyout>
+              </SplitButton.Flyout>
+            </SplitButton>
+            <Button Content="{Binding Detail.OpenOnText, FallbackValue=''}" Command="{Binding OpenTicketInBrowserCommand}" />
+            <Button IsVisible="{Binding CanChange}" Content="Comment…" Command="{Binding StartCommentCommand}" />
+            <Button IsVisible="{Binding HasStates}" Content="Change state" AutomationProperties.Name="Change the ticket's state">
+              <Button.Flyout>
+                <Flyout Placement="BottomEdgeAlignedLeft" FlyoutPresenterClasses="sectioned">
+                  <ItemsControl ItemsSource="{Binding States}" MinWidth="200">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="tickets:TicketStateChoice">
+                        <Button Classes="flat menuentry" Content="{Binding Label}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnStatePicked"
+                                Command="{Binding $parent[UserControl].((vm:TicketsViewModel)DataContext).ChooseStateCommand, FallbackValue={x:Null}}" CommandParameter="{Binding}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </Flyout>
+              </Button.Flyout>
+            </Button>
+            <Button Classes="flat" Padding="6,4" ToolTip.Tip="More" AutomationProperties.Name="More for this ticket">
+              <Path Data="{StaticResource IconMore}" Fill="{DynamicResource MutedTextBrush}" Width="12" Height="12" Stretch="None" />
+              <Button.Flyout>
+                <MenuFlyout>
+                  <MenuItem Header="Copy link" Command="{Binding CopyLinkCommand}" />
+                  <MenuItem Header="Copy key" Command="{Binding CopyKeyCommand}" />
+                  <Separator IsVisible="{Binding CanChange}" />
+                  <MenuItem Header="Assign to me" Command="{Binding AssignToMeCommand}" IsVisible="{Binding CanChange}" />
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+          </WrapPanel>
+          <!-- A state that closes the ticket asks first, in place -->
+          <Border Classes="settingsnote caution" IsVisible="{Binding StateChange.IsOpen}">
+            <StackPanel Spacing="8">
+              <TextBlock Text="{Binding StateChangeQuestion}" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="accent" Content="{Binding StateChange.Value.Label, FallbackValue=''}" Command="{Binding StateChange.ConfirmCommand}" />
+                <Button Content="Cancel" Command="{Binding StateChange.CancelCommand}" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+          <TextBlock Classes="muted small" Text="Changing the ticket…" IsVisible="{Binding IsChanging}" />
+          <TextBlock Classes="small warning" Text="{Binding ChangeError}" TextWrapping="Wrap" IsVisible="{Binding HasChangeError}" />
+
+          <ContentControl Content="{Binding Detail}" IsVisible="{Binding HasDetail}">
+            <ContentControl.ContentTemplate>
+              <DataTemplate DataType="vm:TicketDetailViewModel">
+                <StackPanel Spacing="12">
+                  <!-- Its text, drawn as a reply is: links open in the browser, web images wait for Load image -->
+                  <Border Classes="ticketsection">
+                    <md:MarkdownRenderer MarkdownBuilder="{Binding Body}"
+                                         LinkCommand="{Binding $parent[UserControl].((vm:TicketsViewModel)DataContext).OpenLinkCommand, FallbackValue={x:Null}}" />
+                  </Border>
+                  <Border Classes="ticketsection" IsVisible="{Binding HasComments}">
+                    <StackPanel Spacing="12">
+                      <TextBlock Classes="muted small" FontWeight="SemiBold" Text="{Binding CommentsHeader}" />
+                      <TextBlock Classes="muted small" Text="{Binding LeftOutText}" IsVisible="{Binding HasLeftOut}" />
+                      <ItemsControl ItemsSource="{Binding Comments}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Spacing="14" />
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate DataType="vm:TicketCommentViewModel">
+                            <StackPanel Spacing="4">
+                              <TextBlock Classes="small">
+                                <Run Text="{Binding Author}" FontWeight="SemiBold" />
+                                <Run Text=" · " Foreground="{DynamicResource MutedTextBrush}" />
+                                <Run Text="{Binding When}" Foreground="{DynamicResource MutedTextBrush}" />
+                              </TextBlock>
+                              <md:MarkdownRenderer MarkdownBuilder="{Binding Markdown}"
+                                                   LinkCommand="{Binding $parent[UserControl].((vm:TicketsViewModel)DataContext).OpenLinkCommand, FallbackValue={x:Null}}" />
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </DataTemplate>
+            </ContentControl.ContentTemplate>
+          </ContentControl>
+
+          <!-- Comment… ("Writing back") -->
+          <StackPanel Spacing="8" IsVisible="{Binding IsCommenting}">
+            <TextBox Text="{Binding CommentText}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="80" PlaceholderText="Your comment, in Markdown"
+                     AutomationProperties.Name="Comment" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="accent" Content="Comment" Command="{Binding PostCommentCommand}" />
+              <Button Content="Cancel" Command="{Binding CancelCommentCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

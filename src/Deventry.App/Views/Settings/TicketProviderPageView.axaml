@@ -1,0 +1,112 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="using:Deventry.App.ViewModels.Settings"
+             xmlns:c="using:Deventry.App.Controls"
+             x:Class="Deventry.App.Views.Settings.TicketProviderPageView" ClipToBounds="False"
+             x:DataType="settings:TicketProviderPage">
+  <!-- A ticket provider's page in Tickets (DESIGN.md §18, "Tickets"), drawn from what the provider declares, so a provider
+       needs no view of its own: its servers and how Deventry signs in to each, finding a project's repository from git,
+       and letting Deventry change tickets -->
+  <StackPanel Spacing="32">
+    <c:SettingsSection Key="{Binding Kind, StringFormat='{}{0}.servers'}">
+      <c:SettingRow Key="{Binding ServersKey}" IsStacked="True">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="small warning" TextWrapping="Wrap" Text="{Binding CredentialStoreUnavailableText}" IsVisible="{Binding !IsCredentialStoreAvailable}" />
+          <TextBlock Classes="small muted" TextWrapping="Wrap" Text="{Binding NoServersText}" IsVisible="{Binding HasNoServers}" />
+          <ItemsControl ItemsSource="{Binding Servers}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Spacing="16" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="settings:TicketServerRow">
+                <Border Classes="settingsnote">
+                  <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Name}" VerticalAlignment="Center" />
+                      <Button Grid.Column="1" Classes="small" Content="Check" Command="{Binding CheckCommand}" ToolTip.Tip="Ask the server who Deventry is signed in as" />
+                      <Button Grid.Column="2" Classes="small" Content="Remove…" Command="{Binding ServerRemoval.AskCommand}" IsVisible="{Binding CanRemove}"
+                              AutomationProperties.Name="{Binding Name, StringFormat='Remove {0}'}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding HasSignInChoice}">
+                      <TextBlock Text="Sign in with" VerticalAlignment="Center" />
+                      <ComboBox Grid.Column="1" ItemsSource="{Binding SignInChoices}" SelectedItem="{Binding SelectedSignIn}" MinWidth="240"
+                                AutomationProperties.Name="Sign in with" />
+                    </Grid>
+                    <TextBlock Classes="small muted" Text="{Binding StateText}" TextWrapping="Wrap" IsVisible="{Binding !IsTrouble}" />
+                    <TextBlock Classes="small warning" Text="{Binding StateText}" TextWrapping="Wrap" IsVisible="{Binding IsTrouble}" />
+                    <!-- A token: Set token…, kept only in the credential store -->
+                    <StackPanel Spacing="8" IsVisible="{Binding UsesToken}">
+                      <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsSettingToken}">
+                        <Button Content="{Binding SetTokenText}" Command="{Binding StartSettingTokenCommand}" />
+                        <Button Content="Remove…" Command="{Binding TokenRemoval.AskCommand}" IsVisible="{Binding HasToken}"
+                                AutomationProperties.Name="{Binding Name, StringFormat='Remove the token for {0}'}" />
+                      </StackPanel>
+                      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding IsSettingToken}">
+                        <TextBox Text="{Binding NewToken}" PasswordChar="•" PlaceholderText="{Binding TokenPlaceholder}" AutomationProperties.Name="{Binding TokenName}" />
+                        <Button Grid.Column="1" Classes="accent" Content="Save token" Command="{Binding SaveTokenCommand}" IsEnabled="{Binding !IsChecking}" />
+                        <Button Grid.Column="2" Content="Cancel" Command="{Binding CancelTokenCommand}" />
+                      </Grid>
+                      <TextBlock Classes="small muted" TextWrapping="Wrap" Text="{Binding TokenSteps}" />
+                      <Border Classes="settingsnote" IsVisible="{Binding TokenRemoval.IsOpen}">
+                        <StackPanel Spacing="8">
+                          <TextBlock TextWrapping="Wrap" Text="Remove this token from this computer? Deventry reads this server without signing in until there's another." />
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Classes="accent" Content="Remove" Command="{Binding TokenRemoval.ConfirmCommand}" />
+                            <Button Content="Cancel" Command="{Binding TokenRemoval.CancelCommand}" />
+                          </StackPanel>
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                    <!-- Sign in with GitHub: a code to enter at GitHub -->
+                    <StackPanel Spacing="8" IsVisible="{Binding UsesDevice}">
+                      <Button Content="Sign in with GitHub…" Command="{Binding SignInWithGitHubCommand}" IsVisible="{Binding !IsSigningIn}" HorizontalAlignment="Left" />
+                      <StackPanel Spacing="8" IsVisible="{Binding IsSigningIn}">
+                        <TextBlock TextWrapping="Wrap" Text="Enter this code at GitHub to sign Deventry in:" />
+                        <SelectableTextBlock Classes="output" FontSize="18" Text="{Binding DeviceCode}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <Button Classes="accent" Content="Copy and open GitHub" Command="{Binding CopyCodeAndOpenCommand}" />
+                          <Button Content="Cancel" Command="{Binding CancelSignInCommand}" />
+                        </StackPanel>
+                      </StackPanel>
+                    </StackPanel>
+                    <TextBlock Classes="small warning" TextWrapping="Wrap" Text="{Binding Error}" IsVisible="{Binding HasError}" />
+                    <Border Classes="settingsnote" IsVisible="{Binding ServerRemoval.IsOpen}">
+                      <StackPanel Spacing="8">
+                        <TextBlock TextWrapping="Wrap" Text="{Binding RemoveServerText}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                          <Button Classes="accent" Content="Remove" Command="{Binding ServerRemoval.ConfirmCommand}" />
+                          <Button Content="Cancel" Command="{Binding ServerRemoval.CancelCommand}" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Button Content="{Binding AddServerText}" Command="{Binding StartAddingServerCommand}" IsVisible="{Binding !IsAddingServer}" HorizontalAlignment="Left" />
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding IsAddingServer}">
+            <TextBox Text="{Binding NewServer}" PlaceholderText="{Binding ServerPlaceholder}" AutomationProperties.Name="The server's address" />
+            <Button Grid.Column="1" Classes="accent" Content="Add" Command="{Binding AddServerCommand}" />
+            <Button Grid.Column="2" Content="Cancel" Command="{Binding CancelAddingServerCommand}" />
+          </Grid>
+          <TextBlock Classes="small warning" TextWrapping="Wrap" Text="{Binding ServerError}" IsVisible="{Binding HasServerError}" />
+        </StackPanel>
+      </c:SettingRow>
+    </c:SettingsSection>
+
+    <c:SettingsSection Key="{Binding ProjectsSection}" IsVisible="{Binding FindsFromGit}">
+      <c:SettingRow Key="{Binding FindFromGitKey}">
+        <ToggleSwitch IsChecked="{Binding FindFromGit}" />
+      </c:SettingRow>
+    </c:SettingsSection>
+
+    <c:SettingsSection Key="{Binding Kind, StringFormat='{}{0}.changes'}">
+      <c:SettingRow Key="{Binding AllowChangesKey}">
+        <ToggleSwitch IsChecked="{Binding AllowChanges}" />
+      </c:SettingRow>
+    </c:SettingsSection>
+  </StackPanel>
+</UserControl>
