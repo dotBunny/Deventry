@@ -15,7 +15,10 @@ public sealed record EditorBackup(string Path, string Text, string Base, DateTim
 /// <summary>
 /// The Project Files tabs' unsaved edits on disk (DESIGN.md §18, "Project files", "Saving"): a file each in
 /// <see cref="FolderName"/> in the data folder, named by a hash of the file's path, written whole or not at all. Saving
-/// the file, or <b>Don't save</b>, deletes its backup. Nothing here throws: one that can't be read reads as none.
+/// the file, or <b>Don't save</b>, deletes its backup. Reading and deleting one wait out something else that has it open
+/// for a moment, as writing it does (<see cref="FileRetry"/>): on Windows a delete fails while a scanner, or a read of
+/// it, has it open, and edits thrown away would come back at launch. Nothing here throws: one that can't be read reads
+/// as none.
 /// </summary>
 public sealed class EditorBackups(string directory, TimeProvider time)
 {
@@ -60,7 +63,8 @@ public sealed class EditorBackups(string directory, TimeProvider time)
     {
         try
         {
-            File.Delete(FileFor(path));
+            var file = FileFor(path);
+            FileRetry.Run(() => File.Delete(file));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -104,7 +108,7 @@ public sealed class EditorBackups(string directory, TimeProvider time)
     {
         try
         {
-            return File.Exists(file) ? JsonSerializer.Deserialize<EditorBackup>(File.ReadAllText(file), Options) : null;
+            return File.Exists(file) ? JsonSerializer.Deserialize<EditorBackup>(FileRetry.Run(() => File.ReadAllText(file)), Options) : null;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or NotSupportedException)
         {

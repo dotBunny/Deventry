@@ -167,4 +167,47 @@ public sealed class EditorBackupsTests : IDisposable
         Assert.False(Directory.Exists(_backups.Directory));
         Assert.Null(_backups.Load(Project("a.txt")));
     }
+
+    /// <summary>
+    /// A delete while something reads the backup, a scanner or a <see cref="EditorBackups.Load"/> on another thread, waits
+    /// for it rather than leaving edits that were thrown away to come back at launch.
+    /// </summary>
+    [Fact]
+    public async Task Deleting_waits_out_a_backup_held_open_for_a_moment()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows refuses to delete an open file.");
+        var path = Project("Player.cpp");
+        _backups.Save(path, "my edit", EditorBackups.Hash("a"));
+        var held = new FileStream(Assert.Single(BackupFiles), FileMode.Open, FileAccess.Read, FileShare.Read);
+        var release = Task.Run(async () =>
+        {
+            await Task.Delay(150, TestContext.Current.CancellationToken);
+            await held.DisposeAsync();
+        }, TestContext.Current.CancellationToken);
+
+        _backups.Delete(path);
+        await release;
+
+        Assert.Empty(BackupFiles);
+        Assert.Null(_backups.Load(path));
+    }
+
+    [Fact]
+    public async Task Reading_waits_out_a_backup_held_open_for_a_moment()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows refuses to read a file another has open without sharing it.");
+        var path = Project("Player.cpp");
+        _backups.Save(path, "my edit", EditorBackups.Hash("a"));
+        var held = new FileStream(Assert.Single(BackupFiles), FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        var release = Task.Run(async () =>
+        {
+            await Task.Delay(150, TestContext.Current.CancellationToken);
+            await held.DisposeAsync();
+        }, TestContext.Current.CancellationToken);
+
+        var backup = _backups.Load(path);
+        await release;
+
+        Assert.Equal("my edit", backup?.Text);
+    }
 }
