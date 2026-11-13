@@ -1,30 +1,21 @@
-using System.Security.Cryptography;
-using System.Threading.Channels;
+using Deventry.Core.Remote.Chat;
 using Microsoft.Extensions.Logging;
 
 namespace Deventry.Core.Remote.Telegram;
 
 /// <summary>How the Telegram client paces itself. Tests take the waits out.</summary>
-public sealed record TelegramClientOptions
+public sealed record TelegramClientOptions : ChatBotOptions
 {
-    /// <summary>The least time between two messages or edits: Telegram allows about one a second to a chat.</summary>
-    public TimeSpan MessageSpacing { get; init; } = TimeSpan.FromSeconds(1);
-
     /// <summary>How long Telegram holds a poll waiting for an update.</summary>
     public int PollSeconds { get; init; } = TelegramBotApi.PollSeconds;
 }
 
 /// <summary>
 /// The Telegram bot (DESIGN.md §18, "Remote clients", "Telegram"): long-polls <c>getUpdates</c>, so there's no server
-/// or open port; answers only the paired accounts, in private chats; sends what happens at the desk as messages with
-/// buttons; and sends the user's replies to their tabs. One instance per start: the App makes a new one each time the
-/// bot is turned on or its token changes.
+/// or open port, and writes Telegram's HTML. What it says and does in the chat is every chat bot's
+/// (<see cref="ChatBotClient"/>).
 /// </summary>
-/// <remarks>
-/// Everything it does with its own state runs on one loop, in order: the updates the poll brings, the desk's events
-/// and its timers each post their work there, so nothing in it needs a lock.
-/// </remarks>
-public sealed partial class TelegramClient : IRemoteClient
+public sealed class TelegramClient : ChatBotClient
 {
     public const string ClientKind = "telegram";
 
@@ -36,88 +27,31 @@ public sealed partial class TelegramClient : IRemoteClient
     /// <summary>How long it waits after Telegram says another program polls the bot.</summary>
     public static readonly TimeSpan ConflictRetry = TimeSpan.FromMinutes(1);
 
-    /// <summary>How long stopping waits for what's being sent, such as the closing message.</summary>
-    public static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(5);
-
     public const string TokenRefused = "Telegram didn't accept the bot's token. Set it again in Settings → Remote clients.";
 
     public const string AnotherProgram = "Another Deventry, or another program, is using this bot. Trying again each minute.";
 
     private readonly TelegramBotApi _api;
-    private readonly RemotePairing _pairing;
-    private readonly TimeProvider _time;
-    private readonly ILogger _logger;
     private readonly TelegramClientOptions _options;
-    private readonly Channel<Func<CancellationToken, Task>> _work = Channel.CreateUnbounded<Func<CancellationToken, Task>>(new UnboundedChannelOptions { SingleReader = true });
-    private readonly CancellationTokenSource _polling = new();
-    private readonly CancellationTokenSource _sending = new();
     private readonly TaskCompletionSource _useWebhookAnyway = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    /// <summary>This run's id, which its buttons carry: one from another run is stale.</summary>
-    private readonly string _run = RandomNumberGenerator.GetString("abcdefghijkmnpqrstuvwxyz23456789", 4);
-
-    private IRemoteDesk? _desk;
-    private Task? _pollTask;
-    private Task? _workTask;
-    private int _started;
-
     public TelegramClient(TelegramBotApi api, RemotePairing pairing, TimeProvider time, ILogger logger, TelegramClientOptions? options = null)
+        : base(pairing, time, logger, options)
     {
         _api = api;
-        _pairing = pairing;
-        _time = time;
-        _logger = logger;
         _options = options ?? new TelegramClientOptions();
     }
 
-    public string Kind => ClientKind;
+    public override string Kind => ClientKind;
 
-    public string Name => ClientName;
+    public override string Name => ClientName;
 
-    public RemoteClientState State { get; private set; } = RemoteClientState.Off;
+    protected override ChatFormat Format => TelegramHtml.Instance;
 
-    public event Action<RemoteClientState>? StateChanged;
-
-    /// <summary>The bot's <c>@username</c>, without the @, once <c>getMe</c> has said it.</summary>
-    public string? Identity { get; private set; }
-
-    /// <summary>Raised on the poll's thread when <c>getMe</c> says who the bot is: Settings shows it, and the App keeps it.</summary>
-    public event Action<string>? Identified;
-
-    /// <summary>Raised on the work loop as it sends a message or a file, or takes one from a paired account.</summary>
-    public event Action<RemoteActivity>? Activity;
+    protected override string PairCommand => "start";
 
     /// <summary>The web address the bot sends its updates to, which keeps it from being polled; null when it has none.</summary>
     public string? Webhook { get; private set; }
-
-    /// <summary>Says, silently, that Deventry is back, once it's listening: it said it was closing last time.</summary>
-    public bool AnnounceBack { get; init; }
-
-    /// <summary>For tests: the loop the work runs on, to wait for what's been posted.</summary>
-    internal Task WhenIdleAsync()
-    {
-        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        Post(_ =>
-        {
-            done.TrySetResult();
-            return Task.CompletedTask;
-        });
-        return done.Task;
-    }
-
-    public Task StartAsync(IRemoteDesk desk, CancellationToken cancellationToken = default)
-    {
-        if (Interlocked.Exchange(ref _started, 1) == 1)
-        {
-            throw new InvalidOperationException("A Telegram client starts once; make another to start again.");
-        }
-        _desk = desk;
-        desk.EventRaised += OnDeskEvent;
-        SetState(new RemoteClientState(RemoteClientStatus.Connecting));
-        _workTask = Task.Run(() => RunWorkAsync(_sending.Token), CancellationToken.None);
-        _pollTask = Task.Run(() => PollAsync(_polling.Token), CancellationToken.None);
-        return Task.CompletedTask;
-    }
 
     /// <summary>
     /// <b>Use it for Deventry anyway</b>: takes the bot's webhook away, so it can be polled. Deventry never does by
@@ -130,109 +64,30 @@ public sealed partial class TelegramClient : IRemoteClient
         _useWebhookAnyway.TrySetResult();
     }
 
-    public async Task StopAsync()
-    {
-        if (_desk is { } desk)
-        {
-            desk.EventRaised -= OnDeskEvent;
-        }
-        await _polling.CancelAsync().ConfigureAwait(false);
-        _useWebhookAnyway.TrySetCanceled();
-        _work.Writer.TryComplete();
-        if (_pollTask is { } poll)
-        {
-            await poll.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-        }
-        if (_workTask is { } work)
-        {
-            // What's being sent, such as the closing message, has a moment to go.
-            try
-            {
-                await work.WaitAsync(StopTimeout, _time).ConfigureAwait(false);
-            }
-            catch (TimeoutException)
-            {
-                // What it's sending is cut off; work waiting on something that doesn't hear the cancel is left behind.
-                await _sending.CancelAsync().ConfigureAwait(false);
-                try
-                {
-                    await work.WaitAsync(StopTimeout, _time).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-                }
-                catch (TimeoutException)
-                {
-                    _logger.LogWarning("Telegram: stopped without waiting for what it was sending.");
-                }
-            }
-        }
-        // The loop has ended: nothing else touches the timers now.
-        foreach (var timer in _timers.Values)
-        {
-            timer.Dispose();
-        }
-        _timers.Clear();
-        SetState(RemoteClientState.Off);
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await StopAsync().ConfigureAwait(false);
-        _polling.Dispose();
-        _sending.Dispose();
-    }
-
-    private void SetState(RemoteClientState state)
-    {
-        if (state == State)
-        {
-            return;
-        }
-        State = state;
-        StateChanged?.Invoke(state);
-    }
+    protected override void OnStopping() => _useWebhookAnyway.TrySetCanceled();
 
     // ---- Polling ----------------------------------------------------------------------------------------------------
 
-    /// <summary>After <paramref name="failures"/> failures in a row: 5 seconds, 30, a minute, then every 5 minutes.</summary>
-    public static TimeSpan Backoff(int failures) => failures switch
+    protected override async Task ListenAsync(CancellationToken cancellationToken)
     {
-        <= 1 => TimeSpan.FromSeconds(5),
-        2 => TimeSpan.FromSeconds(30),
-        3 => TimeSpan.FromMinutes(1),
-        _ => TimeSpan.FromMinutes(5),
-    };
-
-    private async Task PollAsync(CancellationToken cancellationToken)
-    {
+        if (!await IdentifyAsync(cancellationToken).ConfigureAwait(false) || !await CheckWebhookAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
         try
         {
-            if (!await IdentifyAsync(cancellationToken).ConfigureAwait(false) || !await CheckWebhookAsync(cancellationToken).ConfigureAwait(false))
-            {
-                return;
-            }
-            try
-            {
-                await _api.SetCommandsAsync(Commands, cancellationToken).ConfigureAwait(false);
-            }
-            catch (TelegramApiException ex)
-            {
-                _logger.LogInformation("Telegram: couldn't set the bot's commands: {Error}", ex.Message);
-            }
-            var since = _time.GetUtcNow();
-            if (AnnounceBack)
-            {
-                Post(token => BroadcastAsync(TelegramFormat.Escape(RemoteMessages.Back(Desk.MachineName)), silent: true, cancellationToken: token));
-            }
-            await ListenAsync(since - StaleAge, cancellationToken).ConfigureAwait(false);
+            await _api.SetCommandsAsync(Commands, cancellationToken).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (TelegramApiException ex)
         {
-            // Stopped.
+            Logger.LogInformation("Telegram: couldn't set the bot's commands: {Error}", ex.Message);
         }
-        catch (Exception ex)
+        var since = Time.GetUtcNow();
+        if (AnnounceBack)
         {
-            _logger.LogError(ex, "Telegram: polling stopped.");
-            SetState(new RemoteClientState(RemoteClientStatus.Failed, $"Deventry stopped listening to the bot: {ex.Message}"));
+            Post(AnnounceBackAsync);
         }
+        await PollAsync(since - StaleAge, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary><c>getMe</c>, until it answers. False when the token was refused.</summary>
@@ -245,8 +100,7 @@ public sealed partial class TelegramClient : IRemoteClient
                 var me = await _api.GetMeAsync(cancellationToken).ConfigureAwait(false);
                 if (me.Username is { Length: > 0 } username)
                 {
-                    Identity = username;
-                    Identified?.Invoke(username);
+                    SetIdentity(username);
                 }
                 return true;
             }
@@ -303,7 +157,7 @@ public sealed partial class TelegramClient : IRemoteClient
         return true;
     }
 
-    private async Task ListenAsync(DateTimeOffset staleBefore, CancellationToken cancellationToken)
+    private async Task PollAsync(DateTimeOffset staleBefore, CancellationToken cancellationToken)
     {
         long? offset = null;
         var first = true;
@@ -343,6 +197,15 @@ public sealed partial class TelegramClient : IRemoteClient
         }
     }
 
+    private Task HandleUpdateAsync(TelegramUpdate update, bool stale, CancellationToken cancellationToken) =>
+        update.Callback is { } callback ? HandleTapAsync(new ChatTap(callback.Id, User(callback.From), callback.Message?.Chat.Id, callback.Message?.MessageId, callback.Data),
+                cancellationToken)
+        : update.Message is { } message ? HandleMessageAsync(new ChatMessage(message.Chat.Id, message.MessageId, message.From is { } from ? User(from) : null, message.Date,
+                message.Text, message.ReplyTo, message.HasMedia, message.Chat.IsPrivate), stale, cancellationToken)
+        : Task.CompletedTask;
+
+    private static ChatUser User(TelegramUser user) => new(user.Id, user.IsBot, user.Name, user.Username);
+
     /// <summary>
     /// Waits after a failed request: a <c>429</c>'s <c>retry_after</c>, a minute for another program polling the bot, or
     /// the backoff, saying why meanwhile.
@@ -353,101 +216,32 @@ public sealed partial class TelegramClient : IRemoteClient
             : ex.IsConflict ? (ConflictRetry, AnotherProgram)
             : (Backoff(failures), ex.Message);
         reason ??= $"Telegram asked Deventry to wait {Formats.Duration(wait)}.";
-        _logger.LogInformation("Telegram: {Error} Trying again in {Wait}.", ex.Message, Formats.Duration(wait));
+        Logger.LogInformation("Telegram: {Error} Trying again in {Wait}.", ex.Message, Formats.Duration(wait));
         // The wait starts before the state says so: whoever reads the state can count on it from then on.
-        var waiting = Task.Delay(wait, _time, cancellationToken);
+        var waiting = Task.Delay(wait, Time, cancellationToken);
         SetState(new RemoteClientState(RemoteClientStatus.Connecting, reason));
         await waiting.ConfigureAwait(false);
     }
 
-    // ---- The work loop ----------------------------------------------------------------------------------------------
+    // ---- Sending ----------------------------------------------------------------------------------------------------
 
-    private void Post(Func<CancellationToken, Task> work) => _work.Writer.TryWrite(work);
+    protected override Task<long> DeliverMessageAsync(long chat, string text, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons, long? replyTo, bool silent,
+        CancellationToken cancellationToken) =>
+        _api.SendMessageAsync(chat, text, buttons, replyTo, silent, cancellationToken);
 
-    private async Task RunWorkAsync(CancellationToken cancellationToken)
-    {
-        await foreach (var work in _work.Reader.ReadAllAsync(CancellationToken.None).ConfigureAwait(false))
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-            try
-            {
-                await work(cancellationToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-            catch (Exception ex)
-            {
-                // One message that can't go never stops the others.
-                _logger.LogWarning("Telegram: {Error}", ex is TelegramApiException ? ex.Message : ex.ToString());
-            }
-        }
-    }
+    protected override Task DeliverEditAsync(long chat, long message, string text, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons, CancellationToken cancellationToken) =>
+        _api.EditMessageTextAsync(chat, message, text, buttons, cancellationToken);
 
-    private DateTimeOffset _nextSend;
+    protected override Task DeliverButtonsAsync(long chat, long message, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons, CancellationToken cancellationToken) =>
+        _api.EditButtonsAsync(chat, message, buttons, cancellationToken);
 
-    /// <summary>Keeps to about a message a second, and waits out a <c>429</c> once before giving up on a message.</summary>
-    private async Task<T> PacedAsync<T>(Func<CancellationToken, Task<T>> call, CancellationToken cancellationToken)
-    {
-        for (var attempt = 0; ; attempt++)
-        {
-            var wait = _nextSend - _time.GetUtcNow();
-            if (wait > TimeSpan.Zero)
-            {
-                await Task.Delay(wait, _time, cancellationToken).ConfigureAwait(false);
-            }
-            try
-            {
-                return await call(cancellationToken).ConfigureAwait(false);
-            }
-            catch (TelegramApiException ex) when (ex.IsTooManyRequests && attempt == 0)
-            {
-                _nextSend = _time.GetUtcNow() + (ex.RetryAfter ?? TimeSpan.FromSeconds(5));
-            }
-            finally
-            {
-                if (_nextSend < _time.GetUtcNow() + _options.MessageSpacing)
-                {
-                    _nextSend = _time.GetUtcNow() + _options.MessageSpacing;
-                }
-            }
-        }
-    }
+    protected override Task<long> DeliverFileAsync(long chat, string fileName, byte[] content, string caption, bool silent, CancellationToken cancellationToken) =>
+        _api.SendDocumentAsync(chat, fileName, content, caption, silent: silent, cancellationToken: cancellationToken);
 
-    private Task PacedAsync(Func<CancellationToken, Task> call, CancellationToken cancellationToken) =>
-        PacedAsync(async token =>
-        {
-            await call(token).ConfigureAwait(false);
-            return true;
-        }, cancellationToken);
+    protected override Task AnswerTapAsync(ChatTap tap, string? text, CancellationToken cancellationToken) =>
+        _api.AnswerCallbackAsync(tap.Id, text, cancellationToken);
 
-    // ---- Timers -----------------------------------------------------------------------------------------------------
-
-    private readonly Dictionary<string, ITimer> _timers = new(StringComparer.Ordinal);
-
-    /// <summary>Runs <paramref name="work"/> on the loop after <paramref name="delay"/>, replacing any timer of the same name.</summary>
-    private void After(string name, TimeSpan delay, Func<CancellationToken, Task> work)
-    {
-        if (_timers.Remove(name, out var old))
-        {
-            old.Dispose();
-        }
-        ITimer? timer = null;
-        timer = _time.CreateTimer(_ => Post(token =>
-        {
-            if (_timers.TryGetValue(name, out var current) && ReferenceEquals(current, timer))
-            {
-                _timers.Remove(name);
-                current.Dispose();
-                return work(token);
-            }
-            return Task.CompletedTask;
-        }), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
-        _timers[name] = timer;
-        timer.Change(delay > TimeSpan.Zero ? delay : TimeSpan.Zero, Timeout.InfiniteTimeSpan);
-    }
+    /// <summary>The paired accounts' private chats, whose ids are the accounts'.</summary>
+    protected override Task<IReadOnlyList<long>> PairedChatsAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<long>>([.. Pairing.Accounts.Select(a => a.UserId).Distinct()]);
 }

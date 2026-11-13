@@ -970,7 +970,7 @@ public class ProjectSettingsTests
         Assert.Equal(["All tools", "Unreal Engine", "Unity", "Godot"], PagesUnder(settings, SettingsSidebar.ProjectTools));
         Assert.Equal(["Git", "Perforce"], PagesUnder(settings, SettingsSidebar.SourceControl));
         // What every remote client shares, then a page for each client (DESIGN.md §18, "Remote clients").
-        Assert.Equal(["All clients", "Telegram"], PagesUnder(settings, SettingsSidebar.RemoteClients));
+        Assert.Equal(["All clients", "Telegram", "Discord"], PagesUnder(settings, SettingsSidebar.RemoteClients));
         Assert.Equal(h.Services.ProjectTools.Detector.Types.Select(t => t.Name), settings.ProjectTypes.Select(p => p.Title));
 
         // Every page has an icon of its own; each project type's is its kind's.

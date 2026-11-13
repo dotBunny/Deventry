@@ -56,7 +56,7 @@ Each setting has a line saying what it does, and the search finds it by what you
 
 - **A conversation built for code:** cards in their own colors, tool calls side by side as tiles, permission prompts and plans as cards, rewind and branch, find and export. [The conversation →](https://deventry.app/conversation/) · [The composer →](https://deventry.app/composer/)
 - **Pick up anywhere:** History searches Claude's replies too, the session library syncs sessions between your machines, and Remote Control carries a tab on in the Claude app on your phone. [History and syncing →](https://deventry.app/history/)
-- **Your tabs from Telegram:** a bot of your own tells you when a tab needs you or finishes, answers its prompts with a tap and passes on your replies, at no cost in tokens. [Remote clients →](https://deventry.app/away/remote-clients/)
+- **Your tabs from Telegram or Discord:** a bot of your own tells you when a tab needs you or finishes, answers its prompts with a tap and passes on your replies, at no cost in tokens. [Remote clients →](https://deventry.app/away/remote-clients/)
 - **It knows your project:** tools for Unreal Engine, Unity and Godot, the processes a tab started, MCP servers, and Perforce. [Project tools →](https://deventry.app/project-tools/)
 - **Two looks, light and dark:** Standard, dense and calm, and Claude, after the Claude apps. [Styles and themes →](https://deventry.app/settings/styles-and-themes/)
 

@@ -2,7 +2,7 @@ using Deventry.Core.Remote;
 
 namespace Deventry.App.Tests.Support;
 
-/// <summary>A kind of remote client besides Telegram, such as a Discord bot would be, for what more than one does.</summary>
+/// <summary>A kind of remote client besides Telegram, faked, such as Discord's, for what more than one does.</summary>
 internal sealed class FakeRemoteClientType(string kind, string name) : IRemoteClientType
 {
     public string Kind => kind;

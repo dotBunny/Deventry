@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Deventry.Core.Protocol;
+using Deventry.Core.Remote.Chat;
 
 namespace Deventry.Core.Remote.Telegram;
 
@@ -75,7 +76,7 @@ public sealed class TelegramBotApi
 
     /// <summary>Sends a message in Telegram's HTML. Returns its id.</summary>
     /// <param name="silent">The phone doesn't make a sound for it.</param>
-    public async Task<long> SendMessageAsync(long chatId, string html, IReadOnlyList<IReadOnlyList<TelegramButton>>? buttons = null, long? replyTo = null,
+    public async Task<long> SendMessageAsync(long chatId, string html, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons = null, long? replyTo = null,
         bool silent = false, CancellationToken cancellationToken = default)
     {
         var body = new JsonObject
@@ -101,7 +102,7 @@ public sealed class TelegramBotApi
     }
 
     /// <summary>Changes a message's text, and its buttons: none takes them away. An edit into what it says already is no error.</summary>
-    public async Task EditMessageTextAsync(long chatId, long messageId, string html, IReadOnlyList<IReadOnlyList<TelegramButton>>? buttons = null,
+    public async Task EditMessageTextAsync(long chatId, long messageId, string html, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons = null,
         CancellationToken cancellationToken = default)
     {
         var body = new JsonObject
@@ -120,7 +121,7 @@ public sealed class TelegramBotApi
     }
 
     /// <summary>Changes only a message's buttons: none takes them away.</summary>
-    public async Task EditButtonsAsync(long chatId, long messageId, IReadOnlyList<IReadOnlyList<TelegramButton>>? buttons, CancellationToken cancellationToken = default)
+    public async Task EditButtonsAsync(long chatId, long messageId, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons, CancellationToken cancellationToken = default)
     {
         var body = new JsonObject { ["chat_id"] = chatId, ["message_id"] = messageId };
         body["reply_markup"] = Markup(buttons ?? []);
@@ -166,7 +167,7 @@ public sealed class TelegramBotApi
     }
 
     /// <summary>Puts the commands in Telegram's <b>/</b> menu.</summary>
-    public async Task SetCommandsAsync(IReadOnlyList<TelegramCommand> commands, CancellationToken cancellationToken = default)
+    public async Task SetCommandsAsync(IReadOnlyList<ChatCommand> commands, CancellationToken cancellationToken = default)
     {
         var list = new JsonArray();
         foreach (var command in commands)
@@ -185,7 +186,7 @@ public sealed class TelegramBotApi
     public Task DeleteWebhookAsync(CancellationToken cancellationToken = default) =>
         CallAsync("deleteWebhook", new JsonObject { ["drop_pending_updates"] = false }, RequestTimeout, cancellationToken);
 
-    private static JsonObject Markup(IReadOnlyList<IReadOnlyList<TelegramButton>> rows)
+    private static JsonObject Markup(IReadOnlyList<IReadOnlyList<ChatButton>> rows)
     {
         var keyboard = new JsonArray();
         foreach (var row in rows)

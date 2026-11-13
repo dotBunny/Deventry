@@ -5,14 +5,11 @@ namespace Deventry.Core.Remote.Telegram;
 
 /// <summary>
 /// Telegram's HTML (DESIGN.md §18, "Telegram's limits"): text escaped (<c>&amp;</c>, <c>&lt;</c>, <c>&gt;</c>), and a
-/// reply's Markdown with its code spans, code blocks, bold and links kept and the rest as plain text; the start of a
-/// long reply; and the data behind a button, which carries the run it was sent in.
+/// reply's Markdown with its code spans, code blocks, bold and links kept and the rest as plain text. The bot writes
+/// through <see cref="TelegramHtml"/>.
 /// </summary>
 public static partial class TelegramFormat
 {
-    /// <summary>How much of a reply a finished turn's message shows.</summary>
-    public const int ReplyPreviewLength = 600;
-
     /// <summary>Escapes text for Telegram's HTML.</summary>
     public static string Escape(string text) => text.Replace("&", "&amp;", StringComparison.Ordinal)
         .Replace("<", "&lt;", StringComparison.Ordinal)
@@ -107,66 +104,6 @@ public static partial class TelegramFormat
         }
         html.Append(Escape(text[at..]));
         return html.ToString();
-    }
-
-    /// <summary>
-    /// The start of a reply, for a finished turn's message: whole lines up to about <paramref name="max"/> characters, or
-    /// the first line cut at a word, and whether anything was left out. A code block it cuts into is closed when it's
-    /// made HTML.
-    /// </summary>
-    public static (string Text, bool IsCut) FirstLines(string markdown, int max = ReplyPreviewLength)
-    {
-        var text = markdown.Replace("\r\n", "\n", StringComparison.Ordinal).Trim();
-        if (text.Length <= max)
-        {
-            return (text, false);
-        }
-        var lines = text.Split('\n');
-        var kept = new StringBuilder();
-        foreach (var line in lines)
-        {
-            if (kept.Length + line.Length + 1 > max)
-            {
-                break;
-            }
-            kept.Append(line).Append('\n');
-        }
-        return (kept.Length > 0 ? kept.ToString().TrimEnd() : RemoteMessages.Shorten(lines[0], max), true);
-    }
-
-    /// <summary>A reply's whole Markdown fits one message, as HTML.</summary>
-    public static bool FitsMessage(string html) => html.Length <= TelegramBotApi.MessageLimit;
-
-    // ---- Buttons ----------------------------------------------------------------------------------------------------
-
-    /// <summary>
-    /// A button's data: the run it was sent in, then the key Deventry looks its action up by, well within Telegram's 64
-    /// bytes. A button from another run is stale whatever its age.
-    /// </summary>
-    public static string ButtonData(string run, string key) => $"{run}:{key}";
-
-    /// <summary>The run and key in a button's data; null for data Deventry didn't make.</summary>
-    public static (string Run, string Key)? ParseButtonData(string? data)
-    {
-        var colon = data?.IndexOf(':') ?? -1;
-        return colon > 0 && colon < data!.Length - 1 ? (data[..colon], data[(colon + 1)..]) : null;
-    }
-
-    /// <summary>A key in base 36, short however many buttons a run makes.</summary>
-    public static string Key(long number)
-    {
-        const string digits = "0123456789abcdefghijklmnopqrstuvwxyz";
-        if (number <= 0)
-        {
-            return "0";
-        }
-        var key = new StringBuilder();
-        while (number > 0)
-        {
-            key.Insert(0, digits[(int)(number % 36)]);
-            number /= 36;
-        }
-        return key.ToString();
     }
 
     [GeneratedRegex(@"`(?<code>[^`\n]+)`|\*\*(?<bold>[^*\n]+)\*\*|__(?<bold>[^_\n]+)__|\[(?<label>[^\]\n]+)\]\((?<url>https?://[^)\s]+)\)")]

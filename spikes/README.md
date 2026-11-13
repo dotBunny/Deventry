@@ -28,6 +28,7 @@ They aren't part of the app or the build, and aren't maintained like production 
 | `auth-login-probe.mjs` | Runs `claude auth login` with no terminal attached, against a signed-out throwaway config, and prints what it outputs. Stops it after 10 seconds. |
 | `dump-statusline.cjs` | A status line command that records its input. Used to check whether status lines run in headless mode (they don't). |
 | `scenarios/*.json` | The scenarios. Each has a `description` field. |
+| `discord/user-install.mjs` | Whether a Discord app on your own account, in no server, could be a remote client. See [Discord](#discord-an-app-on-your-account). |
 
 ## Running
 
@@ -60,6 +61,22 @@ Everything the scripts create goes under `<OS temp>/claudette-spikes/`: the work
 - `10-real-usage` uses your real account, with `--no-session-persistence`, so no transcript is saved. Its log contains your usage figures and account details.
 - `11-auth-control` and `auth-login-probe.mjs` use a separate signed-out config folder, and never finish signing in. `auth-login-probe.mjs` may open a browser tab to the sign-in page; close it.
 - Logs stay under the temp folder. Don't commit them: some include account details.
+
+## Discord: an app on your account
+
+`discord/user-install.mjs` (2026-11-13) checks whether a Discord app installed to your own account, and in no server, could be Deventry's remote client (DESIGN.md §18, "Remote clients"). Discord documents that such an app's commands and buttons work in a DM with its bot, but not whether the bot can message you first without sharing a server with you, which Deventry needs to say a tab is waiting. Deventry's Discord client is built as if it can (DESIGN.md §18, "Discord"); this says whether it does. It uses your Discord account and an app you make for it, costs nothing, and needs no `claude`.
+
+1. In the [Developer Portal](https://discord.com/developers/applications), make a **New Application**. Under **Installation**, in **Installation Contexts**, tick **User Install** and untick **Guild Install**.
+2. Under **Bot**, **Reset Token** and copy it. Leave the privileged intents off: the DM's text should arrive without them.
+3. Run `node spikes/discord/user-install.mjs` in a terminal and paste the token when it asks. It isn't shown, saved or logged.
+4. Before adding the app, type `dm`: can the bot message you at all?
+5. Open the first link it printed and choose **Add to My Apps**. Type `installed`, then `dm` again.
+6. Open the second link, the bot's profile, and **Message** it. In that DM run `/pair`, click a button, and send it a message.
+7. Type `dm`, `buttons` (click one of its buttons in Discord), `silent` and `edit`. After each message, type `notified yes` or `notified no`. To see whether your phone notifies you, close Discord on the computer first.
+8. Wait 15 minutes or more: `later 20` and leave it running, or `quit`, start it again later and type `dm`. That answers both "15 minutes after" and "after a restart".
+9. `quit` prints the findings, with no tokens or ids, to paste back. Delete the app in the Developer Portal when you're done, or keep it for building the client.
+
+It answers its owner only, and turns anyone else away. What it learns stays under `<OS temp>/deventry-discord-spike/`, across runs (`reset` starts again): `state.json`, with your Discord user id and your DM with the bot, and `spike.log`, with your Discord name and what you sent it, so don't commit either. `DISCORD_BOT_TOKEN` skips the question but puts the token in your environment; `DISCORD_API` points the script at a fake Discord.
 
 ## Mock server prompts
 

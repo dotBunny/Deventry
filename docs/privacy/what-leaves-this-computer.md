@@ -42,13 +42,13 @@ If you leave the library in its default folder, which no sync client watches, no
 
 While a tab is connected to the [Claude app](../away/the-claude-app.md), its transcript is stored on Anthropic's servers. It's off for every tab until you turn it on, tab by tab. Your files and the commands stay on your computer.
 
-## Through a Telegram bot
+## Through a Telegram or Discord bot
 
-While you use a Telegram bot with [Remote clients](../away/remote-clients.md), Deventry talks to Telegram (api.telegram.org) to read your messages to the bot and send its own. Telegram can read bot chats, which aren't end-to-end encrypted, so it sees what the bot sends you: your tabs' and projects' names, Claude's replies, and the commands and files Claude asks about. Settings → Remote clients → All clients → **What they say** → **Just what happened** keeps the messages to a tab's name and what happened. It's off until you turn it on, and the bot's token stays in your computer's credential store.
+While you use a bot with [Remote clients](../away/remote-clients.md), Deventry talks to its service to read your messages to the bot and send its own: Telegram (api.telegram.org), or Discord (discord.com, and its Gateway, gateway.discord.gg). Telegram can read bot chats and Discord its direct messages, which aren't end-to-end encrypted, so the service sees what the bot sends you: your tabs' and projects' names, Claude's replies, and the commands and files Claude asks about. Settings → Remote clients → All clients → **What they say** → **Just what happened** keeps the messages to a tab's name and what happened. Each is off until you turn it on, and a bot's token stays in your computer's credential store.
 
 ## What stays here
 
-Your usage history, drafts, the stash, unsaved edits and logs stay in Deventry's data folder ([Where Deventry keeps things](where-deventry-keeps-things.md)). Your Perforce passwords, API keys and a Telegram bot's token are in your operating system's credential store ([Passwords and keys](passwords-and-keys.md)). Deventry's logs have sign-in codes and values named like tokens, keys and passwords taken out, but the optional protocol log holds your prompts and file contents, and is only written while you've turned it on.
+Your usage history, drafts, the stash, unsaved edits and logs stay in Deventry's data folder ([Where Deventry keeps things](where-deventry-keeps-things.md)). Your Perforce passwords, API keys and your bots' tokens are in your operating system's credential store ([Passwords and keys](passwords-and-keys.md)). Deventry's logs have sign-in codes and values named like tokens, keys and passwords taken out, but the optional protocol log holds your prompts and file contents, and is only written while you've turned it on.
 
 ## See also
 

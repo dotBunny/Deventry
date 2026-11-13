@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Deventry.Core.Protocol;
+using Deventry.Core.Remote.Chat;
 
 namespace Deventry.Core.Remote.Telegram;
 
@@ -64,23 +65,17 @@ public sealed record TelegramUpdate(long UpdateId, TelegramMessage? Message, Tel
             : null;
 }
 
-/// <summary>A button under a message (Bot API <c>InlineKeyboardButton</c>), whose data comes back when it's tapped.</summary>
-public sealed record TelegramButton(string Text, string Data);
-
-/// <summary>A command in Telegram's <b>/</b> menu.</summary>
-public sealed record TelegramCommand(string Command, string Description);
-
 /// <summary>
 /// Telegram refused a request, or couldn't be reached. The message is safe to show and log: it never holds the bot's
 /// token, which every Bot API address does.
 /// </summary>
-public sealed class TelegramApiException(string message, int? errorCode = null, TimeSpan? retryAfter = null, Exception? inner = null) : Exception(message, inner)
+public sealed class TelegramApiException(string message, int? errorCode = null, TimeSpan? retryAfter = null, Exception? inner = null) : ChatApiException(message, inner)
 {
     /// <summary>The Bot API's <c>error_code</c>, an HTTP status; null when Telegram wasn't reached.</summary>
     public int? ErrorCode { get; } = errorCode;
 
     /// <summary>How long Telegram asked to wait, with a <c>429</c>.</summary>
-    public TimeSpan? RetryAfter { get; } = retryAfter;
+    public override TimeSpan? RetryAfter { get; } = retryAfter;
 
     /// <summary>The token isn't a bot's: <c>401</c>, or <c>404</c> for one that isn't a token at all.</summary>
     public bool IsUnauthorized => ErrorCode is 401 or 404;
@@ -88,7 +83,10 @@ public sealed class TelegramApiException(string message, int? errorCode = null, 
     /// <summary>Another program polls the same bot, or it has a webhook.</summary>
     public bool IsConflict => ErrorCode == 409;
 
-    public bool IsTooManyRequests => ErrorCode == 429;
+    public override bool IsTooManyRequests => ErrorCode == 429;
+
+    /// <summary>An edit Telegram refused: the message was deleted, or is too old to edit.</summary>
+    public override bool IsMessageGone => ErrorCode == 400;
 
     /// <summary>Telegram couldn't be reached, or failed on its side: worth trying again.</summary>
     public bool IsTransient => ErrorCode is null or >= 500;

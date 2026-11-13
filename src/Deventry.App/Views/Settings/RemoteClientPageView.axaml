@@ -99,7 +99,11 @@
                 <SelectableTextBlock Classes="output" Text="{Binding PairingCommand}" />
                 <TextBlock Classes="small muted" Text="{Binding PairingCode, StringFormat='The code is {0}.'}" />
                 <TextBlock Classes="small muted" Text="{Binding PairingTimeLeft}" />
-                <Button Content="Cancel" Command="{Binding CancelPairingCommand}" HorizontalAlignment="Left" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Content="Open the link" Command="{Binding OpenPairingLinkCommand}" IsVisible="{Binding HasPairingLink}"
+                          ToolTip.Tip="{Binding PairingLink}" />
+                  <Button Content="Cancel" Command="{Binding CancelPairingCommand}" />
+                </StackPanel>
               </StackPanel>
             </Grid>
           </Border>

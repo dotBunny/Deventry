@@ -1,11 +1,10 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
-using static Deventry.Core.Remote.Telegram.TelegramFormat;
 
-namespace Deventry.Core.Remote.Telegram;
+namespace Deventry.Core.Remote.Chat;
 
 /// <summary>The bot's side of the chat (DESIGN.md §18, "Talking to a tab", "Commands"): messages, commands and buttons.</summary>
-public sealed partial class TelegramClient
+public abstract partial class ChatBotClient
 {
     /// <summary>How many of its messages the bot remembers the tab of, for replies to them.</summary>
     public const int RememberedMessages = 1000;
@@ -13,21 +12,21 @@ public sealed partial class TelegramClient
     /// <summary>How many buttons a run keeps the actions of; older ones are stale.</summary>
     public const int RememberedButtons = 5000;
 
-    /// <summary>The commands in Telegram's <b>/</b> menu.</summary>
-    public static IReadOnlyList<TelegramCommand> Commands { get; } =
+    /// <summary>The commands in the service's <b>/</b> menu, besides pairing's.</summary>
+    public static IReadOnlyList<ChatCommand> Commands { get; } =
     [
         new("tabs", "The tabs and what they're doing"),
-        new("to", "Pick the tab your messages go to"),
-        new("stop", "Stop Claude in a tab"),
+        new("to", "Pick the tab your messages go to", "tab", "The tab's name, or the start of it"),
+        new("stop", "Stop Claude in a tab", "tab", "The tab's name, or the start of it"),
         new("usage", "The plan's usage"),
-        new("quiet", "No messages for an hour (/quiet 30, /quiet off)"),
+        new("quiet", "No messages for an hour (/quiet 30, /quiet off)", "minutes", "How many minutes, or off"),
         new("new", "Open a tab in a folder"),
         new("help", "What I can do"),
     ];
 
-    private IRemoteDesk Desk => _desk ?? throw new InvalidOperationException("The Telegram client hasn't started.");
+    protected IRemoteDesk Desk => _desk ?? throw new InvalidOperationException($"The {Name} client hasn't started.");
 
-    /// <summary>Which tab each of the bot's messages was about, by chat and message, for Telegram's replies.</summary>
+    /// <summary>Which tab each of the bot's messages was about, by chat and message, for the service's replies.</summary>
     private readonly Dictionary<(long Chat, long Message), string> _messageTabs = [];
     private readonly Queue<(long Chat, long Message)> _messageOrder = new();
 
@@ -41,6 +40,7 @@ public sealed partial class TelegramClient
     private readonly Queue<string> _buttonOrder = new();
     private long _lastKey;
     private int _passedOver;
+
     /// <summary>The desk holds messages: <c>/quiet</c>, or the header's <b>Quiet for an hour</b>.</summary>
     private bool IsQuiet => Desk.QuietUntil is { } until && until > _time.GetUtcNow();
 
@@ -68,16 +68,16 @@ public sealed partial class TelegramClient
 
     private sealed record FolderButton(string Path) : Button;
 
-    private TelegramButton MakeButton(string label, Button action)
+    private ChatButton MakeButton(string label, Button action)
     {
-        var key = Key(++_lastKey);
+        var key = ChatFormat.Key(++_lastKey);
         _buttons[key] = action;
         _buttonOrder.Enqueue(key);
         while (_buttonOrder.Count > RememberedButtons)
         {
             _buttons.Remove(_buttonOrder.Dequeue());
         }
-        return new TelegramButton(label, ButtonData(_run, key));
+        return new ChatButton(label, ChatFormat.ButtonData(_run, key));
     }
 
     private void Remember(long chat, long message, string tabId)
@@ -92,35 +92,27 @@ public sealed partial class TelegramClient
         }
     }
 
-    // ---- Updates ----------------------------------------------------------------------------------------------------
+    // ---- Messages ---------------------------------------------------------------------------------------------------
 
-    private async Task HandleUpdateAsync(TelegramUpdate update, bool stale, CancellationToken cancellationToken)
-    {
-        if (update.Callback is { } callback)
-        {
-            await HandleCallbackAsync(callback, cancellationToken).ConfigureAwait(false);
-        }
-        else if (update.Message is { } message)
-        {
-            await HandleMessageAsync(message, stale, cancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private async Task HandleMessageAsync(TelegramMessage message, bool stale, CancellationToken cancellationToken)
+    /// <summary>
+    /// A message to the bot, on the work loop: a command, words a button asked for, or text for a tab. A stale one,
+    /// sent before Deventry started listening, is passed over and counted.
+    /// </summary>
+    protected async Task HandleMessageAsync(ChatMessage message, bool stale, CancellationToken cancellationToken)
     {
         // Only private chats count: a group's messages are no one's to answer.
-        if (!message.Chat.IsPrivate || message.From is not { IsBot: false } from)
+        if (!message.IsPrivate || message.From is not { IsBot: false } from)
         {
             return;
         }
         var (command, argument) = ParseCommand(message.Text);
         if (!_pairing.IsPaired(from.Id))
         {
-            if (command == "start" && !stale && argument is { Length: > 0 }
+            if (command == PairCommand && !stale && argument is { Length: > 0 }
                 && _pairing.TryPair(argument, from.Id, from.Name, from.Username) == PairingOutcome.Paired)
             {
-                _logger.LogInformation("Telegram: paired an account.");
-                await SendAsync(message.Chat.Id, $"{Escape(RemoteMessages.Paired(Desk.MachineName))}\n\n{HelpHtml()}", cancellationToken: cancellationToken).ConfigureAwait(false);
+                _logger.LogInformation("{Client}: paired an account.", Name);
+                await SendAsync(message.Chat, Welcome(), cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             // Everyone else gets no answer at all, so the bot doesn't say it belongs to anyone.
             return;
@@ -131,7 +123,7 @@ public sealed partial class TelegramClient
             return;
         }
         Activity?.Invoke(RemoteActivity.Received);
-        var chat = message.Chat.Id;
+        var chat = message.Chat;
         if (command is not null)
         {
             _awaiting.Remove(chat);
@@ -140,7 +132,7 @@ public sealed partial class TelegramClient
         }
         if (message.HasMedia)
         {
-            await SendAsync(chat, "Only text for now.", replyTo: message.MessageId, silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, "Only text for now.", replyTo: ReplyTo(message), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
         if (message.Text?.Trim() is not { Length: > 0 } text)
@@ -154,17 +146,26 @@ public sealed partial class TelegramClient
         }
         if (message.ReplyTo is { } replied && _messageTabs.TryGetValue((chat, replied), out var tabId))
         {
-            await SendToTabAsync(chat, tabId, text, message.MessageId, cancellationToken).ConfigureAwait(false);
+            await SendToTabAsync(chat, tabId, text, ReplyTo(message), cancellationToken).ConfigureAwait(false);
         }
         else if (_targets.TryGetValue(chat, out var target))
         {
-            await SendToTabAsync(chat, target, text, message.MessageId, cancellationToken).ConfigureAwait(false);
+            await SendToTabAsync(chat, target, text, ReplyTo(message), cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            await AskWhichTabAsync(chat, text, message.MessageId, cancellationToken).ConfigureAwait(false);
+            await AskWhichTabAsync(chat, text, ReplyTo(message), cancellationToken).ConfigureAwait(false);
         }
     }
+
+    /// <summary>A message to reply to: none for a command the service delivered without one.</summary>
+    private static long? ReplyTo(ChatMessage message) => message.MessageId != 0 ? message.MessageId : null;
+
+    /// <summary>What a newly paired account is told: where it's paired, and what the bot can do.</summary>
+    protected string Welcome() => $"{Format.Escape(RemoteMessages.Paired(Desk.MachineName))}\n\n{HelpText()}";
+
+    /// <summary>What an account paired already is told when it sends a code again.</summary>
+    protected string AlreadyPaired() => $"{Format.Escape($"Already paired with Deventry on {Desk.MachineName}.")}\n\n{HelpText()}";
 
     /// <summary>"/to@deventry_bot Grappling" is ("to", "Grappling"); text that isn't a command is (null, null).</summary>
     internal static (string? Command, string? Argument) ParseCommand(string? text)
@@ -179,29 +180,34 @@ public sealed partial class TelegramClient
         return name.Length == 0 ? (null, null) : (name, argument is { Length: > 0 } ? argument : null);
     }
 
-    private async Task ReportPassedOverAsync(CancellationToken cancellationToken)
+    /// <summary>Once the messages kept while Deventry was closed are in, says how many it passed over.</summary>
+    protected async Task ReportPassedOverAsync(CancellationToken cancellationToken)
     {
         if (_passedOver > 0)
         {
             var count = _passedOver;
             _passedOver = 0;
-            await BroadcastAsync(Escape(RemoteMessages.PassedOver(count)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await BroadcastAsync(Format.Escape(RemoteMessages.PassedOver(count)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
+
+    /// <summary>Says, silently, that Deventry is back: it said it was closing last time.</summary>
+    protected Task AnnounceBackAsync(CancellationToken cancellationToken) =>
+        BroadcastAsync(Format.Escape(RemoteMessages.Back(Desk.MachineName)), silent: true, cancellationToken: cancellationToken);
 
     // ---- Commands ---------------------------------------------------------------------------------------------------
 
     private Task HandleCommandAsync(long chat, string command, string? argument, CancellationToken cancellationToken) => command switch
     {
-        "start" => SendAsync(chat, $"{Escape($"Already paired with Deventry on {Desk.MachineName}.")}\n\n{HelpHtml()}", silent: true, cancellationToken: cancellationToken),
-        "help" => SendAsync(chat, HelpHtml(), silent: true, cancellationToken: cancellationToken),
+        _ when command == PairCommand => SendAsync(chat, AlreadyPaired(), silent: true, cancellationToken: cancellationToken),
+        "help" => SendAsync(chat, HelpText(), silent: true, cancellationToken: cancellationToken),
         "tabs" => ListTabsAsync(chat, cancellationToken),
         "to" => PickTargetAsync(chat, argument, cancellationToken),
         "stop" => StopCommandAsync(chat, argument, cancellationToken),
         "usage" => UsageAsync(chat, cancellationToken),
         "quiet" => QuietAsync(chat, argument, cancellationToken),
         "new" => NewTabAsync(chat, cancellationToken),
-        _ => SendAsync(chat, $"{Escape($"I don't know /{command}.")}\n\n{HelpHtml()}", silent: true, cancellationToken: cancellationToken),
+        _ => SendAsync(chat, $"{Format.Escape($"I don't know /{command}.")}\n\n{HelpText()}", silent: true, cancellationToken: cancellationToken),
     };
 
     private async Task ListTabsAsync(long chat, CancellationToken cancellationToken)
@@ -213,7 +219,7 @@ public sealed partial class TelegramClient
             return;
         }
         var buttons = Rows(tabs.Select(t => MakeButton($"{Glyph(t.Status)} {t.Name}", new TabButton(t.Id))), 2);
-        await SendAsync(chat, TabsHtml(tabs), buttons, silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await SendAsync(chat, TabsText(tabs), buttons, silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     private async Task PickTargetAsync(long chat, string? argument, CancellationToken cancellationToken)
@@ -236,14 +242,15 @@ public sealed partial class TelegramClient
     private async Task SetTargetAsync(long chat, RemoteTab tab, CancellationToken cancellationToken)
     {
         _targets[chat] = tab.Id;
-        await SendAsync(chat, $"Your messages go to {Bold(tab.Name)} now. /to picks another.", silent: true, tabId: tab.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await SendAsync(chat, $"Your messages go to {Format.Bold(tab.Name)} now. /to picks another.", silent: true, tabId: tab.Id, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task StopCommandAsync(long chat, string? argument, CancellationToken cancellationToken)
     {
         if (!RemoteAccess.Allows(Desk.Access, Desk.CanOpenTabs, RemoteAction.Stop))
         {
-            await SendAsync(chat, Escape(RemoteAccess.Refusal(RemoteAction.Stop)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, Format.Escape(RemoteAccess.Refusal(RemoteAction.Stop)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
         var working = (await Desk.GetTabsAsync(cancellationToken).ConfigureAwait(false))
@@ -267,15 +274,15 @@ public sealed partial class TelegramClient
     {
         var result = await Desk.StopAsync(tabId, Name, cancellationToken).ConfigureAwait(false);
         var tab = await FindTabAsync(tabId, cancellationToken).ConfigureAwait(false);
-        await SendAsync(chat, result.Done ? $"Stopped {Bold(tab?.Name ?? "the tab")}." : Escape(result.Reason ?? "Couldn't stop it."), silent: true, tabId: tabId,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
+        await SendAsync(chat, result.Done ? $"Stopped {Format.Bold(tab?.Name ?? "the tab")}." : Format.Escape(result.Reason ?? "Couldn't stop it."), silent: true,
+            tabId: tabId, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     private async Task UsageAsync(long chat, CancellationToken cancellationToken)
     {
         var usage = await Desk.GetUsageAsync(cancellationToken).ConfigureAwait(false);
         var lines = RemoteMessages.Usage(usage, _time.GetUtcNow(), _time.LocalTimeZone);
-        await SendAsync(chat, string.Join("\n", lines.Select(Escape)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await SendAsync(chat, string.Join("\n", lines.Select(Format.Escape)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The longest <c>/quiet</c> holds: a day.</summary>
@@ -293,12 +300,12 @@ public sealed partial class TelegramClient
             : -1;
         if (minutes < 0)
         {
-            return SendAsync(chat, "Say how many minutes, as /quiet 30, or /quiet off.", silent: true, cancellationToken: cancellationToken);
+            return SendAsync(chat, Format.Escape("Say how many minutes, as /quiet 30, or /quiet off."), silent: true, cancellationToken: cancellationToken);
         }
         var quietUntil = _time.GetUtcNow() + TimeSpan.FromMinutes(minutes);
         Desk.SetQuiet(quietUntil);
         var until = TimeZoneInfo.ConvertTime(quietUntil, _time.LocalTimeZone).ToString("t", CultureInfo.CurrentCulture);
-        return SendAsync(chat, Escape($"Quiet until {until}: no messages but answers to what you do here. /quiet off ends it sooner."), silent: true,
+        return SendAsync(chat, Format.Escape($"Quiet until {until}: no messages but answers to what you do here. /quiet off ends it sooner."), silent: true,
             cancellationToken: cancellationToken);
     }
 
@@ -306,7 +313,7 @@ public sealed partial class TelegramClient
     {
         if (!Desk.CanOpenTabs)
         {
-            await SendAsync(chat, Escape(RemoteAccess.Refusal(RemoteAction.OpenTab)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, Format.Escape(RemoteAccess.Refusal(RemoteAction.OpenTab)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
         var folders = await Desk.GetFoldersAsync(cancellationToken).ConfigureAwait(false);
@@ -326,7 +333,7 @@ public sealed partial class TelegramClient
         var result = await Desk.SendAsync(tabId, text, Name, cancellationToken).ConfigureAwait(false);
         if (!result.Done)
         {
-            await SendAsync(chat, Escape(result.Reason ?? "Couldn't send it."), replyTo: replyTo, silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, Format.Escape(result.Reason ?? "Couldn't send it."), replyTo: replyTo, silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
         _engaged.Add(tabId);
@@ -335,12 +342,12 @@ public sealed partial class TelegramClient
             return;
         }
         // Its message shows what the tab is doing, edited in place: the turn's end is a new one.
-        var heading = $"Sent to {Bold(tab.Name)}.";
-        var id = await SendAsync(chat, LiveHtml(heading, tab), LiveButtons(tab), replyTo, silent: true, tabId: tab.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
+        var heading = $"Sent to {Format.Bold(tab.Name)}.";
+        var id = await SendAsync(chat, LiveText(heading, tab), LiveButtons(tab), replyTo, silent: true, tabId: tab.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
         StartLive(chat, id, heading, tab);
     }
 
-    private async Task AskWhichTabAsync(long chat, string text, long replyTo, CancellationToken cancellationToken)
+    private async Task AskWhichTabAsync(long chat, string text, long? replyTo, CancellationToken cancellationToken)
     {
         var tabs = (await Desk.GetTabsAsync(cancellationToken).ConfigureAwait(false)).Where(t => !t.IsReadOnly).ToList();
         if (tabs.Count == 0)
@@ -368,95 +375,96 @@ public sealed partial class TelegramClient
 
     // ---- Buttons ----------------------------------------------------------------------------------------------------
 
-    private async Task HandleCallbackAsync(TelegramCallback callback, CancellationToken cancellationToken)
+    /// <summary>A tap on one of the bot's buttons, on the work loop. A stranger's is answered, saying nothing, and does nothing.</summary>
+    protected async Task HandleTapAsync(ChatTap tap, CancellationToken cancellationToken)
     {
-        if (!_pairing.IsPaired(callback.From.Id))
+        if (!_pairing.IsPaired(tap.From.Id))
         {
             // A tap still needs its answer, or its spinner turns; it says nothing.
-            await PacedAsync(token => _api.AnswerCallbackAsync(callback.Id, cancellationToken: token), cancellationToken).ConfigureAwait(false);
+            await PacedAsync(token => AnswerTapAsync(tap, null, token), cancellationToken).ConfigureAwait(false);
             return;
         }
         Activity?.Invoke(RemoteActivity.Received);
-        var chat = callback.Message?.Chat.Id ?? callback.From.Id;
-        var parsed = ParseButtonData(callback.Data);
+        var chat = tap.Chat ?? tap.From.Id;
+        var parsed = ChatFormat.ParseButtonData(tap.Data);
         if (parsed is not var (run, key) || run != _run || !_buttons.TryGetValue(key, out var button))
         {
             var why = parsed is var (otherRun, _) && otherRun != _run ? "That button is from before Deventry restarted." : "That button has expired.";
-            await PacedAsync(token => _api.AnswerCallbackAsync(callback.Id, why, token), cancellationToken).ConfigureAwait(false);
-            if (callback.Message is { } stale)
+            await PacedAsync(token => AnswerTapAsync(tap, why, token), cancellationToken).ConfigureAwait(false);
+            if (tap is { Chat: { } staleChat, MessageId: { } staleMessage })
             {
-                await PacedAsync(token => _api.EditButtonsAsync(stale.Chat.Id, stale.MessageId, null, token), cancellationToken).ConfigureAwait(false);
+                await PacedAsync(token => DeliverButtonsAsync(staleChat, staleMessage, null, token), cancellationToken).ConfigureAwait(false);
             }
             return;
         }
         switch (button)
         {
             case AnswerButton { Option.TakesText: true } answer:
-                await Toast(callback, null, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, null, cancellationToken).ConfigureAwait(false);
                 await AskForWordsAsync(chat, answer, cancellationToken).ConfigureAwait(false);
                 break;
             case AnswerButton answer:
-                await AnswerAsync(chat, callback, answer.TabId, answer.PromptId, answer.Option, null, cancellationToken).ConfigureAwait(false);
+                await AnswerAsync(chat, tap, answer.TabId, answer.PromptId, answer.Option, null, cancellationToken).ConfigureAwait(false);
                 break;
             case TabButton tab:
-                await Toast(callback, null, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, null, cancellationToken).ConfigureAwait(false);
                 await SendTabCardAsync(chat, tab.TabId, cancellationToken).ConfigureAwait(false);
                 break;
             case TargetButton target:
-                await Toast(callback, null, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, null, cancellationToken).ConfigureAwait(false);
                 if (await FindTabAsync(target.TabId, cancellationToken).ConfigureAwait(false) is { } picked)
                 {
                     await SetTargetAsync(chat, picked, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    await SendAsync(chat, RemoteMessages.TabGone, silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    await SendAsync(chat, Format.Escape(RemoteMessages.TabGone), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
                 break;
             case StopButton stop:
-                await Toast(callback, null, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, null, cancellationToken).ConfigureAwait(false);
                 await StopTabAsync(chat, stop.TabId, cancellationToken).ConfigureAwait(false);
                 break;
             case RestartButton restart:
                 var restarted = await Desk.RestartAsync(restart.TabId, Name, cancellationToken).ConfigureAwait(false);
-                await Toast(callback, restarted.Done ? "Starting it again." : restarted.Reason, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, restarted.Done ? "Starting it again." : restarted.Reason, cancellationToken).ConfigureAwait(false);
                 break;
             case ReplyButton reply:
-                await Toast(callback, null, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, null, cancellationToken).ConfigureAwait(false);
                 await SendWholeReplyAsync(chat, reply.TabId, cancellationToken).ConfigureAwait(false);
                 break;
             case FilesButton files:
-                await Toast(callback, null, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, null, cancellationToken).ConfigureAwait(false);
                 await SendChangedFilesAsync(chat, files.TabId, cancellationToken).ConfigureAwait(false);
                 break;
             case ShowButton show:
-                await Toast(callback, null, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, null, cancellationToken).ConfigureAwait(false);
                 await ShowPromptAsync(chat, show.TabId, show.PromptId, cancellationToken).ConfigureAwait(false);
                 break;
             case SendPendingButton pending:
-                await Toast(callback, null, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, null, cancellationToken).ConfigureAwait(false);
                 _buttons.Remove(key);
-                if (callback.Message is { } question)
+                if (tap is { Chat: { } questionChat, MessageId: { } question })
                 {
-                    await PacedAsync(token => _api.EditButtonsAsync(question.Chat.Id, question.MessageId, null, token), cancellationToken).ConfigureAwait(false);
+                    await PacedAsync(token => DeliverButtonsAsync(questionChat, question, null, token), cancellationToken).ConfigureAwait(false);
                 }
                 await SendToTabAsync(chat, pending.TabId, pending.Text, null, cancellationToken).ConfigureAwait(false);
                 break;
             case FolderButton folder:
                 var opened = await Desk.OpenTabAsync(folder.Path, Name, cancellationToken).ConfigureAwait(false);
-                await Toast(callback, opened.Done ? null : opened.Reason, cancellationToken).ConfigureAwait(false);
+                await Toast(tap, opened.Done ? null : opened.Reason, cancellationToken).ConfigureAwait(false);
                 if (opened.Done && opened.TabId is { } openedId && await FindTabAsync(openedId, cancellationToken).ConfigureAwait(false) is { } openedTab)
                 {
                     _targets[chat] = openedTab.Id;
-                    await SendAsync(chat, $"Opened {Bold(openedTab.Name)}. Your messages go to it now.", silent: true, tabId: openedTab.Id,
+                    await SendAsync(chat, $"Opened {Format.Bold(openedTab.Name)}. Your messages go to it now.", silent: true, tabId: openedTab.Id,
                         cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
                 break;
         }
     }
 
-    private Task Toast(TelegramCallback callback, string? text, CancellationToken cancellationToken) =>
-        PacedAsync(token => _api.AnswerCallbackAsync(callback.Id, text, token), cancellationToken);
+    private Task Toast(ChatTap tap, string? text, CancellationToken cancellationToken) =>
+        PacedAsync(token => AnswerTapAsync(tap, text, token), cancellationToken);
 
     /// <summary>A button that takes words asks for them: the chat's next message is the answer.</summary>
     private async Task AskForWordsAsync(long chat, AnswerButton answer, CancellationToken cancellationToken)
@@ -471,25 +479,25 @@ public sealed partial class TelegramClient
         var buttons = answer.Option.NeedsText
             ? null
             : Rows([MakeButton("Without a message", answer with { Option = answer.Option with { TakesText = false } })], 1);
-        await SendAsync(chat, Escape(ask), buttons, silent: true, tabId: answer.TabId, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await SendAsync(chat, Format.Escape(ask), buttons, silent: true, tabId: answer.TabId, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task AnswerAsync(long chat, TelegramCallback? callback, string tabId, string promptId, RemoteOption option, string? words, CancellationToken cancellationToken)
+    private async Task AnswerAsync(long chat, ChatTap? tap, string tabId, string promptId, RemoteOption option, string? words, CancellationToken cancellationToken)
     {
         var result = await Desk.AnswerAsync(tabId, promptId, option.Id, words, Name, cancellationToken).ConfigureAwait(false);
-        if (callback is not null)
+        if (tap is not null)
         {
-            await Toast(callback, result.Done ? option.Label.TrimEnd('…') : result.Reason, cancellationToken).ConfigureAwait(false);
+            await Toast(tap, result.Done ? option.Label.TrimEnd('…') : result.Reason, cancellationToken).ConfigureAwait(false);
         }
         else if (!result.Done)
         {
-            await SendAsync(chat, Escape(result.Reason ?? "Couldn't answer it."), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, Format.Escape(result.Reason ?? "Couldn't answer it."), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         // Answered here, the prompt's message is edited once the desk says it closed. One that closed already, while
         // this run wasn't watching it, just loses its buttons.
-        if (!result.Done && callback?.Message is { } message && !_promptMessages.ContainsKey(PromptKey(tabId, promptId)))
+        if (!result.Done && tap is { Chat: { } tapChat, MessageId: { } message } && !_promptMessages.ContainsKey(PromptKey(tabId, promptId)))
         {
-            await PacedAsync(token => _api.EditButtonsAsync(message.Chat.Id, message.MessageId, null, token), cancellationToken).ConfigureAwait(false);
+            await PacedAsync(token => DeliverButtonsAsync(tapChat, message, null, token), cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -500,14 +508,15 @@ public sealed partial class TelegramClient
             await SendAsync(chat, "There's no reply to show.", silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
-        var html = $"{Bold(reply.TabName)}\n{FromMarkdown(reply.Markdown)}";
-        if (FitsMessage(html))
+        var text = $"{Format.Bold(reply.TabName)}\n{Format.FromMarkdown(reply.Markdown)}";
+        if (Format.FitsMessage(text))
         {
-            await SendAsync(chat, html, silent: true, tabId: tabId, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, text, silent: true, tabId: tabId, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
         // Longer than a message: a Markdown file.
-        await SendFileAsync(chat, $"{FileName(reply.TabName)} reply.md", reply.Markdown, $"{Bold(reply.TabName)}: the whole reply", tabId, cancellationToken).ConfigureAwait(false);
+        await SendFileAsync(chat, $"{FileName(reply.TabName)} reply.md", reply.Markdown, $"{Format.Bold(reply.TabName)}: the whole reply", tabId, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task SendChangedFilesAsync(long chat, string tabId, CancellationToken cancellationToken)
@@ -515,11 +524,11 @@ public sealed partial class TelegramClient
         var files = await Desk.GetChangedFilesAsync(tabId, cancellationToken).ConfigureAwait(false);
         if (files is null)
         {
-            await SendAsync(chat, RemoteMessages.TabGone, silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, Format.Escape(RemoteMessages.TabGone), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
         var tab = await FindTabAsync(tabId, cancellationToken).ConfigureAwait(false);
-        await SendAsync(chat, ChangedFilesHtml(tab?.Name ?? "The tab", files), silent: true, tabId: tabId, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await SendAsync(chat, ChangedFilesText(tab?.Name ?? "The tab", files), silent: true, tabId: tabId, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ShowPromptAsync(long chat, string tabId, string promptId, CancellationToken cancellationToken)
@@ -530,16 +539,41 @@ public sealed partial class TelegramClient
         }
         else
         {
-            await SendAsync(chat, Escape(RemoteMessages.AlreadyAnswered(RemotePromptEnd.Withdrawn, null)), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, Format.Escape(RemoteMessages.AlreadyAnswered(RemotePromptEnd.Withdrawn, null)), silent: true, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
         }
     }
 
     // ---- Sending ----------------------------------------------------------------------------------------------------
 
-    private async Task<long> SendAsync(long chat, string html, IReadOnlyList<IReadOnlyList<TelegramButton>>? buttons = null, long? replyTo = null,
+    /// <summary>Sends a message, as the service writes it. Returns its id.</summary>
+    /// <param name="silent">The phone doesn't make a sound for it.</param>
+    protected abstract Task<long> DeliverMessageAsync(long chat, string text, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons, long? replyTo, bool silent,
+        CancellationToken cancellationToken);
+
+    /// <summary>Changes a message's text, and its buttons: none takes them away.</summary>
+    protected abstract Task DeliverEditAsync(long chat, long message, string text, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons, CancellationToken cancellationToken);
+
+    /// <summary>Changes only a message's buttons: none takes them away.</summary>
+    protected abstract Task DeliverButtonsAsync(long chat, long message, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons, CancellationToken cancellationToken);
+
+    /// <summary>Sends a file, with a caption as the service writes it. Returns its message's id.</summary>
+    protected abstract Task<long> DeliverFileAsync(long chat, string fileName, byte[] content, string caption, bool silent, CancellationToken cancellationToken);
+
+    /// <summary>Answers a tap, with a short note only its sender sees when there's one.</summary>
+    protected abstract Task AnswerTapAsync(ChatTap tap, string? text, CancellationToken cancellationToken);
+
+    /// <summary>The paired accounts' private chats with the bot; one that can't be had is logged and left out.</summary>
+    protected abstract Task<IReadOnlyList<long>> PairedChatsAsync(CancellationToken cancellationToken);
+
+    /// <summary>Sends <paramref name="text"/>, written as the service writes, as the bot's other messages go: for what a service says of its own.</summary>
+    protected Task<long> SendTextAsync(long chat, string text, bool silent, CancellationToken cancellationToken) =>
+        SendAsync(chat, text, silent: silent, cancellationToken: cancellationToken);
+
+    private async Task<long> SendAsync(long chat, string text, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons = null, long? replyTo = null,
         bool silent = false, string? tabId = null, CancellationToken cancellationToken = default)
     {
-        var id = await PacedAsync(token => _api.SendMessageAsync(chat, html, buttons, replyTo, silent, token), cancellationToken).ConfigureAwait(false);
+        var id = await PacedAsync(token => DeliverMessageAsync(chat, text, buttons, replyTo, silent, token), cancellationToken).ConfigureAwait(false);
         Activity?.Invoke(RemoteActivity.Sent);
         if (tabId is not null)
         {
@@ -548,10 +582,10 @@ public sealed partial class TelegramClient
         return id;
     }
 
-    private async Task SendFileAsync(long chat, string fileName, string markdown, string captionHtml, string? tabId, CancellationToken cancellationToken, bool silent = true)
+    private async Task SendFileAsync(long chat, string fileName, string markdown, string caption, string? tabId, CancellationToken cancellationToken, bool silent = true)
     {
-        var id = await PacedAsync(token => _api.SendDocumentAsync(chat, fileName, System.Text.Encoding.UTF8.GetBytes(markdown), captionHtml, silent: silent,
-            cancellationToken: token), cancellationToken).ConfigureAwait(false);
+        var id = await PacedAsync(token => DeliverFileAsync(chat, fileName, System.Text.Encoding.UTF8.GetBytes(markdown), caption, silent, token), cancellationToken)
+            .ConfigureAwait(false);
         Activity?.Invoke(RemoteActivity.Sent);
         if (tabId is not null)
         {
@@ -560,29 +594,26 @@ public sealed partial class TelegramClient
     }
 
     /// <summary>Sends to every paired account. Returns the messages sent, by chat; one that can't go is logged and skipped.</summary>
-    private async Task<List<(long Chat, long Message)>> BroadcastAsync(string html, IReadOnlyList<IReadOnlyList<TelegramButton>>? buttons = null, bool silent = false,
+    private async Task<List<(long Chat, long Message)>> BroadcastAsync(string text, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons = null, bool silent = false,
         string? tabId = null, CancellationToken cancellationToken = default)
     {
         var sent = new List<(long, long)>();
-        foreach (var chat in Chats)
+        foreach (var chat in await PairedChatsAsync(cancellationToken).ConfigureAwait(false))
         {
             try
             {
-                sent.Add((chat, await SendAsync(chat, html, buttons, null, silent, tabId, cancellationToken).ConfigureAwait(false)));
+                sent.Add((chat, await SendAsync(chat, text, buttons, null, silent, tabId, cancellationToken).ConfigureAwait(false)));
             }
-            catch (TelegramApiException ex)
+            catch (ChatApiException ex)
             {
-                _logger.LogWarning("Telegram: couldn't send a message: {Error}", ex.Message);
+                _logger.LogWarning("{Client}: couldn't send a message: {Error}", Name, ex.Message);
             }
         }
         return sent;
     }
 
-    /// <summary>The paired accounts' private chats, whose ids are the accounts'.</summary>
-    private IEnumerable<long> Chats => _pairing.Accounts.Select(a => a.UserId).Distinct();
-
-    private static IReadOnlyList<IReadOnlyList<TelegramButton>> Rows(IEnumerable<TelegramButton> buttons, int perRow) =>
-        [.. buttons.Chunk(perRow).Select(row => (IReadOnlyList<TelegramButton>)row)];
+    private static IReadOnlyList<IReadOnlyList<ChatButton>> Rows(IEnumerable<ChatButton> buttons, int perRow) =>
+        [.. buttons.Chunk(perRow).Select(row => (IReadOnlyList<ChatButton>)row)];
 
     /// <summary>A file's name from a tab's: what a file system takes.</summary>
     private static string FileName(string name)

@@ -300,7 +300,7 @@ The second page under **Source control**. None of this page syncs.
 
 ## Remote clients
 
-None of this group syncs, and a tab can't change it for itself. A client's secret, such as the Telegram bot's token, is in your computer's credential store, and the paired accounts with Deventry's state.
+None of this group syncs, and a tab can't change it for itself. A client's secret, such as a bot's token, is in your computer's credential store, and the paired accounts with Deventry's state.
 
 ### All clients
 
@@ -321,7 +321,13 @@ None of this group syncs, and a tab can't change it for itself. A client's secre
 
 | Setting | Section | Default | Explained in |
 |---|---|---|---|
-| **Use a Telegram bot** | The bot | Off | [Remote clients](../away/remote-clients.md#setting-up-the-bot) |
+| **Use a Telegram bot** | The bot | Off | [Remote clients](../away/remote-clients.md#setting-up-a-telegram-bot) |
+
+### Discord
+
+| Setting | Section | Default | Explained in |
+|---|---|---|---|
+| **Use a Discord bot** | The bot | Off | [Remote clients](../away/remote-clients.md#setting-up-a-discord-bot) |
 
 ## A project's settings
 

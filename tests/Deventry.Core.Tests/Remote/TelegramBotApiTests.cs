@@ -1,4 +1,5 @@
 using System.Net;
+using Deventry.Core.Remote.Chat;
 using Deventry.Core.Remote.Telegram;
 using Deventry.Core.Tests.Support;
 using Microsoft.Extensions.Time.Testing;
@@ -46,7 +47,7 @@ public sealed class TelegramBotApiTests : IDisposable
     [Fact]
     public async Task A_message_goes_as_HTML_without_link_previews_and_with_its_buttons()
     {
-        await _api.SendMessageAsync(7, "<b>Hi</b>", [[new TelegramButton("Allow", "r:1"), new TelegramButton("Deny", "r:2")]], replyTo: 5, silent: true,
+        await _api.SendMessageAsync(7, "<b>Hi</b>", [[new ChatButton("Allow", "r:1"), new ChatButton("Deny", "r:2")]], replyTo: 5, silent: true,
             cancellationToken: TestContext.Current.CancellationToken);
 
         var sent = Assert.Single(_telegram.Sent);

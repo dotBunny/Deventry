@@ -284,6 +284,17 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
 
     public bool HasPairingQr => PairingQrPng is not null;
 
+    /// <summary>The kind's link that the QR code holds, to open on this computer instead; null without one.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPairingLink))]
+    public partial string? PairingLink { get; private set; }
+
+    public bool HasPairingLink => PairingLink is not null;
+
+    /// <summary><b>Open the link</b>: the QR code's link, in the browser or the service's app on this computer.</summary>
+    [RelayCommand]
+    private Task OpenPairingLinkAsync() => PairingLink is { } link ? Services.Platform.OpenUrlAsync(link) : Task.CompletedTask;
+
     /// <summary>"Works once, for 4:32 more."</summary>
     [ObservableProperty]
     public partial string PairingTimeLeft { get; private set; } = "";
@@ -297,6 +308,7 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
         PairingCode = code.Display;
         PairingCommand = Type.PairingCommand(code.Code);
         PairingQrPng = link is null ? null : Qr(link);
+        PairingLink = link;
         PairingSteps = Type.PairingSteps(link is not null);
         IsPairing = true;
         OnPairingTick();
@@ -315,6 +327,7 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
         _pairingTicker.Run(false);
         IsPairing = false;
         PairingQrPng = null;
+        PairingLink = null;
         PairingCode = PairingCommand = PairingSteps = PairingTimeLeft = "";
     }
 

@@ -45,7 +45,7 @@ public sealed partial class GeneralPage : SettingsPage, IDisposable
                 "So the Claude app can still reach them. The screen can still turn off.", keywords: ["remote control", "phone"]),
             Setting("remoteClients.keepAwake", "Also while a remote client is on",
                 s => s.RemoteClients.KeepAwake, (s, v) => s.RemoteClients.KeepAwake = v,
-                "A sleeping computer can't answer the Telegram bot. The screen can still turn off.", keywords: ["telegram", "bot", "phone"]),
+                "A sleeping computer can't answer your bots. The screen can still turn off.", keywords: ["telegram", "discord", "bot", "phone"]),
         ]);
         Section("updates", "Updates and status",
         [
