@@ -77,8 +77,24 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
 
     public override string Description => Type.Description;
 
-    /// <summary><i>Off</i> beside its name in the sidebar while it isn't used; the page can still be picked.</summary>
-    public override string? NavTag => IsOn ? null : "Off";
+    /// <summary>
+    /// Beside its name in the sidebar: <i>Off</i> while it isn't used, and otherwise its state, as the header's icon
+    /// ranks it: <i>Connected</i>, <i>Connecting…</i>, or <i>Not paired</i> and <i>Needs you</i> in the caution colors.
+    /// </summary>
+    public override string? NavTag => !IsOn ? "Off" : Remote.StateOf(Kind) switch
+    {
+        { Status: RemoteClientStatus.Failed } => NeedsYou,
+        { Status: RemoteClientStatus.Connected } when Pairing.Accounts.Count == 0 => NotPaired,
+        { Status: RemoteClientStatus.Connected } => "Connected",
+        // Connecting, or not started yet: Deventry starts the clients once the tabs are up.
+        _ => "Connecting…",
+    };
+
+    public override bool IsNavTagCaution => NavTag is NeedsYou or NotPaired;
+
+    private const string NeedsYou = "Needs you";
+
+    private const string NotPaired = "Not paired";
 
     public void Dispose()
     {
@@ -89,6 +105,7 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
     private void OnRemoteChanged()
     {
         RefreshAccounts();
+        OnPropertyChanged(nameof(NavTag));
         OnPropertyChanged(nameof(HasSecret));
         OnPropertyChanged(nameof(IdentityText));
         OnPropertyChanged(nameof(StateText));

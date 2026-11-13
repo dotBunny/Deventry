@@ -29,7 +29,7 @@ You make the bot in Telegram, once, and give Deventry its token.
 
 1. In Telegram, open [@BotFather](https://t.me/BotFather) and send it `/newbot`.
 2. Give the bot a name, then a username that ends in `bot`. BotFather answers with the bot's token, a line like `123456789:AAH…`.
-3. In Deventry, open Settings → Remote clients → **Telegram** and turn on **Use a Telegram bot**. Until you do, the sidebar says *Off* after **Telegram**.
+3. In Deventry, open Settings → Remote clients → **Telegram** and turn on **Use a Telegram bot**. Until you do, the sidebar says *Off* after **Telegram**; once it's on, it says how the bot is doing: *Connected*, *Connecting…*, or *Not paired* or *Needs you* in the warning color.
 4. Choose **Set token…**, paste the token and choose **Save token**.
 
 Deventry keeps the token only in your computer's credential store (Credential Manager on Windows, the Keychain on macOS, the Secret Service on Linux): never in its settings, and it doesn't sync. Under **Bot**, Settings shows the bot's `@username` once Telegram has said it, and whether it's **Connected**.
