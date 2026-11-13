@@ -1,4 +1,5 @@
 using Deventry.Core.Remote.Chat;
+using Deventry.Core.Remote.Discord;
 using Deventry.Core.Remote.Telegram;
 
 namespace Deventry.Core.Tests.Remote;
@@ -41,6 +42,7 @@ public class ChatFormatTests
         var data = ChatFormat.ButtonData("ab3x", ChatFormat.Key(long.MaxValue));
 
         Assert.True(System.Text.Encoding.UTF8.GetByteCount(data) <= TelegramBotApi.ButtonDataLimit);
+        Assert.True(data.Length <= DiscordApi.CustomIdLimit);
         Assert.Equal(("ab3x", ChatFormat.Key(long.MaxValue)), ChatFormat.ParseButtonData(data));
         Assert.Null(ChatFormat.ParseButtonData("nonsense"));
         Assert.Null(ChatFormat.ParseButtonData(null));

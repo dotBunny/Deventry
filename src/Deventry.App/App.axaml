@@ -800,6 +800,7 @@
       <StreamGeometry x:Key="IconRemoteInner">M4.16,4.16 A2.6,2.6 0 0 0 4.16,7.84 M7.84,4.16 A2.6,2.6 0 0 1 7.84,7.84</StreamGeometry>
       <StreamGeometry x:Key="IconRemoteOuter">M2.75,2.75 A4.6,4.6 0 0 0 2.75,9.25 M9.25,2.75 A4.6,4.6 0 0 1 9.25,9.25</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsTelegram">M11,1.2 L1,5.4 L4.6,6.8 L11,1.2 L6.4,9.6 L4.6,6.8 M4.6,6.8 L4.6,10.6 L6.4,9.6</StreamGeometry>
+      <StreamGeometry x:Key="IconSettingsDiscord">M3,2 H9 A1.5,1.5 0 0 1 10.5,3.5 V7 A1.5,1.5 0 0 1 9,8.5 H5.6 L3.4,10.4 V8.5 H3 A1.5,1.5 0 0 1 1.5,7 V3.5 A1.5,1.5 0 0 1 3,2 Z M4.4,5.3 A0.5,0.5 0 1 1 4.41,5.3 M7.6,5.3 A0.5,0.5 0 1 1 7.61,5.3</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsKeyboard">M1,3 L11,3 L11,9.5 L1,9.5 Z M3,5 L3.1,5 M5,5 L5.1,5 M7,5 L7.1,5 M9,5 L9.1,5 M3.6,7.4 L8.4,7.4</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsTabs">M1.5,4.2 L10.5,4.2 L10.5,10.5 L1.5,10.5 Z M1.5,4.2 L1.5,2 L5.6,2 L5.6,4.2 M6.6,4.2 L6.6,2.6 L10.5,2.6 L10.5,4.2</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsSessions">M2,1.5 L4,1.5 L4,10.5 L2,10.5 Z M5,1.5 L7,1.5 L7,10.5 L5,10.5 Z M8,2.2 L9.9,1.7 L11.2,10 L9.3,10.5 Z</StreamGeometry>

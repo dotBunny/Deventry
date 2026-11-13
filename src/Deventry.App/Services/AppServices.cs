@@ -366,8 +366,8 @@ public sealed class AppServices : IAsyncDisposable
     public RemoteControlService RemoteControl { get; }
 
     /// <summary>
-    /// The remote clients (DESIGN.md §18, "Remote clients"): the desk they reach the tabs through, and the Telegram bot,
-    /// started once the tabs are up.
+    /// The remote clients (DESIGN.md §18, "Remote clients"): the desk they reach the tabs through, and the bots,
+    /// Telegram's and Discord's, started once the tabs are up.
     /// </summary>
     public RemoteClientsService RemoteClients { get; }
 

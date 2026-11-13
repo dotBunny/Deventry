@@ -32,7 +32,7 @@
 "So the Claude app can still reach them. The screen can still turn off."
 [toggle on] Also while tabs are connected to the Claude app
 "Also while a remote client is on"
-"A sleeping computer can't answer the Telegram bot. The screen can still turn off."
+"A sleeping computer can't answer your bots. The screen can still turn off."
 [toggle on] Also while a remote client is on
 "Updates and status"
 [button] Reset to defaults

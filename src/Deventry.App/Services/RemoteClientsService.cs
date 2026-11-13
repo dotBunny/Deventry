@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Deventry.App.ViewModels;
 using Deventry.Core.Credentials;
 using Deventry.Core.Remote;
+using Deventry.Core.Remote.Discord;
 using Deventry.Core.Remote.Telegram;
 using Deventry.Core.Settings;
 using Deventry.Usage;
@@ -12,14 +13,14 @@ namespace Deventry.App.Services;
 /// <summary>
 /// The remote clients (DESIGN.md §18, "Remote clients"): the desk they reach Deventry through, over the shell's tabs,
 /// and the clients themselves, one of each kind Deventry knows (<see cref="AllTypes"/>) that Settings → Remote clients
-/// turns on. Each kind's secret, such as the Telegram bot's token, is only in the credential store. Decides when a
+/// turns on. Each kind's secret, such as a bot's token, is only in the credential store. Decides when a
 /// client sends a message: the events the user wants, loud while they're away and, with <b>Always</b>, silent at the
 /// desk. The desk's methods may be called from any thread; everything else is on the UI thread.
 /// </summary>
 public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
 {
     /// <summary>The kinds of remote client Deventry knows, in the order Settings lists them.</summary>
-    public static IReadOnlyList<IRemoteClientType> AllTypes { get; } = [new TelegramClientType()];
+    public static IReadOnlyList<IRemoteClientType> AllTypes { get; } = [new TelegramClientType(), new DiscordClientType()];
 
     private readonly AppServices _services;
     private readonly IUserPresence _presence;

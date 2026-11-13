@@ -156,7 +156,7 @@ public class RemoteClientsIndicatorTests
         var clients = indicator.Read(v => v.Clients);
         Assert.Equal(["Telegram (@deventry_bot): connected", "Discord: stopped. Discord didn't accept the bot's token."], clients.Select(c => c.Line));
         Assert.Equal(["Telegram#telegram", "Discord#discord"], clients.Select(c => c.SettingsTarget));
-        Assert.Equal(["IconSettingsTelegram", RemoteClientIcons.Any], clients.Select(c => c.IconKey));
+        Assert.Equal(["IconSettingsTelegram", "IconSettingsDiscord"], clients.Select(c => c.IconKey));
         Assert.Equal("Telegram settings…", clients[0].SettingsText);
     }
 

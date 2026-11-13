@@ -1,3 +1,4 @@
+using Deventry.Core.Remote.Discord;
 using Deventry.Core.Remote.Telegram;
 
 namespace Deventry.App.ViewModels;
@@ -11,6 +12,7 @@ public static class RemoteClientIcons
     public static string For(string kind) => kind switch
     {
         TelegramClient.ClientKind => "IconSettingsTelegram",
+        DiscordClient.ClientKind => "IconSettingsDiscord",
         _ => Any,
     };
 }
