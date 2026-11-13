@@ -22,10 +22,10 @@ Like the Project Files tab, the Tickets tab has no session: it can go [side by s
 ## Where a project's tickets come from
 
 - **From the git remote.** A folder whose git remote (`origin`, or else the first) is a GitHub repository has that repository's issues, without anything to set up. Settings → Tickets → **GitHub** → **Find a project's repository from its git remote** turns that off.
-- **From the project's settings.** Choose **Project settings…** in the group's menu and go to **Tickets**, or **Ticket sources…** in the Tickets tab's **⋯**. **Add…** asks for the provider (**GitHub** or **YouTrack**), the repository (`owner/name`) or the YouTrack server, project and query, a **Name** for the source menu, and the file it goes in: **Just me (deventry.local.json)** or **Shared with the project (deventry.json)**. Once a file names a source, the one from git isn't used; removing the last one brings it back.
+- **From the project's settings.** Choose **Project settings…** in the group's menu and go to **Tickets**, or **Ticket sources…** in the Tickets tab's **⋯**. **Add…** asks for the provider (**GitHub** or **YouTrack**), the repository (`owner/name`) or the YouTrack server, project and query, a **Name** for the source menu, and the file it goes in: **Just me (deventry.local.json)** or **Shared with the project (deventry.json)**. The one from git stays beside them: a YouTrack project you add sits next to your GitHub repository. Only a GitHub repository you add takes its place, and removing it brings the one from git back.
 - **By hand**, in `tickets` in [`deventry.json`](../reference/deventry-json.md).
 
-A project can have several sources; the list's header then has a menu to choose one, or **All sources**.
+A project can have several sources; the list's header then has a menu to choose one, or **All sources**. Showing them all, each ticket has a chip naming its source, as the menu does, and so does the ticket you're reading.
 
 ## Find a ticket
 
@@ -34,6 +34,8 @@ A project can have several sources; the list's header then has a menu to choose 
 - The list loads 50 tickets at a time: **Load more** at its end reads the next. **Refresh** (or `F5`) reads it again; it's also read again when you come back to the tab more than five minutes later. Nothing is read while the tab isn't open.
 
 Each row has the ticket's key and title, and under them its labels, how long ago it was opened, its comments, and how many open tabs work on it (*1 tab*).
+
+Drag the list's right edge to make it wider or narrower, for every Tickets tab; double-click the edge for its first width. In a pane too narrow for both, the ticket takes the list's place.
 
 ## Read a ticket
 
@@ -73,7 +75,7 @@ Settings → Tickets has a page for each provider, with its servers.
   - **Git Credential Manager**, which Git uses for GitHub once you've cloned or pushed over HTTPS.
 
   **Add a GitHub Enterprise server…** adds your company's server, and its repositories are found from git remotes too.
-- **YouTrack**: **Add a YouTrack server…** with its address (`https://yourteam.youtrack.cloud`, or your server's), then **Set token…** with a permanent token from YouTrack (your profile → **Account Security** → **New token…**). Without a token, Deventry reads what the server shows its guests.
+- **YouTrack**: **Set token…** with a permanent token from YouTrack (your profile → **Account Security** → **New token…**). A server a project's ticket source names is listed here once its Tickets tab has read it; **Add a YouTrack server…** adds another by its address (`https://yourteam.youtrack.cloud`, or your server's). Without a token, Deventry reads what the server shows its guests: a project that's private says to set a token, with **YouTrack settings…**.
 
 Tokens go only to your system's credential store (Windows Credential Manager, the macOS Keychain, or the Secret Service on Linux), never into Deventry's settings, and they aren't synced. A token from `gh` or Git Credential Manager is only kept in memory.
 

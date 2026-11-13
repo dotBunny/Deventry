@@ -3,6 +3,7 @@
              xmlns:vm="using:Deventry.App.ViewModels"
              xmlns:tickets="using:Deventry.Core.Tickets"
              xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
+             xmlns:controls="using:Deventry.App.Controls"
              x:Class="Deventry.App.Views.TicketsView"
              x:DataType="vm:TicketsViewModel">
   <!-- A folder group's Tickets tab (DESIGN.md §18, "Tickets"): the list at the left, the ticket chosen at the right, and in
@@ -16,6 +17,24 @@
     </Style>
     <Style Selector="ListBox.tickets ListBoxItem">
       <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <!-- Which source a ticket is from, while the tab shows several -->
+    <Style Selector="Border.ticketsource">
+      <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Padding" Value="5,0,5,1" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="MaxWidth" Value="160" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="controls|AppearanceScope.claude Border.ticketsource">
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Border.ticketsource > TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
     <Style Selector="Border.ticketsection">
       <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
@@ -42,7 +61,7 @@
 
     <Grid x:Name="Body" Grid.Row="1" ColumnDefinitions="Auto,*">
       <!-- The list ("The list") -->
-      <Border x:Name="ListColumn" Classes="explorer" Width="320" IsVisible="{Binding ShowsList}">
+      <Border x:Name="ListColumn" Classes="explorer" IsVisible="{Binding ShowsList}">
         <DockPanel>
           <Border DockPanel.Dock="Top" Classes="explorerheader">
             <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="4">
@@ -114,7 +133,12 @@
                         <Run Text="{Binding Key}" FontWeight="SemiBold" />
                         <Run Text="{Binding Title}" />
                       </TextBlock>
-                      <TextBlock Classes="muted small" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" />
+                      <DockPanel>
+                        <Border DockPanel.Dock="Left" Classes="ticketsource" IsVisible="{Binding ShowsSource}" ToolTip.Tip="{Binding SourceTip}">
+                          <TextBlock Text="{Binding SourceName}" />
+                        </Border>
+                        <TextBlock Classes="muted small" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                      </DockPanel>
                     </StackPanel>
                   </Grid>
                 </DataTemplate>
@@ -123,11 +147,16 @@
             <StackPanel Spacing="10" Margin="16,12" IsVisible="{Binding HasEmptyText}">
               <TextBlock Classes="muted" Text="{Binding EmptyText}" TextWrapping="Wrap" />
               <Button Content="Add a ticket source…" Command="{Binding EditSourcesCommand}" IsVisible="{Binding OffersAddSource}" HorizontalAlignment="Left" />
+              <Button Content="{Binding ProviderSettingsText}" Command="{Binding OpenProviderSettingsCommand}" IsVisible="{Binding OffersTokenSettings}" HorizontalAlignment="Left" />
             </StackPanel>
             <TextBlock Classes="muted" Text="Loading…" Margin="16,12" IsVisible="{Binding IsLoading}" VerticalAlignment="Top" />
           </Panel>
         </DockPanel>
       </Border>
+
+      <!-- Drag the list's edge to resize it; double-click for the default width -->
+      <Border x:Name="ListEdge" Width="6" Background="Transparent" Cursor="SizeWestEast" ZIndex="1" HorizontalAlignment="Right" Margin="0,0,-3,0"
+              IsVisible="{Binding !IsNarrow}" />
 
       <!-- The ticket chosen ("A ticket") -->
       <ScrollViewer x:Name="TicketColumn" Grid.Column="1" IsVisible="{Binding ShowsTicket}" HorizontalScrollBarVisibility="Disabled">
@@ -147,7 +176,12 @@
                     <Run Text="{Binding Key}" Foreground="{DynamicResource MutedTextBrush}" />
                     <Run Text="{Binding Title}" />
                   </SelectableTextBlock>
-                  <TextBlock Classes="muted small" Text="{Binding StateLine}" TextWrapping="Wrap" />
+                  <DockPanel>
+                    <Border DockPanel.Dock="Left" Classes="ticketsource" IsVisible="{Binding ShowsSource}" ToolTip.Tip="{Binding SourceTip}" VerticalAlignment="Top">
+                      <TextBlock Text="{Binding SourceName}" />
+                    </Border>
+                    <TextBlock Classes="muted small" Text="{Binding StateLine}" TextWrapping="Wrap" />
+                  </DockPanel>
                   <TextBlock Classes="small" Text="{Binding FieldsLine}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis"
                              ToolTip.Tip="{Binding FieldsLine}" IsVisible="{Binding HasFields}" />
                   <!-- The open tabs started on it ("Tabs remember their ticket") -->

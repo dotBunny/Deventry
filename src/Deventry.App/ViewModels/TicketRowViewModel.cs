@@ -19,6 +19,14 @@ public sealed partial class TicketRowViewModel(TicketSource source, Ticket ticke
 
     public bool IsOpen => Ticket.IsOpen;
 
+    /// <summary>The list shows several sources (<b>All sources</b>): the row's chip names its own.</summary>
+    public bool ShowsSource { get; init; }
+
+    /// <summary>Its chip: its source as the source menu calls it, <i>dotBunny/NightOwl</i> or <i>NightOwl</i>.</summary>
+    public string SourceName => Source.DisplayName;
+
+    public string SourceTip => $"From {Source.DisplayName}, on {Source.ServerName}";
+
     private int _tabCount = tabCount;
 
     /// <summary>How many open tabs work on it.</summary>
@@ -76,8 +84,18 @@ public sealed class TicketCommentViewModel(TicketComment comment, TimeProvider t
 /// <summary>The ticket the Tickets tab shows (DESIGN.md §18, "Tickets", "A ticket"): its fields, text and comments.</summary>
 public sealed partial class TicketDetailViewModel : ObservableObject
 {
+    /// <summary>The project has several sources: the ticket's chip names its own.</summary>
+    public bool ShowsSource { get; init; }
+
+    /// <summary>Its chip: its source as the source menu calls it.</summary>
+    public string SourceName { get; }
+
+    public string SourceTip { get; }
+
     public TicketDetailViewModel(TicketSource source, TicketDetail detail, ITicketProviderType? type, IReadOnlyList<TabViewModel> tabs, TimeProvider time)
     {
+        SourceName = source.DisplayName;
+        SourceTip = $"From {source.DisplayName}, on {source.ServerName}";
         Source = source;
         Detail = detail;
         Provider = type;

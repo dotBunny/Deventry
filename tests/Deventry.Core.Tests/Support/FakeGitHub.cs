@@ -16,6 +16,9 @@ public sealed class FakeGitHub : HttpMessageHandler
 
     public const string Repository = "org/game";
 
+    /// <summary>The repositories it answers for, each with the same issues: <see cref="Repository"/>, and any a test adds.</summary>
+    public HashSet<string> Repositories { get; } = [Repository];
+
     public const string Api = "https://api.github.com";
 
     private readonly Lock _lock = new();
@@ -160,7 +163,8 @@ public sealed class FakeGitHub : HttpMessageHandler
             return signedIn ? Tagged(new JsonObject { ["login"] = Login, ["name"] = "Kim Lee" })
                 : Json(HttpStatusCode.Unauthorized, new JsonObject { ["message"] = "Requires authentication" });
         }
-        var repo = $"/repos/{Repository}/issues";
+        var repo = Repositories.Select(r => $"/repos/{r}/issues").FirstOrDefault(p => path == p || path.StartsWith(p + "/", StringComparison.Ordinal))
+            ?? $"/repos/{Repository}/issues";
         if (path == repo && request.Method == HttpMethod.Get)
         {
             var state = query["state"] ?? "open";

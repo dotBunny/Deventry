@@ -67,14 +67,15 @@ public sealed partial class ProjectSettingsViewModel
     private void LoadTicketSources()
     {
         TicketSources.Clear();
-        var named = false;
+        var emptied = false;
         foreach (var scope in (ProjectFileScope[])[ProjectFileScope.Shared, ProjectFileScope.Local])
         {
             try
             {
                 var file = ProjectFile.FileName(Folder, scope);
                 var entries = ProjectFile.ReadTicketEntries(Folder, scope);
-                named |= ProjectFile.ReadTickets(Folder, scope).HasKey;
+                var tickets = ProjectFile.ReadTickets(Folder, scope);
+                emptied |= tickets.HasKey && tickets.Entries.Count == 0;
                 var origin = scope == ProjectFileScope.Shared ? TicketSourceOrigin.Shared : TicketSourceOrigin.Local;
                 for (var i = 0; i < entries.Count; i++)
                 {
@@ -88,7 +89,8 @@ public sealed partial class ProjectSettingsViewModel
                 _ticketFileErrors[scope] = ex.Message;
             }
         }
-        if (!named && Core.Tickets.TicketSources.FromGit(Folder, TicketTypes, _services.Tickets.Detection()) is { } found)
+        var named = TicketSources.Select(r => r.Source).OfType<TicketSource>().ToList();
+        if (Core.Tickets.TicketSources.FromGitBeside(Folder, named, emptied, TicketTypes, _services.Tickets.Detection()) is { } found)
         {
             TicketSources.Add(new ProjectTicketRow(null, found, null, null, NameOf(found)));
         }
@@ -109,26 +111,18 @@ public sealed partial class ProjectSettingsViewModel
         MoveTicketSourceDownCommand.NotifyCanExecuteChanged();
     }
 
-    /// <summary><b>Add…</b>: the source dialog, which asks which file it goes in (just the user's by default), filled in from the one found from git.</summary>
+    /// <summary><b>Add…</b>: the source dialog, which asks which file it goes in (just the user's by default).</summary>
     [RelayCommand]
-    private void AddTicketSource()
-    {
-        var fromGit = TicketSources.FirstOrDefault(r => r.IsFromGit)?.Source;
-        Editor = new TicketSourceEditorViewModel(Folder, TicketTypes, null, fromGit is null ? ProjectFileScope.Local : ProjectFileScope.Shared, TicketFileProblem,
-            (source, scope) => Insert(source, scope, fromGit), CloseEditor);
-        if (fromGit is not null && Editor is TicketSourceEditorViewModel editor)
-        {
-            editor.Project = fromGit.Project;
-            editor.Server = TicketServers.Same(fromGit.Server, Core.Tickets.GitHub.GitHubTicketsType.GitHubCom) ? "" : fromGit.Server;
-        }
-    }
+    private void AddTicketSource() =>
+        Editor = new TicketSourceEditorViewModel(Folder, TicketTypes, null, ProjectFileScope.Local, TicketFileProblem, Insert, CloseEditor);
 
-    private void Insert(TicketSource source, ProjectFileScope scope, TicketSource? fromGit)
+    private void Insert(TicketSource source, ProjectFileScope scope)
     {
-        // A source in a file names the project's sources: the one found from git goes.
-        if (fromGit is not null && TicketSources.FirstOrDefault(r => r.IsFromGit) is { } found)
+        // A source of the one found from git's provider takes its place; another's sits beside it.
+        if (TicketSources.FirstOrDefault(r => r.IsFromGit) is { Source: { } found } fromGit
+            && string.Equals(found.Provider, source.Provider, StringComparison.OrdinalIgnoreCase))
         {
-            TicketSources.Remove(found);
+            TicketSources.Remove(fromGit);
         }
         var row = new ProjectTicketRow(Json(source, null), source, null, scope, NameOf(source));
         TicketSources.Insert(scope == ProjectFileScope.Shared ? TicketSources.Count(r => r.Scope == ProjectFileScope.Shared) : TicketSources.Count(r => r.Scope is not null), row);

@@ -36,6 +36,7 @@ public sealed partial class TicketsViewModel : ViewModelBase, IShellTab, IMarkdo
         _filterText = state.Filter;
         _services.Tickets.Changed += OnTicketsServiceChanged;
         _services.SettingsChanged += OnSettingsChanged;
+        _shell.Layout.PropertyChanged += OnLayoutChanged;
     }
 
     /// <summary>What's saved for the tab; <see cref="CaptureState"/> brings it up to date.</summary>
@@ -154,6 +155,31 @@ public sealed partial class TicketsViewModel : ViewModelBase, IShellTab, IMarkdo
 
     [RelayCommand]
     private void ClosePane() => _shell.ClosePaneCommand.Execute(this);
+
+    // ---- The list's width (DESIGN.md §18, "Tickets", "Its layout"): one for every Tickets tab ----------------------
+
+    /// <summary>The list's width, as its edge was dragged.</summary>
+    public double ListWidth => _shell.Layout.TicketListWidth;
+
+    /// <summary>Dragging the list's edge; <see cref="SaveListWidth"/> keeps it once the drag ends.</summary>
+    public void ResizeList(double width) => _shell.Layout.ResizeTicketList(width);
+
+    public void SaveListWidth() => _shell.Layout.SaveTicketListWidth();
+
+    /// <summary>A double-click on the list's edge: its width as it first was.</summary>
+    public void ResetListWidth()
+    {
+        _shell.Layout.ResizeTicketList(ShellLayout.DefaultTicketListWidth);
+        _shell.Layout.SaveTicketListWidth();
+    }
+
+    private void OnLayoutChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ShellLayout.TicketListWidth))
+        {
+            OnPropertyChanged(nameof(ListWidth));
+        }
+    }
 
     /// <summary>Its row's × and menu's <b>Close</b>.</summary>
     [RelayCommand]
@@ -279,6 +305,7 @@ public sealed partial class TicketsViewModel : ViewModelBase, IShellTab, IMarkdo
         _disposed = true;
         _services.Tickets.Changed -= OnTicketsServiceChanged;
         _services.SettingsChanged -= OnSettingsChanged;
+        _shell.Layout.PropertyChanged -= OnLayoutChanged;
         _closing.Cancel();
         _closing.Dispose();
         _filterWait.Dispose();

@@ -30,6 +30,28 @@ public sealed partial class ShellLayout : ViewModelBase
         PaneShares = state.PaneShares is { Count: > 1 } shares && shares.All(s => s > 0) ? [.. shares] : [];
         ExplorerWidth = Math.Max(state.ExplorerWidth ?? DefaultExplorerWidth, MinExplorerWidth);
         IsExplorerHidden = state.ExplorerHidden;
+        TicketListWidth = Math.Max(state.TicketListWidth ?? DefaultTicketListWidth, MinTicketListWidth);
+    }
+
+    // ---- The Tickets tabs' list (DESIGN.md §18, "Tickets", "Its layout"): one width for every tab's --------------
+
+    public const double DefaultTicketListWidth = 320;
+    public const double MinTicketListWidth = 220;
+
+    /// <summary>The least the ticket beside the list keeps: under it and the list's least, the ticket takes the list's place.</summary>
+    public const double MinTicketWidth = 320;
+
+    /// <summary>The list's width, as the user dragged it. Each tab's view shows it as far as there's room, leaving the ticket <see cref="MinTicketWidth"/>.</summary>
+    [ObservableProperty]
+    public partial double TicketListWidth { get; private set; }
+
+    /// <summary>Dragging the list's edge. <see cref="SaveTicketListWidth"/> keeps the result when the drag ends.</summary>
+    public void ResizeTicketList(double width) => TicketListWidth = Math.Max(width, MinTicketListWidth);
+
+    public void SaveTicketListWidth()
+    {
+        _state.TicketListWidth = TicketListWidth;
+        _saveState();
     }
 
     // ---- The Project Files tabs' explorer (DESIGN.md §18, "Project files"): one width for every tab's ---------------

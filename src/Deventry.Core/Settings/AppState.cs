@@ -128,6 +128,9 @@ public sealed class AppState
     /// <summary>The Project Files tabs' explorer is hidden, by its button.</summary>
     public bool ExplorerHidden { get; set; }
 
+    /// <summary>The Tickets tabs' list's width as the user dragged it, or null for the default. One for every tab.</summary>
+    public double? TicketListWidth { get; set; }
+
     /// <summary>What Find in files had last: its query, options, mask and folder (DESIGN.md §18, "Finding in files").</summary>
     public ProjectFiles.FindInFilesState FindInFiles { get; set; } = new();
 

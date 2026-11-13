@@ -9,7 +9,7 @@ public enum TicketSourceOrigin
     /// <summary><c>tickets</c> in <c>deventry.local.json</c>, the user's own.</summary>
     Local,
 
-    /// <summary>The folder's git remote, with neither file naming any.</summary>
+    /// <summary>The folder's git remote, beside the files' own unless they name one of its provider's.</summary>
     Git,
 }
 

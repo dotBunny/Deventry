@@ -121,7 +121,7 @@ Any other word in braces makes the link greyed out: "Unknown placeholder …: us
 - For YouTrack, `server` and `project` (its short name) are needed, and `query` narrows its tickets in YouTrack's query words.
 - `name` is what the Tickets tab's source menu calls it.
 
-With neither file naming any, a folder whose git remote is on GitHub has that repository's issues. An empty list, `"tickets": []`, names none, and turns that off. The project's **Tickets** page, in its [project settings](../settings/project-settings.md), edits them.
+A folder whose git remote is on GitHub has that repository's issues too, beside the sources the files name, unless they name a GitHub repository of their own, which takes its place. An empty list, `"tickets": []`, turns it off. The project's **Tickets** page, in its [project settings](../settings/project-settings.md), edits them.
 
 ## What's skipped
 

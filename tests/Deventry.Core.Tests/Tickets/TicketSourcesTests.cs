@@ -114,7 +114,21 @@ public sealed class TicketSourcesTests : IDisposable
     }
 
     [Fact]
-    public void Sources_named_in_a_file_and_an_empty_list_turn_finding_one_from_git_off()
+    public void Another_providers_source_sits_beside_the_one_from_git_and_the_same_providers_takes_its_place()
+    {
+        Remote("https://github.com/dotBunny/NightOwl.git");
+        _folder.Write("deventry.json", """{ "tickets": [ { "provider": "youtrack", "server": "https://dotbunny.youtrack.cloud", "project": "NO" } ] }""");
+
+        Assert.Equal(["youtrack:https://dotbunny.youtrack.cloud/NO", "github:github.com/dotBunny/NightOwl"],
+            TicketSources.Read(_folder.Path, Types, Detection()).Sources.Select(s => s.Id));
+
+        _folder.Write("deventry.local.json", """{ "tickets": [ { "provider": "github", "repository": "dotBunny/Engine" } ] }""");
+        Assert.Equal(["youtrack:https://dotbunny.youtrack.cloud/NO", "github:github.com/dotBunny/Engine"],
+            TicketSources.Read(_folder.Path, Types, Detection()).Sources.Select(s => s.Id));
+    }
+
+    [Fact]
+    public void An_empty_list_and_the_setting_turn_finding_one_from_git_off()
     {
         Remote("https://github.com/dotBunny/NightOwl.git");
         _folder.Write("deventry.local.json", """{ "tickets": [] }""");

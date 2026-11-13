@@ -84,6 +84,70 @@ public class TicketsTests
     }
 
     [Fact]
+    public async Task With_several_sources_shown_each_ticket_has_a_chip_naming_its_own()
+    {
+        var github = GitHub();
+        github.Repositories.Add("org/engine");
+        await using var h = new TabTestHarness(http: github);
+        Sources(h, """{ "tickets": [ { "provider": "github", "repository": "org/game" }, { "provider": "github", "repository": "org/engine", "name": "Engine" } ] }""");
+
+        var (_, tickets) = await OpenTicketsAsync(h);
+
+        // The first source alone: its tickets need no chip.
+        Assert.True(tickets.HasSeveralSources);
+        Assert.All(tickets.Rows, r => Assert.False(r.ShowsSource));
+        InlineDispatcher.Run(() => tickets.SelectedSource = tickets.SourceChoices[^1]);
+        await TabTestHarness.Eventually(() => !tickets.IsLoading && tickets.Rows.Count == 4, "both sources' tickets");
+        Assert.All(tickets.Rows, r => Assert.True(r.ShowsSource));
+        Assert.Equal(["Engine", "org/game"], tickets.Rows.Select(r => r.SourceName).Distinct().Order());
+
+        InlineDispatcher.Run(() => tickets.SelectedRow = tickets.Rows.First(r => r.SourceName == "Engine"));
+        await TabTestHarness.Eventually(() => tickets.Detail is { ShowsSource: true, SourceName: "Engine" } && !tickets.IsDetailLoading, "the ticket with its chip");
+    }
+
+    [Fact]
+    public async Task The_lists_width_is_kept_for_every_Tickets_tab_and_its_default_comes_back()
+    {
+        await using var h = new TabTestHarness(http: GitHub());
+        Sources(h);
+        var (_, tickets) = await OpenTicketsAsync(h);
+        Assert.Equal(ShellLayout.DefaultTicketListWidth, tickets.ListWidth);
+
+        InlineDispatcher.Run(() => tickets.ResizeList(100));
+        Assert.Equal(ShellLayout.MinTicketListWidth, tickets.ListWidth);
+        InlineDispatcher.Run(() =>
+        {
+            tickets.ResizeList(420);
+            tickets.SaveListWidth();
+        });
+        Assert.Equal(420, h.Services.State.TicketListWidth);
+
+        InlineDispatcher.Run(tickets.ResetListWidth);
+        Assert.Equal(ShellLayout.DefaultTicketListWidth, tickets.ListWidth);
+        Assert.Equal(ShellLayout.DefaultTicketListWidth, h.Services.State.TicketListWidth);
+    }
+
+    [Fact]
+    public async Task A_YouTrack_project_it_cant_read_says_to_set_a_token_and_its_server_is_in_Settings_for_one()
+    {
+        await using var h = new TabTestHarness(http: GitHub());
+        Sources(h, """{ "tickets": [ { "provider": "youtrack", "server": "https://studio.youtrack.cloud", "project": "NO" } ] }""");
+        var tab = await h.OpenTabAsync();
+        var group = h.Shell.Groups.Single();
+        await TabTestHarness.Eventually(() => group.HasTicketSources, "the Tickets button");
+
+        InlineDispatcher.Run(() => h.Shell.OpenTicketsCommand.Execute(group));
+        var tickets = group.Tickets!;
+
+        await TabTestHarness.Eventually(() => !tickets.IsLoading && tickets.ListError is not null, "the error");
+        Assert.EndsWith("It may be private: set a token for studio.youtrack.cloud in Settings → Tickets → YouTrack.", tickets.ListError);
+        Assert.True(tickets.ErrorOffersSettings);
+        Assert.Contains("https://studio.youtrack.cloud", h.Services.Tickets.ServersOf("youtrack"));
+        Assert.Equal(TicketSignIn.Token, h.Services.Tickets.SignInOf("youtrack", "https://studio.youtrack.cloud"));
+        _ = tab;
+    }
+
+    [Fact]
     public async Task Choosing_a_ticket_reads_it_with_its_comments()
     {
         await using var h = new TabTestHarness(http: GitHub());
@@ -388,7 +452,7 @@ public class TicketsTests
     }
 
     [Fact]
-    public async Task The_project_settings_add_a_source_and_removing_it_brings_the_one_from_git_back()
+    public async Task The_project_settings_add_another_providers_source_beside_the_one_from_git()
     {
         Assert.SkipWhen(!WorktreeTabTests.GitInstalled, "git isn't on PATH.");
         await using var h = new TabTestHarness(http: GitHub());
@@ -402,7 +466,6 @@ public class TicketsTests
 
         InlineDispatcher.Run(() => project.AddTicketSourceCommand.Execute(null));
         var editor = Assert.IsType<TicketSourceEditorViewModel>(project.Editor);
-        Assert.Equal("org/game", editor.Project);
         InlineDispatcher.Run(() =>
         {
             editor.SelectedType = editor.Types.Single(t => t.Kind == "youtrack");
@@ -413,8 +476,9 @@ public class TicketsTests
             editor.SaveCommand.Execute(null);
         });
 
-        var row = Assert.Single(project.TicketSources);
-        Assert.Equal("youtrack", row.Source!.Provider);
+        Assert.Equal(["youtrack", "github"], project.TicketSources.Select(r => r.Source!.Provider));
+        var row = project.TicketSources[0];
+        Assert.True(project.TicketSources[1].IsFromGit);
         var written = JsonNode.Parse(File.ReadAllText(Path.Combine(h.WorkFolder, ProjectFile.SharedName)))!;
         Assert.Equal("https://studio.youtrack.cloud", (string)written["tickets"]![0]!["server"]!);
         Assert.Equal("#Unresolved", (string)written["tickets"]![0]!["query"]!);

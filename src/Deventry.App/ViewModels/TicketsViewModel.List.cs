@@ -200,14 +200,25 @@ public sealed partial class TicketsViewModel
     public string? EmptyText => IsLoading || ListError is not null || Rows.Count > 0 ? null
         : !HasSources ? "No ticket sources for this project."
         : FilterText.Trim().Length > 0 ? $"Nothing matches \"{FilterText.Trim()}\"."
-        : StateFilter switch
+        : $"{StateFilter switch
         {
             TicketStateFilter.Closed => "No closed tickets.",
             TicketStateFilter.All => "No tickets.",
             _ => Mine ? "No open tickets are yours." : "No open tickets.",
-        };
+        }}{(GuestSource is { } guest ? $" {GuestNote(guest)}" : "")}";
 
     public bool HasEmptyText => EmptyText is not null;
+
+    /// <summary>With nothing to show from a server read as its guest: its provider's settings, for a token.</summary>
+    public bool OffersTokenSettings => HasEmptyText && HasSources && GuestSource is not null;
+
+    /// <summary>A source shown that's read without a token by a provider that signs in with one, as YouTrack's guest is.</summary>
+    private TicketSource? GuestSource => ShownSources.FirstOrDefault(s =>
+        SignInOf(s) == TicketSignIn.Token && _services.Tickets.HasToken(s.Provider, s.Server) != true);
+
+    /// <summary>What to do when a project may be private: <i>"Set a token for dotbunny.youtrack.cloud in Settings → Tickets → YouTrack."</i></summary>
+    private string GuestNote(TicketSource source) =>
+        $"Deventry reads {source.ServerName} as its guest: a private project needs a token for it, in Settings → Tickets → {_services.Tickets.FindType(source.Provider)?.Name ?? source.Provider}.";
 
     /// <summary>With no sources: <b>Add a ticket source…</b>.</summary>
     public bool OffersAddSource => !IsLoading && !HasSources;
@@ -216,6 +227,7 @@ public sealed partial class TicketsViewModel
     {
         OnPropertyChanged(nameof(EmptyText));
         OnPropertyChanged(nameof(HasEmptyText));
+        OnPropertyChanged(nameof(OffersTokenSettings));
         OnPropertyChanged(nameof(OffersAddSource));
         OnPropertyChanged(nameof(ShownText));
         OnPropertyChanged(nameof(HasRows));
@@ -354,6 +366,11 @@ public sealed partial class TicketsViewModel
     private void UseSources(ProjectTicketSources found)
     {
         _sources = found.Sources;
+        // Each source's server is in Settings from now on, for its token: a YouTrack server named by the project's file.
+        foreach (var source in _sources)
+        {
+            _services.Tickets.Remember(source.Provider, source.Server);
+        }
         SourceProblems = found.Problems;
         _choosingSources = true;
         try
@@ -389,6 +406,9 @@ public sealed partial class TicketsViewModel
             { Kind: TicketErrorKind.RateLimited, Until: { } until } => SignInOf(failed.Source) == TicketSignIn.None
                 ? $"{name}'s limit for this computer is used up until {Clock(until)}. Sign in for a higher one."
                 : $"{name}'s limit for your account is used up until {Clock(until)}.",
+            { Kind: TicketErrorKind.Refused or TicketErrorKind.NotFound } when SignInOf(failed.Source) == TicketSignIn.Token
+                && _services.Tickets.HasToken(failed.Source.Provider, failed.Source.Server) != true =>
+                $"{error.Message} It may be private: set a token for {failed.Source.ServerName} in Settings → Tickets → {name}.",
             { Kind: TicketErrorKind.Refused } when SignInOf(failed.Source) != TicketSignIn.None =>
                 $"{error.Message} Check how Deventry signs in to {failed.Source.ServerName} in Settings → Tickets → {name}.",
             _ => error.Message,
@@ -401,7 +421,8 @@ public sealed partial class TicketsViewModel
     private string Clock(DateTimeOffset time) =>
         TimeZoneInfo.ConvertTime(time, _services.Time.LocalTimeZone).ToString("t", System.Globalization.CultureInfo.CurrentCulture);
 
-    private TicketRowViewModel Row(TicketSource source, Ticket ticket) => new(source, ticket, TabsOn(source, ticket.Id).Count, _services.Time);
+    private TicketRowViewModel Row(TicketSource source, Ticket ticket) =>
+        new(source, ticket, TabsOn(source, ticket.Id).Count, _services.Time) { ShowsSource = ShownSources.Count > 1 };
 
     /// <summary>The open tabs started on a ticket (DESIGN.md §18, "Tickets", "Tabs remember their ticket").</summary>
     internal IReadOnlyList<TabViewModel> TabsOn(TicketSource source, string id) =>

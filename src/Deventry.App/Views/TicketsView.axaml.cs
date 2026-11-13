@@ -18,10 +18,17 @@ public partial class TicketsView : UserControl
     public const double NarrowWidth = 640;
 
     private TicketsViewModel? _tickets;
+    private double? _resizeFrom;
+    private double _resizeStartWidth;
 
     public TicketsView()
     {
         InitializeComponent();
+        ListEdge.PointerPressed += OnEdgePressed;
+        ListEdge.PointerMoved += OnEdgeMoved;
+        ListEdge.PointerReleased += (_, e) => EndResize(e.Pointer);
+        ListEdge.PointerCaptureLost += (_, _) => EndResize(null);
+        ListEdge.DoubleTapped += (_, _) => _tickets?.ResetListWidth();
         AddHandler(PointerPressedEvent, (_, _) => _tickets?.FocusPane(), RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(GotFocusEvent, (_, _) => _tickets?.FocusPane(), RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
@@ -29,9 +36,25 @@ public partial class TicketsView : UserControl
 
     protected override void OnDataContextChanged(EventArgs e)
     {
+        if (_tickets is not null)
+        {
+            _tickets.PropertyChanged -= OnTicketsChanged;
+        }
         base.OnDataContextChanged(e);
         _tickets = DataContext as TicketsViewModel;
+        if (_tickets is not null)
+        {
+            _tickets.PropertyChanged += OnTicketsChanged;
+        }
         UpdateNarrow();
+    }
+
+    private void OnTicketsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TicketsViewModel.ListWidth))
+        {
+            UpdateNarrow();
+        }
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -50,11 +73,48 @@ public partial class TicketsView : UserControl
             return;
         }
         tickets.IsNarrow = Bounds.Width < NarrowWidth;
-        // In a narrow pane, the list has the whole width.
-        ListColumn.Width = tickets.IsNarrow ? double.NaN : 320;
+        // In a narrow pane, the list has the whole width; otherwise its own, as far as the ticket keeps its least.
+        ListColumn.Width = tickets.IsNarrow ? double.NaN
+            : Math.Min(tickets.ListWidth, Math.Max(ShellLayout.MinTicketListWidth, Bounds.Width - ShellLayout.MinTicketWidth));
         Grid.SetColumnSpan(ListColumn, tickets.IsNarrow ? 2 : 1);
         Grid.SetColumn(TicketColumn, tickets.IsNarrow ? 0 : 1);
         Grid.SetColumnSpan(TicketColumn, tickets.IsNarrow ? 2 : 1);
+    }
+
+    // ---- Resizing the list ------------------------------------------------------------------------------------------
+
+    private void OnEdgePressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_tickets is null || !e.GetCurrentPoint(ListEdge).Properties.IsLeftButtonPressed || e.ClickCount > 1)
+        {
+            return;
+        }
+        _resizeFrom = e.GetPosition(this).X;
+        _resizeStartWidth = ListColumn.Bounds.Width;
+        e.Pointer.Capture(ListEdge);
+        e.Handled = true;
+    }
+
+    /// <summary>The list wider or narrower, leaving the ticket its least (DESIGN.md §18, "Tickets", "Its layout").</summary>
+    private void OnEdgeMoved(object? sender, PointerEventArgs e)
+    {
+        if (_resizeFrom is not { } from || _tickets is null)
+        {
+            return;
+        }
+        var width = _resizeStartWidth + e.GetPosition(this).X - from;
+        _tickets.ResizeList(Math.Min(width, Math.Max(ShellLayout.MinTicketListWidth, Bounds.Width - ShellLayout.MinTicketWidth)));
+    }
+
+    private void EndResize(IPointer? pointer)
+    {
+        if (_resizeFrom is null)
+        {
+            return;
+        }
+        _resizeFrom = null;
+        pointer?.Capture(null);
+        _tickets?.SaveListWidth();
     }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)

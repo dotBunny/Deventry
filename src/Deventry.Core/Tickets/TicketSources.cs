@@ -12,9 +12,9 @@ public sealed record ProjectTicketSources(IReadOnlyList<TicketSource> Sources, I
 
 /// <summary>
 /// Where a project's tickets come from (DESIGN.md §18, "Tickets", "Where a project's tickets come from"): the
-/// <c>tickets</c> entries of its <c>deventry.json</c> and <c>deventry.local.json</c>, the shared file's first; or, with
-/// neither naming any, the repository its git remote has on a server a provider knows. Read from files only: no git
-/// runs, and nothing reaches a tracker.
+/// <c>tickets</c> entries of its <c>deventry.json</c> and <c>deventry.local.json</c>, the shared file's first; and the
+/// repository its git remote has on a server a provider knows, unless the files name one of that provider's or say
+/// <c>"tickets": []</c>. Read from files only: no git runs, and nothing reaches a tracker.
 /// </summary>
 public static class TicketSources
 {
@@ -28,11 +28,11 @@ public static class TicketSources
     {
         var sources = new List<TicketSource>();
         var problems = new List<string>();
-        var named = false;
+        var emptied = false;
         foreach (var (scope, origin) in new[] { (ProjectFileScope.Shared, TicketSourceOrigin.Shared), (ProjectFileScope.Local, TicketSourceOrigin.Local) })
         {
             var file = ProjectFile.ReadTickets(folder, scope);
-            named |= file.HasKey;
+            emptied |= file.HasKey && file.Entries.Count == 0;
             problems.AddRange(file.Problems);
             for (var i = 0; i < file.Entries.Count; i++)
             {
@@ -46,12 +46,23 @@ public static class TicketSources
                 }
             }
         }
-        if (!named && FromGit(folder, types, detection) is { } found)
+        if (FromGitBeside(folder, sources, emptied, types, detection) is { } found)
         {
             sources.Add(found);
         }
         return new ProjectTicketSources(sources, problems);
     }
+
+    /// <summary>
+    /// The source found from git, beside <paramref name="named"/>, the files' own: a YouTrack project named keeps the
+    /// GitHub repository found, but a GitHub repository named takes its place, and <c>"tickets": []</c>
+    /// (<paramref name="emptied"/>) turns it off.
+    /// </summary>
+    public static TicketSource? FromGitBeside(string folder, IReadOnlyCollection<TicketSource> named, bool emptied, IReadOnlyList<ITicketProviderType> types,
+        Detection detection) =>
+        !emptied && FromGit(folder, types, detection) is { } found && !named.Any(s => string.Equals(s.Provider, found.Provider, StringComparison.OrdinalIgnoreCase))
+            ? found
+            : null;
 
     /// <summary>One <c>tickets</c> entry as a source, or null with why not.</summary>
     public static TicketSource? ReadEntry(JsonNode? node, IReadOnlyList<ITicketProviderType> types, TicketSourceOrigin origin, int index, string where, out string? problem)

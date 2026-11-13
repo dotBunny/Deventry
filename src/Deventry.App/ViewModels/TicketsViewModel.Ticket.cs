@@ -66,7 +66,10 @@ public sealed partial class TicketsViewModel
             {
                 return;
             }
-            Detail = new TicketDetailViewModel(source, detail, _services.Tickets.FindType(source.Provider), TabsOn(source, id), _services.Time);
+            Detail = new TicketDetailViewModel(source, detail, _services.Tickets.FindType(source.Provider), TabsOn(source, id), _services.Time)
+            {
+                ShowsSource = HasSeveralSources,
+            };
             States = [];
             if (CanChange)
             {

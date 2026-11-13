@@ -96,6 +96,25 @@ public sealed class TicketsService
         _ = CheckAsync(kind, server);
     }
 
+    /// <summary>
+    /// A server a project's source names, which Settings lists from then on, so its sign-in and token can be set there,
+    /// as if it had been added: a YouTrack server's, or a GitHub Enterprise server's. One listed already is left as it is.
+    /// </summary>
+    public void Remember(string kind, string server)
+    {
+        if (FindType(kind) is not { } type || ServersOf(type.Kind).Any(s => TicketServers.Same(s, server)))
+        {
+            return;
+        }
+        Settings.For(type.Kind).Servers.Add(new TicketServerSettings
+        {
+            Server = server,
+            SignIn = type.SignIns.Contains(TicketSignIn.Token) ? TicketSignIn.Token : type.SignIns[0],
+        });
+        _services.SaveSettings();
+        Changed?.Invoke();
+    }
+
     /// <summary><b>Add a server…</b>: its address as it's written. Throws why it can't be one.</summary>
     /// <exception cref="ArgumentException">It isn't a server's address, or it's there already.</exception>
     public string AddServer(string kind, string text)
