@@ -49,6 +49,12 @@ public sealed record ProjectFileLinkEntry(JsonNode? Raw, ProjectLink? Link, stri
     public string GivenName => LenientJson.String(Raw, "name")?.Trim() ?? "";
 }
 
+/// <summary>One file's <c>tickets</c>, as they're written (DESIGN.md §18, "Tickets").</summary>
+/// <param name="File">The file's name, for its problems.</param>
+/// <param name="HasKey">The file has <c>tickets</c>, even an empty list: it names the project's sources, so none is found from git.</param>
+/// <param name="Problems">Why the file, or its list, couldn't be read.</param>
+public sealed record ProjectFileTickets(string File, IReadOnlyList<JsonNode?> Entries, bool HasKey, IReadOnlyList<string> Problems);
+
 /// <summary>
 /// <c>deventry.json</c> and <c>deventry.local.json</c> in a tab's folder (DESIGN.md §18, "deventry.json"): the
 /// folder's own actions and links. The shared file is committed with the project; the local one is the user's.
@@ -375,6 +381,47 @@ public static class ProjectFile
     /// </summary>
     /// <exception cref="InvalidOperationException">The file exists but isn't JSON.</exception>
     public static void WriteLinks(string folder, ProjectFileScope scope, IEnumerable<JsonNode?> entries) => WriteList(folder, scope, "links", entries);
+
+    /// <summary>
+    /// One file's <c>tickets</c> (DESIGN.md §18, "Tickets"): its entries as they're written, and whether the file has
+    /// the key at all, since an empty list turns finding a source from git off. Never throws: a file that can't be read
+    /// or isn't JSON has none, with why.
+    /// </summary>
+    public static ProjectFileTickets ReadTickets(string folder, ProjectFileScope scope)
+    {
+        var path = PathFor(folder, scope);
+        var file = Path.GetFileName(path);
+        var text = ReadText(path, out var error);
+        if (error is not null)
+        {
+            return new ProjectFileTickets(file, [], false, [$"{file} couldn't be read: {error}"]);
+        }
+        if (text is null)
+        {
+            return new ProjectFileTickets(file, [], false, []);
+        }
+        if (!TryParseRoot(text, out var root, out var parseError))
+        {
+            return new ProjectFileTickets(file, [], false, [parseError is null
+                ? $"{file} isn't a JSON object, so its tickets were skipped."
+                : $"{file} isn't valid JSON, so its tickets were skipped: {parseError}"]);
+        }
+        var problems = new List<string>();
+        var entries = Entries(root, "tickets", file, problems).ToArray();
+        return new ProjectFileTickets(file, entries, root.ContainsKey("tickets"), problems);
+    }
+
+    /// <summary>Every entry of one file's <c>tickets</c>, for the project's settings, including ones that can't be read.</summary>
+    /// <exception cref="InvalidOperationException">The file exists but isn't JSON: it can't be edited here without losing it.</exception>
+    public static IReadOnlyList<JsonNode?> ReadTicketEntries(string folder, ProjectFileScope scope) =>
+        ReadRoot(folder, scope) is { } root ? [.. Entries(root, "tickets", FileName(folder, scope), [])] : [];
+
+    /// <summary>
+    /// Replaces one file's <c>tickets</c> with <paramref name="entries"/>, keeping its other keys, and writes it indented,
+    /// as <see cref="WriteLinks"/> does. Creates the file when there's none.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The file exists but isn't JSON.</exception>
+    public static void WriteTickets(string folder, ProjectFileScope scope, IEnumerable<JsonNode?> entries) => WriteList(folder, scope, "tickets", entries);
 
     private static void WriteList(string folder, ProjectFileScope scope, string key, IEnumerable<JsonNode?> entries)
     {

@@ -113,6 +113,9 @@ public sealed class AppState
     /// </summary>
     public List<ProjectFiles.ProjectFilesState> ProjectFiles { get; set; } = [];
 
+    /// <summary>The folder groups' Tickets tabs (DESIGN.md §18, "Tickets"), brought back as Project Files tabs are.</summary>
+    public List<Tickets.TicketsTabState> Tickets { get; set; } = [];
+
     /// <summary>
     /// The folder groups' order in the sidebar, by folder, since a group with only its Project Files tab has no tab in
     /// <see cref="Tabs"/> to place it by. Null: the order the tabs are in.
@@ -341,6 +344,9 @@ public sealed class TabState
     /// none. The tab's own state, like its name.
     /// </summary>
     public string? Mark { get; set; }
+
+    /// <summary>The ticket the tab was started on (DESIGN.md §18, "Tickets", "Tabs remember their ticket"); null for none.</summary>
+    public Tickets.TicketRef? Ticket { get; set; }
 
     /// <summary>
     /// Copy this tab's session to the session library after each turn, so another machine can open it from History
