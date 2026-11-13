@@ -95,6 +95,9 @@ public sealed class DiscordGatewayTests : IAsyncDisposable
         await Waiting.UntilAsync(() => _discord.Op(1).Count >= 1, "a heartbeat");
         Assert.Equal(_discord.Sequence, (long)_discord.Op(1)[0]["d"]!);
         var beats = _discord.Op(1).Count;
+        // The next beat checks the last was answered: an event after the answer, read in order, says it's been read.
+        _discord.Dispatch("MARK", new System.Text.Json.Nodes.JsonObject());
+        await Waiting.UntilAsync(() => Events().Contains("MARK"), "the heartbeat's answer read");
         _clock.Advance(_discord.HeartbeatInterval);
         await Waiting.UntilAsync(() => _discord.Op(1).Count == beats + 1, "the next heartbeat");
     }
