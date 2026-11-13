@@ -39,6 +39,15 @@ public interface IRemoteDesk
     /// <summary>How much the messages say.</summary>
     RemoteDetail Detail { get; }
 
+    /// <summary>
+    /// While it's later than now, clients send no messages but answers to what the user did from them (<c>/quiet</c>,
+    /// and the header's <b>Quiet for an hour</b>); null when they do. One for every client.
+    /// </summary>
+    DateTimeOffset? QuietUntil { get; }
+
+    /// <summary>Holds messages until <paramref name="until"/>, or lets them go again with null.</summary>
+    void SetQuiet(DateTimeOffset? until);
+
     /// <summary>Something happened. Raised on the UI thread: handlers queue their work and return.</summary>
     event Action<RemoteEvent>? EventRaised;
 

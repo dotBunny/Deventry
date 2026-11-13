@@ -41,9 +41,8 @@ public sealed partial class TelegramClient
     private readonly Queue<string> _buttonOrder = new();
     private long _lastKey;
     private int _passedOver;
-    private DateTimeOffset? _quietUntil;
-
-    private bool IsQuiet => _quietUntil is { } until && until > _time.GetUtcNow();
+    /// <summary>The desk holds messages: <c>/quiet</c>, or the header's <b>Quiet for an hour</b>.</summary>
+    private bool IsQuiet => Desk.QuietUntil is { } until && until > _time.GetUtcNow();
 
     // ---- What a button does -----------------------------------------------------------------------------------------
 
@@ -131,6 +130,7 @@ public sealed partial class TelegramClient
             _passedOver++;
             return;
         }
+        Activity?.Invoke(RemoteActivity.Received);
         var chat = message.Chat.Id;
         if (command is not null)
         {
@@ -285,7 +285,7 @@ public sealed partial class TelegramClient
     {
         if (argument is { } off && off.Equals("off", StringComparison.OrdinalIgnoreCase))
         {
-            _quietUntil = null;
+            Desk.SetQuiet(null);
             return SendAsync(chat, "Messages are back on.", silent: true, cancellationToken: cancellationToken);
         }
         var minutes = argument is null ? 60
@@ -295,8 +295,9 @@ public sealed partial class TelegramClient
         {
             return SendAsync(chat, "Say how many minutes, as /quiet 30, or /quiet off.", silent: true, cancellationToken: cancellationToken);
         }
-        _quietUntil = _time.GetUtcNow() + TimeSpan.FromMinutes(minutes);
-        var until = TimeZoneInfo.ConvertTime(_quietUntil.Value, _time.LocalTimeZone).ToString("t", CultureInfo.CurrentCulture);
+        var quietUntil = _time.GetUtcNow() + TimeSpan.FromMinutes(minutes);
+        Desk.SetQuiet(quietUntil);
+        var until = TimeZoneInfo.ConvertTime(quietUntil, _time.LocalTimeZone).ToString("t", CultureInfo.CurrentCulture);
         return SendAsync(chat, Escape($"Quiet until {until}: no messages but answers to what you do here. /quiet off ends it sooner."), silent: true,
             cancellationToken: cancellationToken);
     }
@@ -375,6 +376,7 @@ public sealed partial class TelegramClient
             await PacedAsync(token => _api.AnswerCallbackAsync(callback.Id, cancellationToken: token), cancellationToken).ConfigureAwait(false);
             return;
         }
+        Activity?.Invoke(RemoteActivity.Received);
         var chat = callback.Message?.Chat.Id ?? callback.From.Id;
         var parsed = ParseButtonData(callback.Data);
         if (parsed is not var (run, key) || run != _run || !_buttons.TryGetValue(key, out var button))
@@ -538,6 +540,7 @@ public sealed partial class TelegramClient
         bool silent = false, string? tabId = null, CancellationToken cancellationToken = default)
     {
         var id = await PacedAsync(token => _api.SendMessageAsync(chat, html, buttons, replyTo, silent, token), cancellationToken).ConfigureAwait(false);
+        Activity?.Invoke(RemoteActivity.Sent);
         if (tabId is not null)
         {
             Remember(chat, id, tabId);
@@ -549,6 +552,7 @@ public sealed partial class TelegramClient
     {
         var id = await PacedAsync(token => _api.SendDocumentAsync(chat, fileName, System.Text.Encoding.UTF8.GetBytes(markdown), captionHtml, silent: silent,
             cancellationToken: token), cancellationToken).ConfigureAwait(false);
+        Activity?.Invoke(RemoteActivity.Sent);
         if (tabId is not null)
         {
             Remember(chat, id, tabId);

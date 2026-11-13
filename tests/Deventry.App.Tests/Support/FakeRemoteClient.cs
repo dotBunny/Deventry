@@ -19,6 +19,18 @@ internal sealed class FakeRemoteClient : IRemoteClient
 
     public event Action<string>? Identified;
 
+    public event Action<RemoteActivity>? Activity;
+
+    /// <summary>It sends a message, or gets one, as a bot does.</summary>
+    public void Act(RemoteActivity activity) => Activity?.Invoke(activity);
+
+    /// <summary>Its state changes, as a bot's does when it loses Telegram or its token is refused.</summary>
+    public void Become(RemoteClientState state)
+    {
+        State = state;
+        StateChanged?.Invoke(state);
+    }
+
     /// <summary>Its service says what its account is called, as a bot's <c>getMe</c> does.</summary>
     public void Identify(string name)
     {

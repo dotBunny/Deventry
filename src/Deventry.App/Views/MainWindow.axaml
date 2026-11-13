@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Deventry.App.ViewModels"
+        xmlns:conversation="using:Deventry.App.Conversation"
         xmlns:controls="using:Deventry.App.Controls"
         xmlns:settings="using:Deventry.Core.Settings"
         xmlns:chrome="using:Avalonia.Controls.Chrome"
@@ -76,6 +77,31 @@
       <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
     </Style>
     <Style Selector="ToggleButton.keepawake:checked Path">
+      <Setter Property="Stroke" Value="{DynamicResource AccentStatusBrush}" />
+    </Style>
+    <!-- The remote clients' icon (DESIGN.md §18, "The header's indicator"): muted while messages wait, the accent while they
+         go to the phone, dimmed while connecting, the caution color while a client needs the user. While a message goes or
+         comes, the arcs not lit dim and the lit ones take the accent, so they read as a wave outward. -->
+    <Style Selector="Button.remoteclients Path">
+      <Setter Property="Stroke" Value="{DynamicResource MutedTextBrush}" />
+      <Setter Property="StrokeThickness" Value="1.3" />
+      <Setter Property="StrokeLineCap" Value="Round" />
+      <Setter Property="Stretch" Value="None" />
+    </Style>
+    <Style Selector="Button.remoteclients.away Path">
+      <Setter Property="Stroke" Value="{DynamicResource AccentStatusBrush}" />
+    </Style>
+    <Style Selector="Button.remoteclients.connecting Panel">
+      <Setter Property="Opacity" Value="0.45" />
+    </Style>
+    <Style Selector="Button.remoteclients.trouble Path">
+      <Setter Property="Stroke" Value="{DynamicResource WarningTextBrush}" />
+    </Style>
+    <Style Selector="Button.remoteclients.flicking Path.arc">
+      <Setter Property="Opacity" Value="0.3" />
+    </Style>
+    <Style Selector="Button.remoteclients.flicking Path.arc.lit">
+      <Setter Property="Opacity" Value="1" />
       <Setter Property="Stroke" Value="{DynamicResource AccentStatusBrush}" />
     </Style>
     <!-- The detailed header's charts (DESIGN.md §6, "Detailed header") -->
@@ -366,6 +392,68 @@
                   </ContextMenu>
                 </ToggleButton.ContextMenu>
               </ToggleButton>
+              <!-- The remote clients (DESIGN.md §18, "Remote clients", "The header's indicator"): one icon while any is on, each
+                   client's state in the tooltip and its menu, which a click or a right-click opens. A click never turns one off. -->
+              <Button Name="RemoteClientsIndicator" Classes="header remoteclients" Padding="8" VerticalAlignment="Center"
+                      IsVisible="{Binding RemoteClients.IsVisible}" Classes.away="{Binding RemoteClients.IsAway}"
+                      Classes.connecting="{Binding RemoteClients.IsConnecting}" Classes.trouble="{Binding RemoteClients.IsTrouble}"
+                      Classes.flicking="{Binding RemoteClients.IsFlicking}" ContextRequested="OnRemoteClientsContextRequested"
+                      ToolTip.Tip="{Binding RemoteClients.Tooltip}" AutomationProperties.Name="{Binding RemoteClients.AccessibleName}">
+                <Panel Width="12" Height="12">
+                  <Path Data="{StaticResource IconRemoteDot}" />
+                  <Path Classes="arc" Classes.lit="{Binding RemoteClients.InnerLit}" Data="{StaticResource IconRemoteInner}" />
+                  <Path Classes="arc" Classes.lit="{Binding RemoteClients.OuterLit}" Data="{StaticResource IconRemoteOuter}" />
+                </Panel>
+                <Button.Flyout>
+                  <!-- Drawn as a menu in sections (Themes/MenuStyles.axaml): a section for each client that's on, then the quiet -->
+                  <Flyout Placement="BottomEdgeAlignedRight" FlyoutPresenterClasses="sectioned">
+                    <StackPanel Width="300">
+                      <ItemsControl ItemsSource="{Binding RemoteClients.Clients}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:RemoteIndicatorClient">
+                            <StackPanel>
+                              <TextBlock Classes="menusection" Text="{Binding Name}" />
+                              <TextBlock Classes="small muted" Text="{Binding Status}" TextWrapping="Wrap" Margin="39,0,12,4" />
+                              <Button Classes="flat menuentry" Click="OnRemoteClientsEntryClicked" AutomationProperties.Name="{Binding SettingsText}"
+                                      Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).Shell.OpenSettingCommand, FallbackValue={x:Null}}"
+                                      CommandParameter="{Binding SettingsTarget}">
+                                <Grid ColumnDefinitions="14,*" ColumnSpacing="13">
+                                  <Path Classes="menuicon" Data="{Binding IconKey, Converter={x:Static conversation:ToolIcons.Geometry}}" />
+                                  <TextBlock Grid.Column="1" Text="{Binding SettingsText}" />
+                                </Grid>
+                              </Button>
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Separator />
+                      <TextBlock Classes="menusection" Text="All clients" />
+                      <TextBlock Classes="small muted" Text="{Binding RemoteClients.SharedLine}" TextWrapping="Wrap" Margin="39,0,12,4" />
+                      <Button Classes="flat menuentry" Click="OnRemoteClientsEntryClicked" IsVisible="{Binding RemoteClients.IsNotQuiet}"
+                              Command="{Binding RemoteClients.QuietForAnHourCommand}" AutomationProperties.Name="Quiet for an hour">
+                        <Grid ColumnDefinitions="14,*" ColumnSpacing="13">
+                          <Path Classes="menuicon" Data="{StaticResource IconMarkPause}" />
+                          <TextBlock Grid.Column="1" Text="Quiet for an hour" />
+                        </Grid>
+                      </Button>
+                      <Button Classes="flat menuentry" Click="OnRemoteClientsEntryClicked" IsVisible="{Binding RemoteClients.IsQuiet}"
+                              Command="{Binding RemoteClients.ResumeCommand}" AutomationProperties.Name="Resume messages">
+                        <Grid ColumnDefinitions="14,*" ColumnSpacing="13">
+                          <Path Classes="menuicon" Data="{StaticResource IconSettingsRemoteClients}" />
+                          <TextBlock Grid.Column="1" Text="Resume messages" />
+                        </Grid>
+                      </Button>
+                      <Button Classes="flat menuentry" Click="OnRemoteClientsEntryClicked" AutomationProperties.Name="Remote clients settings…"
+                              Command="{Binding Shell.OpenSettingCommand, FallbackValue={x:Null}}" CommandParameter="{x:Static vm:RemoteClientsIndicatorViewModel.AllClientsTarget}">
+                        <Grid ColumnDefinitions="14,*" ColumnSpacing="13">
+                          <Path Classes="menuicon" Data="{StaticResource IconSettings}" />
+                          <TextBlock Grid.Column="1" Text="Remote clients settings…" />
+                        </Grid>
+                      </Button>
+                    </StackPanel>
+                  </Flyout>
+                </Button.Flyout>
+              </Button>
               <!-- Claude's service status (DESIGN.md §18, "Service status"): each watched service in the tooltip, and a
                    click opens status.claude.com -->
               <Button Name="ServiceStatusDot" Classes="header" Padding="8" VerticalAlignment="Center" IsVisible="{Binding ServiceStatus.IsVisible}"

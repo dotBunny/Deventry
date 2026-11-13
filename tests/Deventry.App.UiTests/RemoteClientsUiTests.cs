@@ -19,7 +19,7 @@ public class RemoteClientsUiTests
     private static async Task<(TabTestHarness H, SettingsWindow Window, SettingsViewModel Settings)> ShowAsync(string category = "Telegram")
     {
         var h = new TabTestHarness(settings => settings.RemoteClients.SetEnabled("telegram", true), dispatcher: new AvaloniaUiDispatcher());
-        h.Services.RemoteClients.Credentials = new FakeCredentialStore { Secrets = { ["telegram-bot-token"] = "123456789:token" } };
+        h.Services.RemoteClients.Credentials = new FakeCredentialStore { Secrets = { [h.Services.RemoteClients.CredentialKeyOf("telegram")] = "123456789:token" } };
         h.Services.RemoteClients.ClientFactory = (_, _, _) => new FakeRemoteClient();
         h.Services.State.RemoteClients.Identities["telegram"] = "deventry_bot";
         var pairing = h.Services.RemoteClients.PairingOf("telegram");
@@ -95,4 +95,44 @@ public class RemoteClientsUiTests
 
     private static Color Brush(Window window, string key) =>
         Assert.IsAssignableFrom<ISolidColorBrush>(window.FindResource(window.ActualThemeVariant, key)).Color;
+
+    [AvaloniaFact]
+    public async Task The_header_shows_the_icon_while_a_client_is_on_in_the_accent_while_away()
+    {
+        var h = new TabTestHarness(settings => settings.RemoteClients.SetEnabled("telegram", true), dispatcher: new AvaloniaUiDispatcher());
+        await using var _ = h;
+        h.Services.RemoteClients.Credentials = new FakeCredentialStore { Secrets = { [h.Services.RemoteClients.CredentialKeyOf("telegram")] = "123456789:token" } };
+        h.Services.RemoteClients.ClientFactory = (_, _, _) => new FakeRemoteClient();
+        var pairing = h.Services.RemoteClients.PairingOf("telegram");
+        Assert.Equal(PairingOutcome.Paired, pairing.TryPair(pairing.Start().Code, 11, "Matt", null));
+        await h.OpenTabAsync();
+        var main = new MainWindowViewModel(h.Services) { CurrentPage = h.Shell };
+        var window = new MainWindow { DataContext = main, Width = 1100, Height = 700 };
+        window.Show();
+        h.Services.RemoteClients.Start(h.Shell);
+        await UiText.SettleUntilAsync(window, () => HeaderIcon(window).IsEffectivelyVisible && h.Services.RemoteClients.IsActive, "the icon");
+
+        // Deventry at the back: the window's own activation has come and gone by now.
+        h.Services.Notifications.SetAppActive(false);
+        await UiText.SettleUntilAsync(window, () => main.RemoteClients.IsAway, $"away, not {main.RemoteClients.Level}");
+        var icon = HeaderIcon(window);
+        Assert.Contains("away", icon.Classes);
+        Assert.Equal("Remote clients: messages go to your phone", Avalonia.Automation.AutomationProperties.GetName(icon));
+        Assert.All(icon.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>(),
+            arc => Assert.Equal(Brush(window, "AccentStatusBrush"), Assert.IsAssignableFrom<ISolidColorBrush>(arc.Stroke).Color));
+
+        h.Services.Notifications.SetAppActive(true);
+        UiText.Settle(window);
+        Assert.DoesNotContain("away", icon.Classes);
+        Assert.All(icon.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>(),
+            arc => Assert.Equal(Brush(window, "MutedTextBrush"), Assert.IsAssignableFrom<ISolidColorBrush>(arc.Stroke).Color));
+
+        h.Services.Settings.RemoteClients.SetEnabled("telegram", false);
+        h.Services.SaveSettings();
+        UiText.Settle(window);
+        Assert.False(icon.IsEffectivelyVisible);
+        window.Close();
+    }
+
+    private static Button HeaderIcon(Window window) => window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "RemoteClientsIndicator");
 }

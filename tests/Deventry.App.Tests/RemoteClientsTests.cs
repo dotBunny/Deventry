@@ -42,7 +42,7 @@ public class RemoteClientsTests
             configure?.Invoke(settings);
         });
         var client = new FakeRemoteClient();
-        h.Services.RemoteClients.Credentials = new FakeCredentialStore { Secrets = { ["telegram-bot-token"] = "123456789:token" } };
+        h.Services.RemoteClients.Credentials = new FakeCredentialStore { Secrets = { [h.Services.RemoteClients.CredentialKeyOf("telegram")] = "123456789:token" } };
         h.Services.RemoteClients.ClientFactory = (_, _, _) => client;
         var tab = await h.OpenTabAsync();
         h.OnUiThread(() => h.Services.RemoteClients.Start(h.Shell));
@@ -394,7 +394,7 @@ public class RemoteClientsTests
         await Assert.ThrowsAsync<ArgumentException>(() => h.Services.RemoteClients.SetSecretAsync("telegram", "not a token"));
         await h.Services.RemoteClients.SetSecretAsync("telegram", "123456789:AAFakeTokenForTestsOnly_abcdefghijk");
 
-        Assert.Equal("123456789:AAFakeTokenForTestsOnly_abcdefghijk", keys.Secrets["telegram-bot-token"]);
+        Assert.Equal("123456789:AAFakeTokenForTestsOnly_abcdefghijk", keys.Secrets[h.Services.RemoteClients.CredentialKeyOf("telegram")]);
         Assert.True(h.Services.RemoteClients.IsActive);
         // Only in the credential store: never in the settings or the state.
         Assert.DoesNotContain("AAFakeToken", InlineDispatcher.Read(() => JsonFileStore<AppSettings>.Serialize(h.Services.Settings)), StringComparison.Ordinal);
@@ -516,5 +516,29 @@ public class RemoteClientsTests
         await TabTestHarness.Eventually(() => remote.Service.IdentityOf("telegram") == "deventry_bot", "the bot's name kept");
         Assert.Equal("deventry_bot", remote.H.Services.State.RemoteClients.Identities["telegram"]);
         Assert.Contains("Telegram, @deventry_bot, Connected; no account paired", InlineDispatcher.Read(remote.Service.Describe));
+    }
+
+    [Fact]
+    public async Task A_token_another_Deventry_on_this_computer_keeps_is_not_this_ones()
+    {
+        await using var h = new TabTestHarness(s => s.RemoteClients.SetEnabled("telegram", true));
+        // The demo, or a copy with a data folder of its own: the same credential store, another data folder's id.
+        h.Services.RemoteClients.Credentials = new FakeCredentialStore
+        {
+            Secrets = { ["telegram-bot-token"] = "123456789:no-ones", ["telegram-bot-token-0123456789abcdef0123456789abcdef"] = "123456789:another-deventry" },
+        };
+        var started = 0;
+        h.Services.RemoteClients.ClientFactory = (_, _, _) =>
+        {
+            Interlocked.Increment(ref started);
+            return new FakeRemoteClient();
+        };
+        await h.OpenTabAsync();
+        h.OnUiThread(() => h.Services.RemoteClients.Start(h.Shell));
+        await h.Services.RemoteClients.UpdateAsync();
+
+        Assert.Equal(0, Volatile.Read(ref started));
+        Assert.Equal(false, h.Services.RemoteClients.HasSecret("telegram"));
+        Assert.Equal($"telegram-bot-token-{h.Services.MachineId}", h.Services.RemoteClients.CredentialKeyOf("telegram"));
     }
 }

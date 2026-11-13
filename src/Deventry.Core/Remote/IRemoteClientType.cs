@@ -42,7 +42,10 @@ public interface IRemoteClientType
 
     // ---- Its secret ---------------------------------------------------------------------------------------------
 
-    /// <summary>Where its secret is in the credential store: <c>telegram-bot-token</c>.</summary>
+    /// <summary>
+    /// Where its secret is in the credential store, before the data folder's id that Deventry puts after it:
+    /// <c>telegram-bot-token</c>.
+    /// </summary>
     string CredentialKey { get; }
 
     /// <summary>What the OS shows for it in the credential store.</summary>

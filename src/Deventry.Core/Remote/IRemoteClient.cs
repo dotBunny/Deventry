@@ -17,6 +17,13 @@ public enum RemoteClientStatus
 /// <param name="Explanation">What it does, and what it changes elsewhere.</param>
 public sealed record RemoteClientFix(string Label, string Explanation, Func<CancellationToken, Task> ApplyAsync);
 
+/// <summary>A message a client sent the user, or one it got from a paired account: the header's indicator lights up for each.</summary>
+public enum RemoteActivity
+{
+    Sent,
+    Received,
+}
+
 /// <summary>A client's status, with why it isn't connected when it says.</summary>
 public sealed record RemoteClientState(RemoteClientStatus Status, string? Reason = null)
 {
@@ -51,6 +58,12 @@ public interface IRemoteClient : IAsyncDisposable
 
     /// <summary>Raised on any thread when its service says what its account is called.</summary>
     event Action<string>? Identified;
+
+    /// <summary>
+    /// Raised on any thread when it sends the user a message, or gets one from a paired account: not for what keeps it
+    /// listening, nor for editing a message it sent.
+    /// </summary>
+    event Action<RemoteActivity>? Activity;
 
     /// <summary>Starts listening, in the background: it returns at once, and <see cref="State"/> says how it goes.</summary>
     Task StartAsync(IRemoteDesk desk, CancellationToken cancellationToken = default);

@@ -478,6 +478,54 @@ public sealed class TelegramClientTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Quiet_is_the_desks_so_it_holds_every_client()
+    {
+        await StartAsync();
+
+        _telegram.Message(Me, "/quiet 30", Now);
+        await NextSentAsync(1);
+        Assert.Equal(Now + TimeSpan.FromMinutes(30), _desk.QuietUntil);
+
+        _telegram.Message(Me, "/quiet off", Now);
+        Assert.Equal("Messages are back on.", Text(await NextSentAsync(2)));
+        Assert.Null(_desk.QuietUntil);
+
+        // Set elsewhere, such as the header's Quiet for an hour, it holds this client too.
+        _desk.SetQuiet(Now + TimeSpan.FromHours(1));
+        _desk.Raise(new RemoteTurnFinished(_desk.Tabs[0], null, null, "Done.", []) { Notice = RemoteNotice.Sound });
+        await SettleAsync();
+        Assert.Equal(2, _telegram.Sent.Count);
+    }
+
+    [Fact]
+    public async Task Messages_sent_and_received_are_told_as_activity_but_not_strangers_or_edits()
+    {
+        var activity = new List<RemoteActivity>();
+        _client.Activity += a =>
+        {
+            lock (activity)
+            {
+                activity.Add(a);
+            }
+        };
+        await StartAsync();
+
+        _telegram.Message(Stranger, "hello?", Now);
+        _telegram.Message(Me, "/tabs", Now);
+        await NextSentAsync(1);
+        _desk.Raise(new RemotePromptWaiting(_desk.Tabs[0], FakeRemoteDesk.Command()) { Notice = RemoteNotice.Sound });
+        await NextSentAsync(2);
+        _desk.Raise(new RemotePromptClosed("t1", "p1", RemotePromptEnd.AnsweredAtDesk, "Allowed", null, Now));
+        await Waiting.UntilAsync(() => _telegram.Of("editMessageText").Count == 1, "the edit");
+        await SettleAsync();
+
+        lock (activity)
+        {
+            Assert.Equal([RemoteActivity.Received, RemoteActivity.Sent, RemoteActivity.Sent], activity);
+        }
+    }
+
+    [Fact]
     public async Task New_is_refused_unless_Open_new_tabs_is_on()
     {
         await StartAsync();
@@ -550,7 +598,7 @@ public sealed class TelegramClientTests : IAsyncLifetime
         _clock.Advance(TelegramClient.Backoff(1));
         await Waiting.UntilAsync(() => _telegram.Polls == 2, "the retry after 5 seconds");
 
-        await Waiting.UntilAsync(() => _telegram.Polls == 2 && _telegram.CallsCopy().Count(c => c.Method == "getUpdates") == 2, "the 429");
+        await Waiting.UntilAsync(() => _client.State.Reason == "Telegram asked Deventry to wait 20s.", $"the 429, not {_client.State.Reason}");
         _clock.Advance(TimeSpan.FromSeconds(19));
         await Waiting.NeverAsync(() => _telegram.Polls > 2, "polling before retry_after");
         _clock.Advance(TimeSpan.FromSeconds(1));

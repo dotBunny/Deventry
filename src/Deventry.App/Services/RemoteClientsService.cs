@@ -31,6 +31,12 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
     /// <summary>The clients that are on, by kind; changed as they start and stop, which may be off the UI thread.</summary>
     private readonly ConcurrentDictionary<string, IRemoteClient> _clients = new(StringComparer.Ordinal);
 
+    private readonly ConcurrentDictionary<string, DateTimeOffset> _lastSent = new(StringComparer.Ordinal);
+    private readonly UiTimeout _quietEnds;
+
+    /// <summary>When the quiet ends, as UTC ticks; 0 for none. Clients read it on their own threads.</summary>
+    private long _quietUntilTicks;
+
     private ShellViewModel? _shell;
     private ITimer? _presenceTimer;
     private PresenceReading _reading;
@@ -44,18 +50,26 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
         Credentials = credentials;
         _presence = presence;
         _logger = services.Loggers.CreateLogger("RemoteClients");
-        foreach (var type in Types)
-        {
-            var pairing = new RemotePairing(type.Kind, services.Time, services.State.RemoteClients.Accounts);
-            pairing.Changed += () => services.Dispatcher.Post(() => OnPairingChanged(pairing));
-            _pairings[type.Kind] = pairing;
-        }
+        _quietEnds = new UiTimeout(services.Time, services.Dispatcher);
+        UseTypes(AllTypes);
         ClientFactory = (type, secret, pairing) => type.Create(new RemoteClientContext(services.Http, services.Time, secret, services.UserAgent, pairing,
             services.Loggers.CreateLogger(type.Name), services.State.RemoteClients.SaidClosing));
     }
 
-    /// <summary>The kinds of client this Deventry offers.</summary>
-    public IReadOnlyList<IRemoteClientType> Types => AllTypes;
+    /// <summary>The kinds of client this Deventry offers: <see cref="AllTypes"/>, unless a test gives others.</summary>
+    public IReadOnlyList<IRemoteClientType> Types { get; private set; } = AllTypes;
+
+    /// <summary>The kinds of client offered, each with its pairing: <see cref="AllTypes"/>, or for tests others, before anything starts them.</summary>
+    internal void UseTypes(IReadOnlyList<IRemoteClientType> types)
+    {
+        Types = types;
+        foreach (var type in types.Where(t => !_pairings.ContainsKey(t.Kind)))
+        {
+            var pairing = new RemotePairing(type.Kind, _services.Time, _services.State.RemoteClients.Accounts);
+            pairing.Changed += () => _services.Dispatcher.Post(() => OnPairingChanged(pairing));
+            _pairings[type.Kind] = pairing;
+        }
+    }
 
     /// <summary>The credential store the clients' secrets are kept in. Tests give a fake one.</summary>
     internal ICredentialStore Credentials { get; set; }
@@ -90,6 +104,54 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
 
     /// <summary>The client's own account's name, once its service has said: the bot's <c>@username</c>, without the @.</summary>
     public string? IdentityOf(string kind) => _services.State.RemoteClients.Identities.GetValueOrDefault(kind);
+
+    /// <summary>When the client of <paramref name="kind"/> last sent the user a message, this run; null before it has.</summary>
+    public DateTimeOffset? LastSent(string kind) => _lastSent.TryGetValue(kind, out var at) ? at : null;
+
+    /// <summary>
+    /// Raised on the UI thread when a client sends the user a message or gets one from a paired account: the header's
+    /// indicator lights up.
+    /// </summary>
+    public event Action<string, RemoteActivity>? ActivityHappened;
+
+    private void OnActivity(string kind, RemoteActivity activity)
+    {
+        if (activity == RemoteActivity.Sent)
+        {
+            _lastSent[kind] = _services.Time.GetUtcNow();
+        }
+        ActivityHappened?.Invoke(kind, activity);
+    }
+
+    // ---- Quiet --------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Until when the clients send no messages but answers to what the user did from them: <c>/quiet</c>, or the header's
+    /// <b>Quiet for an hour</b>. Null when they send; kept only while Deventry runs.
+    /// </summary>
+    public DateTimeOffset? QuietUntil =>
+        Volatile.Read(ref _quietUntilTicks) is var ticks and not 0 && new DateTimeOffset(ticks, TimeSpan.Zero) is var until && until > _services.Time.GetUtcNow()
+            ? until
+            : null;
+
+    /// <summary>Holds messages until <paramref name="until"/>, or lets them go again with null. From any thread.</summary>
+    public void SetQuiet(DateTimeOffset? until)
+    {
+        Volatile.Write(ref _quietUntilTicks, until?.UtcTicks ?? 0);
+        _services.Dispatcher.Post(() =>
+        {
+            // The header says when it ends, and once it has.
+            if (QuietUntil is { } end)
+            {
+                _quietEnds.Restart(end - _services.Time.GetUtcNow(), () => Changed?.Invoke());
+            }
+            else
+            {
+                _quietEnds.Cancel();
+            }
+            Changed?.Invoke();
+        });
+    }
 
     /// <summary>What this desktop can tell about the user being away, for Settings.</summary>
     public PresenceSignals PresenceSignals => _presence.Signals;
@@ -155,12 +217,19 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
     /// <summary>Tells Settings, on the UI thread, that something it shows changed.</summary>
     private void NotifyChanged() => _services.Dispatcher.Post(() => Changed?.Invoke());
 
+    /// <summary>
+    /// Where the secret of the client of <paramref name="kind"/> is in the credential store: its kind's key, then this data
+    /// folder's id, so the demo or another Deventry on this computer, with a data folder of its own, never reads it or
+    /// competes for its bot.
+    /// </summary>
+    internal string CredentialKeyOf(string kind) => $"{Type(kind).CredentialKey}-{_services.MachineId}";
+
     private async Task<string?> ReadSecretAsync(IRemoteClientType type)
     {
         string? secret;
         try
         {
-            secret = await Credentials.ReadAsync(type.CredentialKey).ConfigureAwait(true);
+            secret = await Credentials.ReadAsync(CredentialKeyOf(type.Kind)).ConfigureAwait(true);
         }
         catch (CredentialStoreException ex)
         {
@@ -180,6 +249,7 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
         var client = ClientFactory(type, secret, PairingOf(type.Kind));
         client.StateChanged += _ => NotifyChanged();
         client.Identified += name => _services.Dispatcher.Post(() => OnIdentified(type.Kind, name));
+        client.Activity += activity => _services.Dispatcher.Post(() => OnActivity(type.Kind, activity));
         _clients[type.Kind] = client;
         if (_services.State.RemoteClients.SaidClosing)
         {
@@ -214,7 +284,7 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
         {
             throw new ArgumentException(problem, nameof(secret));
         }
-        await Credentials.WriteAsync(type.CredentialKey, type.CredentialLabel, secret.Trim()).ConfigureAwait(true);
+        await Credentials.WriteAsync(CredentialKeyOf(kind), type.CredentialLabel, secret.Trim()).ConfigureAwait(true);
         _hasSecret[kind] = true;
         // Another account, maybe: its name comes with the client.
         _services.State.RemoteClients.Identities.Remove(kind);
@@ -226,7 +296,7 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
     /// <exception cref="CredentialStoreException">It couldn't be removed.</exception>
     public async Task RemoveSecretAsync(string kind)
     {
-        await Credentials.DeleteAsync(Type(kind).CredentialKey).ConfigureAwait(true);
+        await Credentials.DeleteAsync(CredentialKeyOf(kind)).ConfigureAwait(true);
         _hasSecret[kind] = false;
         _services.State.RemoteClients.Identities.Remove(kind);
         _services.SaveState();
@@ -294,6 +364,7 @@ public sealed class RemoteClientsService : IRemoteDesk, IAsyncDisposable
         }
         StopPresence();
         _presence.Dispose();
+        _quietEnds.Dispose();
     }
 
     // ---- Away from the desk -----------------------------------------------------------------------------------------

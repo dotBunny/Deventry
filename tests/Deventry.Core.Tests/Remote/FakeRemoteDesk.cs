@@ -15,6 +15,10 @@ internal sealed class FakeRemoteDesk : IRemoteDesk
 
     public RemoteDetail Detail { get; set; } = RemoteDetail.Everything;
 
+    public DateTimeOffset? QuietUntil { get; set; }
+
+    public void SetQuiet(DateTimeOffset? until) => QuietUntil = until;
+
     public List<RemoteTab> Tabs { get; set; } = [];
 
     public RemoteReply? LastReply { get; set; }
