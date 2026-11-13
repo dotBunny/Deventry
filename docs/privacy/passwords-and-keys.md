@@ -2,12 +2,12 @@
 title: Passwords and keys
 parent: Privacy and your data
 nav_order: 3
-summary: "Deventry keeps the secrets you give it, Perforce passwords and API keys, in your operating system's credential store and nowhere else."
+summary: "Deventry keeps the secrets you give it, Perforce passwords, API keys and a Telegram bot's token, in your operating system's credential store and nowhere else."
 ---
 
 # Passwords and keys
 
-Deventry keeps the secrets you give it, Perforce passwords and API keys, in your operating system's credential store and nowhere else. They're not in settings, in state, in logs, in an environment variable or on a command line, and they're never synced.
+Deventry keeps the secrets you give it, Perforce passwords, API keys and a Telegram bot's token, in your operating system's credential store and nowhere else. They're not in settings, in state, in logs, in an environment variable or on a command line, and they're never synced.
 
 Claude Code's own sign-in is Claude Code's. Deventry never reads or stores it.
 
@@ -34,6 +34,10 @@ When Deventry logs in for you, it gives the password to `p4 login` on its standa
 A key you add in Settings → Accounts → **Add an API key** goes to the credential store as soon as you save it. Deventry's files keep only the account's name and color. Without a credential store, such as Linux without `secret-tool`, adding a key is off, and says why.
 
 Claude Code gets the key when it asks for it, through a small command that Deventry itself runs: it prints the key from the credential store for the `claude` that asked, then exits. The key isn't in an environment variable, on a command line or in a file. **Change key…** replaces it, and **Remove…** on an account deletes the key from the store. See [API-key accounts](../accounts/api-key-accounts.md).
+
+## A Telegram bot's token
+
+The token you give Settings → Remote clients → Telegram → **Set token…** goes to the credential store as soon as you save it, and Deventry's files keep only the bot's `@username`. Every request Deventry makes to the bot has the token in its address, so Deventry's log never records an address, and an error that would show one is reworded without it. **Remove…** deletes the token from the store. See [Remote clients](../away/remote-clients.md).
 
 ## In the logs
 

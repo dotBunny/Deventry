@@ -302,15 +302,17 @@ public sealed class ConversationBuilder
     /// <param name="mentionNote">The note on the sessions and agents it names, sent after it, which the card mentions.</param>
     /// <param name="mentioned">Their names, for the card's line about the note.</param>
     /// <param name="subagentNote">The note on subagents sent after it, and the card's line about it (DESIGN.md §5, "Subagents").</param>
+    /// <param name="via">The remote client the user sent it from (DESIGN.md §18, "Remote clients").</param>
     public UserMessageItem AddUserMessage(string text, string? suffixText = null, bool isCheckIn = false, IReadOnlyList<MessageImage>? images = null, bool isAutoContinue = false,
         string? label = null, bool isFromThread = false, string? threadNote = null, string? mentionNote = null, IReadOnlyList<string>? mentioned = null,
-        (string Note, string Line)? subagentNote = null) =>
+        (string Note, string Line)? subagentNote = null, string? via = null) =>
         AddUser(new UserMessageItem(text, suffixText, isCheckIn, isAutoContinue)
         {
             Images = images ?? [],
             ResumeAt = _lastEntryUuid,
             Label = label,
             IsFromThread = isFromThread,
+            Via = via,
             ThreadNote = threadNote,
             MentionNote = mentionNote,
             Mentioned = mentioned ?? [],

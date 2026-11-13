@@ -422,6 +422,21 @@ public sealed partial class ChangedFilesViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// A turn's files with their lines added and removed, for the remote clients' message about it (DESIGN.md §18,
+    /// "Remote clients"): counted off the UI thread, as the footer's are.
+    /// </summary>
+    internal async Task<IReadOnlyList<Core.Remote.RemoteFileChange>> CountForRemoteAsync(IReadOnlyList<TurnFileRow> rows)
+    {
+        if (rows.Count == 0)
+        {
+            return [];
+        }
+        var changes = Changes;
+        var counted = await Task.Run(() => rows.Select(row => changes.CountTurn(row.Change)).ToArray());
+        return [.. rows.Select((row, i) => new Core.Remote.RemoteFileChange(row.DisplayPath, counted[i]?.Added ?? 0, counted[i]?.Removed ?? 0, row.Change.IsNew))];
+    }
+
+    /// <summary>
     /// A file on a turn's footer: its diff from before the turn to how the turn left it, which is how the next turn that
     /// changed it found it, or the file now when none has.
     /// </summary>

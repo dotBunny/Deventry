@@ -225,6 +225,12 @@
                 <DataTemplate DataType="settings:NotificationsPage">
                   <pages:NotificationsPageView />
                 </DataTemplate>
+                <DataTemplate DataType="settings:AllClientsPage">
+                  <pages:AllClientsPageView />
+                </DataTemplate>
+                <DataTemplate DataType="settings:RemoteClientPage">
+                  <pages:RemoteClientPageView />
+                </DataTemplate>
                 <DataTemplate DataType="settings:KeyboardPage">
                   <pages:KeyboardPageView />
                 </DataTemplate>

@@ -36,6 +36,7 @@ public sealed partial class KeepAwakeService : ObservableObject, IDisposable
     private readonly UiTimeout _grace;
     private ClaudeWork _work;
     private int _connectedTabs;
+    private bool _remoteClientOn;
 
     public KeepAwakeService(AppServices services, ISleepBlocker sleep)
     {
@@ -136,6 +137,10 @@ public sealed partial class KeepAwakeService : ObservableObject, IDisposable
         {
             yield return _connectedTabs == 1 ? "1 tab is connected to the Claude app." : $"{_connectedTabs} tabs are connected to the Claude app.";
         }
+        if (WhileRemoteClient)
+        {
+            yield return "A remote client is on: a sleeping computer can't answer it.";
+        }
     }
 
     /// <summary>"2 tabs working, 1 waiting for a usage limit to reset".</summary>
@@ -189,12 +194,28 @@ public sealed partial class KeepAwakeService : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// A remote client is on, or not (DESIGN.md §18, "Remote clients"): while one is, sleep is held off, if Settings →
+    /// General allows, since a sleeping computer can't answer it.
+    /// </summary>
+    public void SetRemoteClientOn(bool on)
+    {
+        if (on != _remoteClientOn)
+        {
+            _remoteClientOn = on;
+            Update();
+        }
+    }
+
+    private bool WhileRemoteClient => _remoteClientOn && _services.Settings.RemoteClients.KeepAwake;
+
     /// <summary>Settings → General, or Settings → Claude Code's <b>Keep this computer awake while tabs are connected</b>, may have changed.</summary>
     public void OnSettingsChanged() => Update();
 
     private bool Wanted =>
         (IsOn && (WhileDeventryRuns || _work.Any || _grace.IsPending))
-        || (_connectedTabs > 0 && _services.Settings.ClaudeCode.KeepAwakeWhileConnected);
+        || (_connectedTabs > 0 && _services.Settings.ClaudeCode.KeepAwakeWhileConnected)
+        || WhileRemoteClient;
 
     private void Update()
     {
@@ -218,7 +239,10 @@ public sealed partial class KeepAwakeService : ObservableObject, IDisposable
             var n => $"{n} tabs are connected to the Claude app.",
         };
         var connected = _services.Settings.ClaudeCode.KeepAwakeWhileConnected ? "" : " Keeping the computer awake for them is turned off in Settings → General.";
-        return $"{setting} {tabs}{connected} {_sleep.Describe()}";
+        var remote = !_remoteClientOn ? "" : _services.Settings.RemoteClients.KeepAwake
+            ? " A remote client is on."
+            : " A remote client is on; keeping the computer awake for it is turned off in Settings → General.";
+        return $"{setting} {tabs}{connected}{remote} {_sleep.Describe()}";
     }
 
     /// <summary>At exit: the computer can sleep again.</summary>

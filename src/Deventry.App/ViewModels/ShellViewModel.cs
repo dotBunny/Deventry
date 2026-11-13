@@ -763,6 +763,7 @@ public sealed partial class ShellViewModel : ViewModelBase, IAsyncDisposable
         }
         SaveTabs();
         OnTabStatusChanged();
+        _services.RemoteClients.OnTabClosed(tab);
         // Its worktree's inactivity counts from now (DESIGN.md §4, "Cleaning up worktrees").
         _services.Worktrees.MarkUsed(tab.State);
         await tab.CloseAsync(killProcesses);

@@ -74,6 +74,8 @@ public sealed partial class TabViewModel
             Working.SetActivity(ToolActivity.Describe(running), ToolActivity.Details(running));
             // What Joulene on the composer works with goes by the newest tool (DESIGN.md §5).
             TellMascot();
+            // A remote client's live status says it too (DESIGN.md §18, "Remote clients").
+            Remote.OnTabChanged(this);
         }
     }
 

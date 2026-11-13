@@ -89,10 +89,12 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         ProjectTypes = [.. types.Select(type => new ProjectTypePage(_context, type))];
         Git = new GitPage(_context);
         Perforce = new PerforcePage(_context);
+        AllClients = new AllClientsPage(_context);
+        Clients = [.. services.RemoteClients.Types.Select(type => new RemoteClientPage(_context, type))];
         Advanced = new AdvancedPage(_context, ClaudeCode);
-        _groups = SettingsSidebar.Groups(types);
+        _groups = SettingsSidebar.Groups(types, services.RemoteClients.Types);
         Categories = [.. _groups.SelectMany(g => g.Categories)];
-        SettingsPage[] pages = [General, Appearance, Conversation, Notifications, Keyboard, ClaudeCode, Accounts, Tabs, Usage, Advanced, Sessions, Files, AllTools, .. ProjectTypes, Git, Perforce];
+        SettingsPage[] pages = [General, Appearance, Conversation, Notifications, Keyboard, ClaudeCode, Accounts, Tabs, Usage, Advanced, Sessions, Files, AllTools, .. ProjectTypes, Git, Perforce, AllClients, .. Clients];
         _categoryPages = [.. Categories.Select(category => pages.Single(p => p.Title == category))];
         foreach (var page in _categoryPages)
         {
@@ -122,6 +124,11 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
         }
         HighlightWait.Dispose();
         General.Dispose();
+        AllClients.Dispose();
+        foreach (var client in Clients)
+        {
+            client.Dispose();
+        }
         ClaudeCode.Dispose();
         Accounts.Dispose();
         Git.Dispose();
@@ -137,6 +144,15 @@ public sealed partial class SettingsViewModel : ViewModelBase, IDisposable
     public ConversationPage Conversation { get; }
 
     public NotificationsPage Notifications { get; }
+
+    /// <summary>Settings → Remote clients → All clients (DESIGN.md §18, "Remote clients").</summary>
+    public AllClientsPage AllClients { get; }
+
+    /// <summary>A page for each kind of remote client, after All clients (DESIGN.md §18, "Remote clients").</summary>
+    public IReadOnlyList<RemoteClientPage> Clients { get; }
+
+    /// <summary>The page of the remote client of <paramref name="kind"/>.</summary>
+    public RemoteClientPage Client(string kind) => Clients.Single(p => p.Kind == kind);
 
     public KeyboardPage Keyboard { get; }
 

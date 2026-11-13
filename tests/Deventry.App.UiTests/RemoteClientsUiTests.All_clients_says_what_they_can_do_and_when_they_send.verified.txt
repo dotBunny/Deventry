@@ -1,0 +1,43 @@
+﻿"All clients"
+"This computer"
+"What every remote client can do, and when they send messages."
+"What they can do"
+[button] Reset to defaults
+"Remote clients can"
+[toggle] More
+[toggle] Watch
+[toggle] Watch and answer prompts
+[toggle on] Watch, answer, send messages and stop Claude
+"A message from your phone is the same as typing it here: Claude can run what it could here, in the tab's permission mode."
+"Open new tabs"
+"With /new, in a favorite or recent folder. A folder that asks about trust asks here."
+[toggle] Open new tabs
+"Messages"
+[button] Reset to defaults
+"A message answering what you did from your phone always comes."
+"A tab needs permission or an answer"
+[toggle on] A tab needs permission or an answer
+"A tab finishes its turn"
+[toggle on] A tab finishes its turn
+"A tab's Claude Code stops with an error"
+[toggle on] A tab's Claude Code stops with an error
+"Usage alerts and accounts' spend warnings"
+[toggle on] Usage alerts and accounts' spend warnings
+"A project action finishes"
+[toggle] A project action finishes
+"When"
+[toggle on] While I'm away
+"Away is when Deventry isn't in front, the computer is locked, its screen saver is on, its display is asleep or nobody has used its keyboard or mouse for 5 minutes."
+[toggle] Always, silently while I'm at the desk
+"Count me away after (minutes)"
+"Without the keyboard or mouse."
+[button] (icon)
+[button] (icon)
+[field] "5"
+"What they say"
+[toggle on] Everything
+[toggle] Just what happened
+[button] Line up
+[button] Page up
+[button] Page down
+[button] Line down

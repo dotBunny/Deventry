@@ -31,6 +31,7 @@
       </c:SettingRow>
       <c:SettingRow Title="Login shell environment" Description="{Binding LoginShellText}" />
       <c:SettingRow Title="Keeping the computer awake" Description="{Binding KeepAwakeText}" />
+      <c:SettingRow Title="Remote clients" Description="{Binding RemoteClientsText}" />
       <c:SettingRow Key="advanced.diagnostics" IsStacked="True">
         <StackPanel Spacing="8">
           <Border Classes="settingsnote" Padding="10,8">

@@ -25,6 +25,7 @@
     <PackageReference Include="Avalonia.AvaloniaEdit" />
     <PackageReference Include="AvaloniaEdit.TextMate" />
     <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="QRCoder" />
   </ItemGroup>
 
   <ItemGroup>

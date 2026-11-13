@@ -73,6 +73,9 @@ public sealed partial class AdvancedPage : SettingsPage
     /// <summary>Whether the computer is kept awake for tabs connected to the Claude app, or why not (DESIGN.md §18).</summary>
     public string KeepAwakeText => Services.KeepAwake.Describe();
 
+    /// <summary>Each remote client's state, how many accounts are paired, and why it isn't connected (DESIGN.md §18). Never a token or a message.</summary>
+    public string RemoteClientsText => Services.RemoteClients.Describe();
+
     /// <summary>What Claude Code has sent this run that Deventry doesn't know, in words.</summary>
     public string DiagnosticsText => DiagnosticsReport(includeHeader: false);
 
@@ -84,6 +87,7 @@ public sealed partial class AdvancedPage : SettingsPage
         OnPropertyChanged(nameof(InstalledVersionText));
         OnPropertyChanged(nameof(LoginShellText));
         OnPropertyChanged(nameof(KeepAwakeText));
+        OnPropertyChanged(nameof(RemoteClientsText));
     }
 
     [RelayCommand]
@@ -104,6 +108,7 @@ public sealed partial class AdvancedPage : SettingsPage
             lines.Add($"Claude app (Remote Control): new tabs {(_claudeCode.ConnectNewTabsToClaudeApp ? "connect" : "don't connect")}; "
                 + (_claudeCode.RemoteControlUnavailableText ?? "available for this account") + ".");
             lines.Add($"Keeping the computer awake: {KeepAwakeText}");
+            lines.Add(RemoteClientsText);
             lines.Add($"Protocol logging: {(LogProtocol ? "on" : "off")}");
             lines.Add("");
         }

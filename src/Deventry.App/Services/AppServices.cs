@@ -18,6 +18,7 @@ using Deventry.Core.ProjectFiles;
 using Deventry.Core.ProjectTools;
 using Deventry.Core.ProjectTools.Unreal;
 using Deventry.Core.Protocol;
+using Deventry.Core.Remote;
 using Deventry.Core.RemoteControl;
 using Deventry.Core.Sessions;
 using Deventry.Core.Settings;
@@ -88,6 +89,10 @@ public sealed class AppServices : IAsyncDisposable
     /// The OS's trash, for deleting from a Files tab's explorer (DESIGN.md §18, "Project files", "Renaming and deleting").
     /// Null has none, so deleting asks to delete for good: tests.
     /// </param>
+    /// <param name="userPresence">
+    /// Whether the user is at the computer, for when the remote clients send messages (DESIGN.md §18, "Remote clients").
+    /// Null can't tell: tests.
+    /// </param>
     /// <param name="demo">This Deventry is a demo (DESIGN.md §11, "Demo mode"); null for any other.</param>
     public AppServices(
         AppPaths paths,
@@ -110,6 +115,7 @@ public sealed class AppServices : IAsyncDisposable
         ILoginItems? loginItems = null,
         ISystemMotion? systemMotion = null,
         ITrash? trash = null,
+        IUserPresence? userPresence = null,
         DemoMode? demo = null)
     {
         Demo = demo;
@@ -169,6 +175,7 @@ public sealed class AppServices : IAsyncDisposable
         Tips = new ShortcutTips(Settings);
         Perforce = new PerforceService(this, credentials ?? new UnavailableCredentialStore());
         Accounts = new AccountsService(this, credentials ?? new UnavailableCredentialStore());
+        RemoteClients = new RemoteClientsService(this, credentials ?? new UnavailableCredentialStore(), userPresence ?? new NoUserPresence());
         ProjectTools = new ProjectToolsService(this, systemProcesses, unrealRegistry ?? NoUnrealEngineRegistry.Instance, otherPrograms);
         ServiceStatus = new ServiceStatusService(this);
         LiveSessions = new LiveSessionsService(this, systemProcesses);
@@ -189,6 +196,7 @@ public sealed class AppServices : IAsyncDisposable
             ClaudeUpdates?.OnSettingsChanged();
             Notifications.OnSettingsChanged();
             KeepAwake.OnSettingsChanged();
+            RemoteClients.OnSettingsChanged();
             ServiceStatus.OnSettingsChanged();
             Tips.Refresh();
         };
@@ -356,6 +364,12 @@ public sealed class AppServices : IAsyncDisposable
     /// presence file every <c>claude</c> is told about, and which tabs are connected.
     /// </summary>
     public RemoteControlService RemoteControl { get; }
+
+    /// <summary>
+    /// The remote clients (DESIGN.md §18, "Remote clients"): the desk they reach the tabs through, and the Telegram bot,
+    /// started once the tabs are up.
+    /// </summary>
+    public RemoteClientsService RemoteClients { get; }
 
     /// <summary>
     /// Keeping the computer from sleeping (DESIGN.md §9, "Keeping the computer awake"): Settings → General's <b>Keep
@@ -770,6 +784,7 @@ public sealed class AppServices : IAsyncDisposable
         Mascot.Dispose();
         ScratchPads.Dispose();
         Library.Dispose();
+        await RemoteClients.DisposeAsync();
         Notifications.Dispose();
         RemoteControl.Dispose();
         KeepAwake.Dispose();

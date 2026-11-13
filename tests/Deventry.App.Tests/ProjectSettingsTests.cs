@@ -960,7 +960,8 @@ public class ProjectSettingsTests
         await using var h = new TabTestHarness();
         using var settings = new SettingsViewModel(h.Services, null);
 
-        Assert.Equal(["Deventry", "Claude", "Your work", SettingsSidebar.ProjectTools, SettingsSidebar.SourceControl], settings.NavEntries.Where(e => e.IsHeading).Select(e => e.Title));
+        Assert.Equal(["Deventry", "Claude", "Your work", SettingsSidebar.ProjectTools, SettingsSidebar.SourceControl, SettingsSidebar.RemoteClients],
+            settings.NavEntries.Where(e => e.IsHeading).Select(e => e.Title));
         // About is a window of its own, not a page (DESIGN.md §14, "About").
         Assert.Equal(["General", "Appearance", "Conversation", "Notifications", "Keyboard"], PagesUnder(settings, "Deventry"));
         // Advanced is the last of Claude's pages: it's mostly about running Claude Code.
@@ -968,6 +969,8 @@ public class ProjectSettingsTests
         Assert.Equal(["Sessions", "Files and diffs"], PagesUnder(settings, "Your work"));
         Assert.Equal(["All tools", "Unreal Engine", "Unity", "Godot"], PagesUnder(settings, SettingsSidebar.ProjectTools));
         Assert.Equal(["Git", "Perforce"], PagesUnder(settings, SettingsSidebar.SourceControl));
+        // What every remote client shares, then a page for each client (DESIGN.md §18, "Remote clients").
+        Assert.Equal(["All clients", "Telegram"], PagesUnder(settings, SettingsSidebar.RemoteClients));
         Assert.Equal(h.Services.ProjectTools.Detector.Types.Select(t => t.Name), settings.ProjectTypes.Select(p => p.Title));
 
         // Every page has an icon of its own; each project type's is its kind's.

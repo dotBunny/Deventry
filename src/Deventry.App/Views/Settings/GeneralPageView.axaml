@@ -65,6 +65,9 @@
       <c:SettingRow Key="claudeCode.keepAwakeWhileConnected">
         <ToggleSwitch IsChecked="{Binding KeepAwakeWhileConnected}" />
       </c:SettingRow>
+      <c:SettingRow Key="remoteClients.keepAwake">
+        <ToggleSwitch IsChecked="{Binding KeepAwakeWhileRemoteClient}" />
+      </c:SettingRow>
     </c:SettingsSection>
 
     <!-- Claude's service status (DESIGN.md §18) and Deventry's own updates (DESIGN.md §2, "Updating Deventry") -->

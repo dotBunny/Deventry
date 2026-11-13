@@ -1,15 +1,22 @@
-using System.Text.Json.Nodes;
 using Deventry.App.Conversation;
 using Deventry.App.Services;
 using Deventry.Core.Protocol;
+using Deventry.Core.Remote;
 using Deventry.Core.Sessions;
 
 namespace Deventry.App.ViewModels;
 
-/// <summary>This tab's OS notifications (DESIGN.md §10). The notification service decides whether each one is sent.</summary>
+/// <summary>
+/// This tab's OS notifications (DESIGN.md §10). The notification service decides whether each one is sent. The remote
+/// clients hear of the same things, in the same words (DESIGN.md §18, "Remote clients").
+/// </summary>
 public sealed partial class TabViewModel
 {
-    partial void OnStatusChanged(TabStatus value) => _shell.OnTabStatusChanged();
+    partial void OnStatusChanged(TabStatus value)
+    {
+        _shell.OnTabStatusChanged();
+        Remote.OnTabChanged(this);
+    }
 
     /// <summary>
     /// A turn ended while the user may not be looking: the first line of the reply, after where Claude's task list stands
@@ -17,47 +24,36 @@ public sealed partial class TabViewModel
     /// </summary>
     private void NotifyTurnFinished(ResultMessage result)
     {
-        var reply = result.Result?.Trim();
-        var line = string.IsNullOrEmpty(reply) ? null : reply.Split('\n')[0].Trim();
-        var body = (_conversation.TurnTasksSummary?.Text, line) switch
-        {
-            ({ } tasks, { Length: > 0 } first) => Shorten($"{tasks} · {first}", 140),
-            ({ } tasks, _) => tasks,
-            (null, { Length: > 0 } first) => Shorten(first, 140),
-            _ => "Claude finished its turn.",
-        };
+        var body = RemoteMessages.TurnLine(_conversation.TurnTasksSummary?.Text, result.Result, Agent);
         _services.Notifications.Notify(NotificationKind.TurnFinished, DisplayName, body, Id);
         _shell.Announce($"{DisplayName}: Claude finished.");
+        TellRemoteTurnFinished(result);
     }
 
     /// <summary>A permission prompt, question or plan is waiting (DESIGN.md §7).</summary>
     private void NotifyNeedsInput(PermissionRequest request)
     {
-        var body = Items.OfType<PromptItem>().LastOrDefault(p => ReferenceEquals(p.Request, request)) is { } prompt
-            ? PromptText(prompt)
-            : "Claude is waiting for you.";
+        var prompt = Items.OfType<PromptItem>().LastOrDefault(p => ReferenceEquals(p.Request, request));
+        var remote = prompt is null ? null : ToRemotePrompt(prompt);
+        var body = prompt is null ? "Claude is waiting for you." : PromptText(prompt);
         _services.Notifications.Notify(NotificationKind.NeedsInput, DisplayName, body, Id);
         _shell.Announce($"{DisplayName}: {body}");
+        if (remote is not null)
+        {
+            Remote.OnPromptWaiting(this, remote);
+        }
     }
 
     /// <summary>What a waiting prompt asks, in a line: its notification's text, and a sub-thread's in its thread's strip.</summary>
-    private static string PromptText(PromptItem prompt) => prompt switch
-    {
-        PermissionItem permission => (permission.Command ?? permission.Detail) is { } what
-            ? $"{permission.Title} {Shorten(what, 120)}"
-            : permission.Title,
-        QuestionItem => (prompt.Request.Input["questions"] as JsonArray)?.OfType<JsonObject>().FirstOrDefault()?.GetString("question") is { } question
-            ? $"Claude has a question: {Shorten(question, 120)}"
-            : "Claude has a question.",
-        PlanItem => "Claude has a plan for you to review.",
-        _ => "Claude is waiting for you.",
-    };
+    private string PromptText(PromptItem prompt) =>
+        ToRemotePrompt(prompt) is { } remote ? RemoteMessages.PromptLine(remote, Agent) : "Claude is waiting for you.";
 
     /// <summary>Claude Code stopped with an error, or couldn't start.</summary>
     private void NotifyProcessError(string body)
     {
         _services.Notifications.Notify(NotificationKind.ProcessError, DisplayName, body, Id);
         _shell.Announce($"{DisplayName}: {body}");
+        Remote.OnTabFailed(this, body, needsSignIn: false);
     }
 
     /// <summary>"Notify me when a check-in is sent" (DESIGN.md §5).</summary>

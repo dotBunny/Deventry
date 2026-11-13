@@ -1,7 +1,7 @@
 ---
 title: Starting at login
 parent: Away from your desk
-nav_order: 5
+nav_order: 6
 summary: "Deventry can start by itself when you log in to your computer, with your tabs back where they were, so a task you left for tomorrow is a click away."
 ---
 

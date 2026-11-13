@@ -300,6 +300,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
     {
         OnPropertyChanged(nameof(DisplayName));
         OnPropertyChanged(nameof(HasUserName));
+        Remote.OnTabChanged(this);
         _services.SaveState();
         // The usage history keeps the tab's last name, for its rows once it's closed (DESIGN.md §6).
         _services.Usage?.OnTabRenamed(Id, DisplayName);
@@ -1248,7 +1249,6 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         var suffixText = suffixes.Length > 0 ? string.Join("\n", suffixes) : null;
 
         ComposerText = "";
-        TellMascot(mascot => mascot.MessageSent());
         foreach (var chip in Chips.Where(c => !c.IsKept).ToArray())
         {
             Chips.Remove(chip);
@@ -1256,7 +1256,17 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         var images = TakeAttachments();
         // Large pastes go after what was typed (DESIGN.md §5, "Attachments").
         var pastes = TakePastedTexts();
-        var text = PastedText.Join(typed, pastes);
+        await SendTypedAsync(PastedText.Join(typed, pastes), typed, suffixText, images, pastes, via: null);
+    }
+
+    /// <summary>
+    /// Sends what the user wrote, the composer's or a remote client's (<paramref name="via"/>, DESIGN.md §18, "Remote
+    /// clients"): its card, the notes Claude should have after it, and held, queued or sent as the tab stands.
+    /// </summary>
+    /// <param name="typed">What was typed, before any large pastes went after it.</param>
+    private async Task SendTypedAsync(string text, string typed, string? suffixText, IReadOnlyList<MessageImage> images, IReadOnlyList<string> pastes, string? via)
+    {
+        TellMascot(mascot => mascot.MessageSent());
         _autoContinue.UserSent();
         var stamp = NewStamp(fromUser: true);
         // What a thread's Claude should know about its sub-threads goes after the message, not after a command
@@ -1269,7 +1279,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         var mentions = OutgoingMessages.IsSlashCommand(text) ? null : ResolveMentions(text);
         var mentionNote = mentions is null ? null : SessionMentions.Note(mentions.Mentioned, mentions.ById);
         var card = _conversation.AddUserMessage(text, suffixText, images: images, threadNote: threadNote, mentionNote: mentionNote,
-            mentioned: mentions?.Mentioned.Select(m => m.Name).ToArray(), subagentNote: subagentNote is { } told ? (told.Note, told.Line) : null);
+            mentioned: mentions?.Mentioned.Select(m => m.Name).ToArray(), subagentNote: subagentNote is { } told ? (told.Note, told.Line) : null, via: via);
         card.SubagentsToldBefore = subagentNote?.Before;
         foreach (var note in new[] { threadNote, subagentNote?.Note, mentionNote })
         {
@@ -2390,13 +2400,20 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
                 _checkIns.SetWaitingOnUser(true);
                 if (Items.OfType<McpInputItem>().LastOrDefault(i => ReferenceEquals(i.Request, elicitation.Request)) is { } input)
                 {
-                    input.Answered += (_, _) => PermissionResolved(elicitation.Request.RequestId);
+                    input.Answered += (_, _) =>
+                    {
+                        PermissionResolved(elicitation.Request.RequestId);
+                        Remote.OnPromptClosed(this, elicitation.Request.RequestId, Core.Remote.RemotePromptEnd.AnsweredAtDesk, input.Outcome, null);
+                    };
+                    // Only the desk can fill in a server's form (DESIGN.md §18, "Remote clients").
+                    Remote.OnPromptWaiting(this, AtDesk(elicitation.Request.RequestId, input.Title, input.Message));
                 }
                 UpdateStatus();
                 _services.Notifications.Notify(NotificationKind.NeedsInput, DisplayName, $"{elicitation.Request.ServerName} asks: {Shorten(elicitation.Request.Message, 120)}", Id);
                 break;
             case ElicitationCancelled withdrawn:
                 PermissionResolved(withdrawn.RequestId);
+                Remote.OnPromptClosed(this, withdrawn.RequestId, Core.Remote.RemotePromptEnd.Withdrawn, Core.Remote.RemoteMessages.WithdrawnOutcome, null);
                 break;
             case SystemNotice { Message.Subtype: "status" } status:
                 // Claude Code reports mode changes it makes itself, such as leaving plan mode.
@@ -2524,6 +2541,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
         var item = Items.OfType<PromptItem>().LastOrDefault(p => ReferenceEquals(p.Request, request));
         if (item is not null)
         {
+            WatchForRemote(item);
             item.Answered += (_, _) => PermissionResolved(request.RequestId);
             // Answered, withdrawn or cancelled with the session: the others are numbered again.
             item.PropertyChanged += (_, e) =>

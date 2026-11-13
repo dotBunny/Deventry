@@ -238,6 +238,11 @@
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
       },
+      "Microsoft.Win32.SystemEvents": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "hqTM5628jSsQiv+HGpiq3WKBl2c8v1KZfby2J6Pr7pEPlK9waPdgEO6b8A/+/xn/yZ9ulv8HuqK71ONy2tg67A=="
+      },
       "Onigwrap": {
         "type": "Transitive",
         "resolved": "1.0.11",
@@ -288,6 +293,14 @@
         "contentHash": "ZU60dSqoSNRe49KcQDUmOVgdRtjITOssVXFtiISs+zJXDI4D2Sndwpn2NOtzDQNPu0ZAvpoLPQ+GLKv6iEZn8Q==",
         "dependencies": {
           "SQLitePCLRaw.core": "2.1.13"
+        }
+      },
+      "System.Drawing.Common": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "NfuoKUiP2nUWwKZN6twGqXioIe1zVD0RIj2t976A+czLHr2nY454RwwXs6JU9Htc6mwqL6Dn/nEL3dpVf2jOhg==",
+        "dependencies": {
+          "Microsoft.Win32.SystemEvents": "6.0.0"
         }
       },
       "Tmds.DBus.Protocol": {
@@ -378,6 +391,7 @@
           "Deventry.Platform": "[1.1.0, )",
           "Deventry.Usage": "[1.1.0, )",
           "LiveMarkdown.Avalonia": "[2.5.1, )",
+          "QRCoder": "[1.8.1, )",
           "SkiaSharp": "[3.119.4, )",
           "TextMateSharp": "[2.0.5, )",
           "TextMateSharp.Grammars": "[2.0.5, )"
@@ -527,6 +541,15 @@
         "contentHash": "SwcbEBtkECq3D2oywvHkm46fyrX9Dd2JPWphDnHUc2+cUWR1Mdo41atAjh/9iZjgQxuvbKfZKXqostT/LZfefA==",
         "dependencies": {
           "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.14"
+        }
+      },
+      "QRCoder": {
+        "type": "CentralTransitive",
+        "requested": "[1.8.1, )",
+        "resolved": "1.8.1",
+        "contentHash": "aGfRFpU/IPexAtEOEXCNxC3fMCAqgn6kqALRvXt6LxVAW0VolSDGHiyrY+o2CJgTITOsMpsrsDi7svMJaJ9Vfg==",
+        "dependencies": {
+          "System.Drawing.Common": "6.0.0"
         }
       },
       "SkiaSharp": {

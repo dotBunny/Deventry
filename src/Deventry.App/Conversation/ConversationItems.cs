@@ -209,11 +209,20 @@ public sealed partial class UserMessageItem(string text, string? suffixText = nu
     /// <summary>Deventry passed it on for a thread or its sub-threads: taken back, it doesn't go into the composer.</summary>
     public bool IsFromThread { get; init; }
 
+    /// <summary>
+    /// The remote client the user sent it from, such as "Telegram" (DESIGN.md §18, "Remote clients"); null for one typed
+    /// here. Its card says so; taken back, it goes into the composer as one typed here does.
+    /// </summary>
+    public string? Via { get; init; }
+
     /// <summary>The label over a message Deventry sent by itself or passed on, or null for one the user sent.</summary>
     public string? AutomaticLabel => Label ?? (IsCheckIn ? "Automatic check-in" : IsAutoContinue ? "Automatic continue after the usage limit reset" : null);
 
-    /// <summary>Its card's label (DESIGN.md §18, "Conversation cards"): "You", or who sent it when it wasn't the user.</summary>
-    public string CardLabel => AutomaticLabel ?? "You";
+    /// <summary>
+    /// Its card's label (DESIGN.md §18, "Conversation cards"): "You", "You, from Telegram", or who sent it when it wasn't
+    /// the user.
+    /// </summary>
+    public string CardLabel => AutomaticLabel ?? (Via is { } via ? $"You, from {via}" : "You");
 
     /// <summary>
     /// The note on threads Deventry sent after the message (DESIGN.md §18, "Threads"): the card says so in a line, with

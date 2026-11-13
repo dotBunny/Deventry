@@ -22,6 +22,8 @@
          with. Keep it at the version Avalonia.Skia takes: Linux's native library comes only through Avalonia.Skia, and
          SkiaSharp of another version won't load it (SkiaSharpVersionTests). -->
     <PackageVersion Include="SkiaSharp" Version="3.119.4" />
+    <!-- The QR code Settings → Remote clients pairs a phone with (DESIGN.md §18, "Remote clients", "Pairing"). -->
+    <PackageVersion Include="QRCoder" Version="1.8.1" />
   </ItemGroup>
   <ItemGroup Label="Analyzers">
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />

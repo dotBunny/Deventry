@@ -264,6 +264,9 @@ public sealed class AppState
 
     /// <summary>Each game's score and level against Joulene (DESIGN.md §18, "Games with Joulene").</summary>
     public GamesState Games { get; set; } = new();
+
+    /// <summary>The accounts paired with the remote clients, and the bot's name (DESIGN.md §18, "Remote clients"). Per machine.</summary>
+    public RemoteClientsState RemoteClients { get; set; } = new();
 }
 
 /// <summary>The games against Joulene (DESIGN.md §18, "Games with Joulene"), by game: its score and the level chosen.</summary>

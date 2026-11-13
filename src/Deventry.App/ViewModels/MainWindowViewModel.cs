@@ -346,6 +346,8 @@ public sealed partial class MainWindowViewModel(AppServices services, string? in
                 _shell.Restore(initialFolder);
             }
             StartUsage();
+            // The tabs are up: a remote client Settings turns on can reach them (DESIGN.md §18, "Remote clients").
+            services.RemoteClients.Start(_shell);
             StartUpdateChecks(_shell);
             StartRestarts(_shell);
             StartAppUpdates(_shell, restored?.Update);
@@ -599,6 +601,8 @@ public sealed partial class MainWindowViewModel(AppServices services, string? in
 
     public async ValueTask DisposeAsync()
     {
+        // The remote clients say Deventry is closing, while the tabs are still there to name.
+        await services.RemoteClients.CloseAsync();
         services.Notifications.Activated -= OnNotificationActivated;
         ServiceStatus.Dispose();
         Usage?.Dispose();

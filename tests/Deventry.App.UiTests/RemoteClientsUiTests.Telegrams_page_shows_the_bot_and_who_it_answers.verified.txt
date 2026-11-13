@@ -1,0 +1,22 @@
+﻿"Telegram"
+"This computer"
+"A Telegram bot of your own, for your tabs from your phone."
+"The bot"
+[button] Reset to defaults
+"Use a Telegram bot"
+"Deventry talks to the bot itself, so reading tabs and answering prompts cost no tokens. Only a message you send a tab does, as typing it here would.  "
+[button] Reset Use a Telegram bot to its default
+[toggle on] Use a Telegram bot
+"Telegram can read bot chats: they aren't end-to-end encrypted. It sees what the bot sends: your tabs' and projects' names, Claude's replies, and the commands and files Claude asks about. All clients → What they say can keep the messages to the tab's name and what happened."
+"Bot"
+"Make one with @BotFather in Telegram: send it /newbot, pick a name, and paste the token it gives you here."
+"@deventry_bot"
+"Connected"
+[button] Change token…
+[button] Remove…
+"Paired with"
+"Only these accounts are answered; anyone else gets no answer at all."
+"Matt (@reapazor)"
+"Paired today at 12:00"
+[button] Unpair Matt (@reapazor): Unpair…
+[button] Pair a phone…

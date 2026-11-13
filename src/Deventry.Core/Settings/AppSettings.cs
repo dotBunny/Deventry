@@ -43,6 +43,9 @@ public sealed class AppSettings
 
     public NotificationSettings Notifications { get; set; } = new();
 
+    /// <summary>Settings → Remote clients (DESIGN.md §18): the tabs from a phone, through a Telegram bot. Per machine.</summary>
+    public RemoteClientSettings RemoteClients { get; set; } = new();
+
     public KeyboardSettings Keyboard { get; set; } = new();
 
     public AdvancedSettings Advanced { get; set; } = new();

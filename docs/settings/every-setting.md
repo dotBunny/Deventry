@@ -31,6 +31,7 @@ None of this page syncs, and a tab can't change it for itself.
 | **Keep this computer awake** | Keeping the computer awake | Off | [Keeping the computer awake](../away/keeping-the-computer-awake.md) |
 | **When**: **Only while Claude has work to finish** or **Whenever Deventry is running** | Keeping the computer awake | Only while Claude has work to finish | [Keeping the computer awake](../away/keeping-the-computer-awake.md) |
 | **Also while tabs are connected to the Claude app** | Keeping the computer awake | On | [The Claude app](../away/the-claude-app.md) |
+| **Also while a remote client is on** | Keeping the computer awake | On | [Remote clients](../away/remote-clients.md#keeping-the-computer-awake) |
 | **Show Claude's service status** | Updates and status | On | [Claude is having problems](../troubleshooting/claude-is-having-problems.md) |
 | **Check for Deventry updates automatically** | Updates and status | On | [Deventry's updates](../updates/deventrys-updates.md) |
 | **Include pre-releases** | Updates and status | Off | [Deventry's updates](../updates/deventrys-updates.md) |
@@ -296,6 +297,31 @@ The second page under **Source control**. None of this page syncs.
 | **Show Perforce state in the Files tab** | Opening files in Perforce | On | [Perforce](../project-tools/perforce.md#in-the-files-tab) |
 | A password for a server and user, with **Save password** and **Forget password** | Stored password | None | [Perforce](../project-tools/perforce.md) |
 | Each folder's server and user, with **Add folder…** | Per-folder server and user | None | [Perforce](../project-tools/perforce.md) |
+
+## Remote clients
+
+None of this group syncs, and a tab can't change it for itself. A client's secret, such as the Telegram bot's token, is in your computer's credential store, and the paired accounts with Deventry's state.
+
+### All clients
+
+| Setting | Section | Default | Explained in |
+|---|---|---|---|
+| **Remote clients can** | What they can do | Watch, answer, send messages and stop Claude | [Remote clients](../away/remote-clients.md#what-remote-clients-can-do) |
+| **Open new tabs** | What they can do | Off | [Remote clients](../away/remote-clients.md#what-remote-clients-can-do) |
+| **A tab needs permission or an answer** | Messages | On | [Remote clients](../away/remote-clients.md#what-the-bot-sends) |
+| **A tab finishes its turn** | Messages | On | [Remote clients](../away/remote-clients.md#what-the-bot-sends) |
+| **A tab's Claude Code stops with an error** | Messages | On | [Remote clients](../away/remote-clients.md#what-the-bot-sends) |
+| **Usage alerts and accounts' spend warnings** | Messages | On | [Remote clients](../away/remote-clients.md#what-the-bot-sends) |
+| **A project action finishes** | Messages | Off | [Remote clients](../away/remote-clients.md#what-the-bot-sends) |
+| **When**: **While I'm away** or **Always, silently while I'm at the desk** | Messages | While I'm away | [Remote clients](../away/remote-clients.md#when-messages-come) |
+| **Count me away after (minutes)** | Messages | 5 | [Remote clients](../away/remote-clients.md#when-messages-come) |
+| **What they say**: **Everything** or **Just what happened** | Messages | Everything | [Remote clients](../away/remote-clients.md#privacy) |
+
+### Telegram
+
+| Setting | Section | Default | Explained in |
+|---|---|---|---|
+| **Use a Telegram bot** | The bot | Off | [Remote clients](../away/remote-clients.md#setting-up-the-bot) |
 
 ## A project's settings
 
