@@ -1,19 +1,19 @@
 using System.Globalization;
 using System.Text;
-using static Deventry.Core.Remote.Telegram.TelegramFormat;
 
-namespace Deventry.Core.Remote.Telegram;
+namespace Deventry.Core.Remote.Chat;
 
-/// <summary>The bot's messages as Telegram's HTML, and their buttons (DESIGN.md §18, "What the bot sends").</summary>
-public sealed partial class TelegramClient
+/// <summary>The bot's messages, as the service writes them, and their buttons (DESIGN.md §18, "What the bot sends").</summary>
+public abstract partial class ChatBotClient
 {
-    /// <summary>How much of a command, a question or a file a prompt's message shows.</summary>
-    private const int AboutLength = 3000;
+    /// <summary>How much of a command, a question or a file a prompt's message shows, leaving the message room for the rest.</summary>
+    private int AboutLength => Math.Min(3000, Format.MessageLimit - 600);
 
-    /// <summary>How many changed files a message lists.</summary>
+    /// <summary>The most changed files a message lists.</summary>
     private const int FilesListed = 30;
 
-    private static string HelpHtml() => string.Join("\n",
+    private string HelpText() => string.Join("\n", new[]
+    {
         "Reply to any of my messages to send it to that message's tab, or pick a tab with /to and just write.",
         "",
         "/tabs: the tabs and what they're doing",
@@ -22,17 +22,18 @@ public sealed partial class TelegramClient
         "/usage: the plan's usage",
         "/quiet: no messages for an hour (/quiet 30, /quiet off)",
         "/new: open a tab in a folder, when Deventry allows it",
-        "/help: this");
+        "/help: this",
+    }.Select(Format.Escape));
 
     /// <summary>The tab's name, then its project and branch, unless the messages say just what happened.</summary>
     private string Header(RemoteTab tab)
     {
         if (Desk.Detail == RemoteDetail.JustWhatHappened)
         {
-            return Bold(tab.Name);
+            return Format.Bold(tab.Name);
         }
         var project = tab.Branch is { Length: > 0 } branch ? $"{tab.Project} ({branch})" : tab.Project;
-        return $"{Bold(tab.Name)} · {Escape(project)}";
+        return $"{Format.Bold(tab.Name)} · {Format.Escape(project)}";
     }
 
     internal static string Glyph(RemoteTabStatus status) => status switch
@@ -51,42 +52,42 @@ public sealed partial class TelegramClient
         return RemoteMessages.StatusLine(shown, _time.GetUtcNow());
     }
 
-    private string TabsHtml(IReadOnlyList<RemoteTab> tabs)
+    private string TabsText(IReadOnlyList<RemoteTab> tabs)
     {
-        var html = new StringBuilder(Bold($"Tabs on {Desk.MachineName}"));
+        var text = new StringBuilder(Format.Bold($"Tabs on {Desk.MachineName}"));
         foreach (var project in tabs.GroupBy(t => t.Project))
         {
             if (Desk.Detail == RemoteDetail.Everything)
             {
-                html.Append("\n\n").Append(Bold(project.Key));
+                text.Append("\n\n").Append(Format.Bold(project.Key));
             }
             else
             {
-                html.Append('\n');
+                text.Append('\n');
             }
             foreach (var tab in project)
             {
-                html.Append('\n').Append(Glyph(tab.Status)).Append(' ').Append(Escape(tab.Name)).Append(": ").Append(Escape(StatusLine(tab)));
+                text.Append('\n').Append(Glyph(tab.Status)).Append(' ').Append(Format.Escape(tab.Name)).Append(": ").Append(Format.Escape(StatusLine(tab)));
             }
         }
-        return html.ToString();
+        return text.ToString();
     }
 
-    private string LiveHtml(string heading, RemoteTab tab) => $"{heading}\n{Escape(StatusLine(tab))}";
+    private string LiveText(string heading, RemoteTab tab) => $"{heading}\n{Format.Escape(StatusLine(tab))}";
 
-    private IReadOnlyList<IReadOnlyList<TelegramButton>>? LiveButtons(RemoteTab tab) =>
+    private IReadOnlyList<IReadOnlyList<ChatButton>>? LiveButtons(RemoteTab tab) =>
         tab.Status is RemoteTabStatus.Working or RemoteTabStatus.NeedsInput && RemoteAccess.Allows(Desk.Access, Desk.CanOpenTabs, RemoteAction.Stop)
             ? Rows([MakeButton("Stop", new StopButton(tab.Id))], 1)
             : null;
 
     /// <summary>A tab's card: where plain messages go, Stop, the reply and its files, and Start it again.</summary>
-    private IReadOnlyList<IReadOnlyList<TelegramButton>> CardButtons(RemoteTab tab)
+    private IReadOnlyList<IReadOnlyList<ChatButton>> CardButtons(RemoteTab tab)
     {
-        var rows = new List<IReadOnlyList<TelegramButton>>();
+        var rows = new List<IReadOnlyList<ChatButton>>();
         var full = RemoteAccess.Allows(Desk.Access, Desk.CanOpenTabs, RemoteAction.Send);
         if (full && !tab.IsReadOnly)
         {
-            var first = new List<TelegramButton> { MakeButton("Send my next messages here", new TargetButton(tab.Id)) };
+            var first = new List<ChatButton> { MakeButton("Send my next messages here", new TargetButton(tab.Id)) };
             if (tab.Status is RemoteTabStatus.Working or RemoteTabStatus.NeedsInput)
             {
                 first.Add(MakeButton("Stop", new StopButton(tab.Id)));
@@ -101,37 +102,37 @@ public sealed partial class TelegramClient
         return rows;
     }
 
-    private string PromptHtml(RemoteTab tab, RemotePrompt prompt)
+    private string PromptText(RemoteTab tab, RemotePrompt prompt)
     {
-        var html = new StringBuilder(Header(tab)).Append('\n');
+        var text = new StringBuilder(Header(tab)).Append('\n');
         if (prompt.Asker is { Length: > 0 } asker)
         {
-            html.Append(Italic($"From {asker}")).Append('\n');
+            text.Append(Format.Italic($"From {asker}")).Append('\n');
         }
-        html.Append(Bold(prompt.Parts > 1 ? $"{prompt.Title} ({prompt.Part} of {prompt.Parts})" : prompt.Title));
+        text.Append(Format.Bold(prompt.Parts > 1 ? $"{prompt.Title} ({prompt.Part} of {prompt.Parts})" : prompt.Title));
         if (prompt.About is { Length: > 0 } about)
         {
             var shown = RemoteMessages.Shorten(about, AboutLength);
-            html.Append('\n').Append(prompt.Kind == RemotePromptKind.Command ? CodeBlock(shown, "bash")
-                : prompt.Kind == RemotePromptKind.ThreadMessage ? $"<blockquote>{Escape(shown)}</blockquote>"
-                : Escape(shown));
+            text.Append('\n').Append(prompt.Kind == RemotePromptKind.Command ? Format.CodeBlock(shown, "bash")
+                : prompt.Kind == RemotePromptKind.ThreadMessage ? Format.Quote(shown)
+                : Format.Escape(shown));
         }
         if (prompt.Kind == RemotePromptKind.Plan && prompt.Plan is { Length: > 0 })
         {
-            html.Append('\n').Append(Escape("The plan is in the file above."));
+            text.Append('\n').Append(Format.Escape("The plan is in the file above."));
         }
         if (prompt.AtDeskOnly)
         {
-            html.Append('\n').Append(Italic(RemoteMessages.AtDesk));
+            text.Append('\n').Append(Format.Italic(RemoteMessages.AtDesk));
         }
         else if (!RemoteAccess.Allows(Desk.Access, Desk.CanOpenTabs, RemoteAction.Answer))
         {
-            html.Append('\n').Append(Italic("Remote clients can only watch here: answer this at the desk."));
+            text.Append('\n').Append(Format.Italic("Remote clients can only watch here: answer this at the desk."));
         }
-        return html.ToString();
+        return text.ToString();
     }
 
-    private IReadOnlyList<IReadOnlyList<TelegramButton>>? PromptButtons(RemoteTab tab, RemotePrompt prompt)
+    private IReadOnlyList<IReadOnlyList<ChatButton>>? PromptButtons(RemoteTab tab, RemotePrompt prompt)
     {
         if (prompt.AtDeskOnly || !RemoteAccess.Allows(Desk.Access, Desk.CanOpenTabs, RemoteAction.Answer))
         {
@@ -144,30 +145,30 @@ public sealed partial class TelegramClient
             : Rows(buttons, 1);
     }
 
-    private string TurnHtml(RemoteTurnFinished turn)
+    private string TurnText(RemoteTurnFinished turn)
     {
-        var html = new StringBuilder(Header(turn.Tab)).Append('\n');
+        var text = new StringBuilder(Header(turn.Tab)).Append('\n');
         var line = new List<string> { turn.Took is { } took ? $"Finished in {Formats.Duration(took)}" : "Finished" };
         if (turn.Tasks is { Length: > 0 } tasks)
         {
             line.Add(tasks);
         }
-        html.Append(Escape(string.Join(" · ", line)));
+        text.Append(Format.Escape(string.Join(" · ", line)));
         if (turn.Reply?.Trim() is { Length: > 0 } reply)
         {
-            var (start, cut) = FirstLines(reply);
-            html.Append("\n\n").Append(FromMarkdown(start));
+            var (start, cut) = ChatFormat.FirstLines(reply);
+            text.Append("\n\n").Append(Format.FromMarkdown(start));
             if (cut)
             {
-                html.Append('\n').Append(Italic("…"));
+                text.Append('\n').Append(Format.Italic("…"));
             }
         }
         if (turn.Files.Count > 0)
         {
-            html.Append("\n\n").Append(Escape(FilesLine(turn.Files)));
+            text.Append("\n\n").Append(Format.Escape(FilesLine(turn.Files)));
         }
-        var text = html.ToString();
-        return FitsMessage(text) ? text : $"{Header(turn.Tab)}\n{Escape(string.Join(" · ", line))}\n\n{Escape(FilesLine(turn.Files))}";
+        var full = text.ToString();
+        return Format.FitsMessage(full) ? full : $"{Header(turn.Tab)}\n{Format.Escape(string.Join(" · ", line))}\n\n{Format.Escape(FilesLine(turn.Files))}";
     }
 
     /// <summary>"Changed Player.cs +12 −3, Hook.cs +4 and 3 more".</summary>
@@ -190,21 +191,30 @@ public sealed partial class TelegramClient
         _ => string.Create(CultureInfo.InvariantCulture, $"+{file.Added} −{file.Removed}"),
     };
 
-    private static string ChangedFilesHtml(string tabName, IReadOnlyList<RemoteFileChange> files)
+    /// <summary>The files a tab changed, as many as fit a message, up to <see cref="FilesListed"/>.</summary>
+    private string ChangedFilesText(string tabName, IReadOnlyList<RemoteFileChange> files)
     {
         if (files.Count == 0)
         {
-            return $"{Bold(tabName)}\nNo files changed.";
+            return $"{Format.Bold(tabName)}\n{Format.Escape("No files changed.")}";
         }
-        var html = new StringBuilder(Bold(tabName)).Append('\n').Append(Escape(files.Count == 1 ? "1 file changed" : $"{files.Count} files changed"));
+        var text = new StringBuilder(Format.Bold(tabName)).Append('\n').Append(Format.Escape(files.Count == 1 ? "1 file changed" : $"{files.Count} files changed"));
+        var listed = 0;
         foreach (var file in files.Take(FilesListed))
         {
-            html.Append('\n').Append(Code(file.Path)).Append(' ').Append(Escape(Lines(file)));
+            var line = $"\n{Format.Code(file.Path)} {Format.Escape(Lines(file))}";
+            // Room is kept for the line that says how many more.
+            if (text.Length + line.Length > Format.MessageLimit - 40)
+            {
+                break;
+            }
+            text.Append(line);
+            listed++;
         }
-        if (files.Count > FilesListed)
+        if (files.Count > listed)
         {
-            html.Append('\n').Append(Escape($"and {files.Count - FilesListed} more"));
+            text.Append('\n').Append(Format.Escape($"and {files.Count - listed} more"));
         }
-        return html.ToString();
+        return text.ToString();
     }
 }

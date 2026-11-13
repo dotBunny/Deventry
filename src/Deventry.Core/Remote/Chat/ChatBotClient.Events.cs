@@ -1,10 +1,9 @@
 using Microsoft.Extensions.Logging;
-using static Deventry.Core.Remote.Telegram.TelegramFormat;
 
-namespace Deventry.Core.Remote.Telegram;
+namespace Deventry.Core.Remote.Chat;
 
 /// <summary>What happens at the desk, as the bot's messages (DESIGN.md §18, "What the bot sends").</summary>
-public sealed partial class TelegramClient
+public abstract partial class ChatBotClient
 {
     /// <summary>The least time between two edits of a live status message.</summary>
     public static readonly TimeSpan LiveEditInterval = TimeSpan.FromSeconds(5);
@@ -16,7 +15,7 @@ public sealed partial class TelegramClient
     private readonly HashSet<string> _engaged = new(StringComparer.Ordinal);
 
     /// <summary>The messages each waiting prompt was sent in, by tab and prompt, with their text, to edit once it closes.</summary>
-    private readonly Dictionary<string, List<(long Chat, long Message, string Html)>> _promptMessages = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<(long Chat, long Message, string Text)>> _promptMessages = new(StringComparer.Ordinal);
 
     /// <summary>Each tab's live status message: the last one sent.</summary>
     private readonly Dictionary<string, Live> _live = new(StringComparer.Ordinal);
@@ -27,14 +26,14 @@ public sealed partial class TelegramClient
 
         public long Message { get; } = message;
 
-        /// <summary>Its first line, as HTML: "Sent to <b>Grappling hook</b>.", or the tab's name.</summary>
+        /// <summary>Its first line, as the service writes it: "Sent to <b>Grappling hook</b>.", or the tab's name.</summary>
         public string Heading { get; } = heading;
 
         public RemoteTab Tab { get; set; } = tab;
 
         public DateTimeOffset LastEdit { get; set; }
 
-        public string LastHtml { get; set; } = "";
+        public string LastText { get; set; } = "";
     }
 
     private static string PromptKey(string tabId, string promptId) => $"{tabId}\n{promptId}";
@@ -73,15 +72,16 @@ public sealed partial class TelegramClient
                 await OnTabFailedAsync(failed, cancellationToken).ConfigureAwait(false);
                 break;
             case RemoteUsageAlert alert when Effective(alert.Notice, null) is var notice and not RemoteNotice.None:
-                await BroadcastAsync($"{Bold(alert.Title)}\n{Escape(alert.Body)}", silent: notice == RemoteNotice.Silent, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await BroadcastAsync($"{Format.Bold(alert.Title)}\n{Format.Escape(alert.Body)}", silent: notice == RemoteNotice.Silent, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
                 break;
             case RemoteProjectAction action when Effective(action.Notice, null) is var notice and not RemoteNotice.None:
-                await BroadcastAsync($"{Bold(action.Title)}\n{Escape(action.Body)}", silent: notice == RemoteNotice.Silent, tabId: action.TabId,
+                await BroadcastAsync($"{Format.Bold(action.Title)}\n{Format.Escape(action.Body)}", silent: notice == RemoteNotice.Silent, tabId: action.TabId,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
                 break;
             case RemoteDeskClosing closing:
                 // Always said: silently at the desk, where the user is closing it.
-                await BroadcastAsync(Escape(RemoteMessages.Closing(Desk.MachineName)), silent: closing.Notice != RemoteNotice.Sound,
+                await BroadcastAsync(Format.Escape(RemoteMessages.Closing(Desk.MachineName)), silent: closing.Notice != RemoteNotice.Sound,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
                 break;
         }
@@ -98,7 +98,7 @@ public sealed partial class TelegramClient
         {
             _timers.Remove($"live:{closed.TabId}", out var timer);
             timer?.Dispose();
-            await EditAsync(live.Chat, live.Message, $"{live.Heading}\n{Italic("The tab closed.")}", null, cancellationToken).ConfigureAwait(false);
+            await EditAsync(live.Chat, live.Message, $"{live.Heading}\n{Format.Italic("The tab closed.")}", null, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -112,14 +112,15 @@ public sealed partial class TelegramClient
         {
             return;
         }
-        await SendPromptAsync([.. Chats], waiting.Tab, waiting.Prompt, Desk.Detail, notice == RemoteNotice.Silent, cancellationToken).ConfigureAwait(false);
+        var chats = await PairedChatsAsync(cancellationToken).ConfigureAwait(false);
+        await SendPromptAsync(chats, waiting.Tab, waiting.Prompt, Desk.Detail, notice == RemoteNotice.Silent, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Sends a waiting prompt to <paramref name="chats"/>, with its buttons, and keeps its messages to edit once it closes.</summary>
     private async Task SendPromptAsync(IReadOnlyList<long> chats, RemoteTab tab, RemotePrompt prompt, RemoteDetail detail, bool silent, CancellationToken cancellationToken)
     {
         var key = PromptKey(tab.Id, prompt.Id);
-        var html = detail == RemoteDetail.JustWhatHappened ? Escape(RemoteMessages.NeedsYou(tab.Name)) : PromptHtml(tab, prompt);
+        var text = detail == RemoteDetail.JustWhatHappened ? Format.Escape(RemoteMessages.NeedsYou(tab.Name)) : PromptText(tab, prompt);
         var buttons = detail == RemoteDetail.JustWhatHappened
             ? Rows([MakeButton("Show", new ShowButton(tab.Id, prompt.Id))], 1)
             : PromptButtons(tab, prompt);
@@ -131,14 +132,14 @@ public sealed partial class TelegramClient
                 // A plan comes as a file first, so its buttons are last in the chat.
                 if (detail == RemoteDetail.Everything && prompt is { Kind: RemotePromptKind.Plan, Plan: { Length: > 0 } plan })
                 {
-                    await SendFileAsync(chat, $"{FileName(tab.Name)} plan.md", plan, $"{Bold(tab.Name)}: the plan", tab.Id, cancellationToken).ConfigureAwait(false);
+                    await SendFileAsync(chat, $"{FileName(tab.Name)} plan.md", plan, $"{Format.Bold(tab.Name)}: the plan", tab.Id, cancellationToken).ConfigureAwait(false);
                 }
-                var id = await SendAsync(chat, html, buttons, null, silent, tab.Id, cancellationToken).ConfigureAwait(false);
-                sent.Add((chat, id, html));
+                var id = await SendAsync(chat, text, buttons, null, silent, tab.Id, cancellationToken).ConfigureAwait(false);
+                sent.Add((chat, id, text));
             }
-            catch (TelegramApiException ex)
+            catch (ChatApiException ex)
             {
-                _logger.LogWarning("Telegram: couldn't send a prompt: {Error}", ex.Message);
+                _logger.LogWarning("{Client}: couldn't send a prompt: {Error}", Name, ex.Message);
             }
         }
     }
@@ -149,10 +150,10 @@ public sealed partial class TelegramClient
         {
             return;
         }
-        var line = Italic(RemoteMessages.Closed(closed.How, closed.Outcome, closed.Client, closed.At, _time.LocalTimeZone));
-        foreach (var (chat, message, html) in messages)
+        var line = Format.Italic(RemoteMessages.Closed(closed.How, closed.Outcome, closed.Client, closed.At, _time.LocalTimeZone));
+        foreach (var (chat, message, text) in messages)
         {
-            await EditAsync(chat, message, $"{html}\n\n{line}", null, cancellationToken).ConfigureAwait(false);
+            await EditAsync(chat, message, $"{text}\n\n{line}", null, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -168,9 +169,9 @@ public sealed partial class TelegramClient
             return;
         }
         var detail = Desk.Detail;
-        var html = detail == RemoteDetail.JustWhatHappened ? Escape(RemoteMessages.Finished(turn.Tab.Name)) : TurnHtml(turn);
+        var text = detail == RemoteDetail.JustWhatHappened ? Format.Escape(RemoteMessages.Finished(turn.Tab.Name)) : TurnText(turn);
         var buttons = Rows([MakeButton("Whole reply", new ReplyButton(turn.Tab.Id)), MakeButton("Changed files", new FilesButton(turn.Tab.Id))], 2);
-        await BroadcastAsync(html, buttons, notice == RemoteNotice.Silent, turn.Tab.Id, cancellationToken).ConfigureAwait(false);
+        await BroadcastAsync(text, buttons, notice == RemoteNotice.Silent, turn.Tab.Id, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task OnTabFailedAsync(RemoteTabFailed failed, CancellationToken cancellationToken)
@@ -182,13 +183,13 @@ public sealed partial class TelegramClient
         {
             return;
         }
-        var html = Desk.Detail == RemoteDetail.JustWhatHappened
-            ? Escape(RemoteMessages.Stopped(failed.Tab.Name))
-            : $"{Header(failed.Tab)}\n{Escape(failed.NeedsSignIn ? RemoteMessages.SignInAtDesk : failed.Message)}";
+        var text = Desk.Detail == RemoteDetail.JustWhatHappened
+            ? Format.Escape(RemoteMessages.Stopped(failed.Tab.Name))
+            : $"{Header(failed.Tab)}\n{Format.Escape(failed.NeedsSignIn ? RemoteMessages.SignInAtDesk : failed.Message)}";
         var buttons = !failed.NeedsSignIn && failed.Tab.CanRestart && RemoteAccess.Allows(Desk.Access, Desk.CanOpenTabs, RemoteAction.Restart)
             ? Rows([MakeButton("Start it again", new RestartButton(failed.Tab.Id))], 1)
             : null;
-        await BroadcastAsync(html, buttons, notice == RemoteNotice.Silent, failed.Tab.Id, cancellationToken).ConfigureAwait(false);
+        await BroadcastAsync(text, buttons, notice == RemoteNotice.Silent, failed.Tab.Id, cancellationToken).ConfigureAwait(false);
     }
 
     // ---- Live status ------------------------------------------------------------------------------------------------
@@ -196,7 +197,7 @@ public sealed partial class TelegramClient
     /// <summary>A tab's message that shows what it's doing, edited in place at most every 5 seconds, with <b>Stop</b>.</summary>
     private void StartLive(long chat, long message, string heading, RemoteTab tab)
     {
-        var live = new Live(chat, message, heading, tab) { LastEdit = _time.GetUtcNow(), LastHtml = LiveHtml(heading, tab) };
+        var live = new Live(chat, message, heading, tab) { LastEdit = _time.GetUtcNow(), LastText = LiveText(heading, tab) };
         // The tab's earlier one stays as it last read: the new one carries on.
         _live[tab.Id] = live;
         ScheduleLive(tab.Id, LiveRefreshInterval);
@@ -219,12 +220,12 @@ public sealed partial class TelegramClient
         {
             return;
         }
-        var html = LiveHtml(live.Heading, live.Tab);
-        if (html != live.LastHtml)
+        var text = LiveText(live.Heading, live.Tab);
+        if (text != live.LastText)
         {
-            live.LastHtml = html;
+            live.LastText = text;
             live.LastEdit = _time.GetUtcNow();
-            await EditAsync(live.Chat, live.Message, html, LiveButtons(live.Tab), cancellationToken).ConfigureAwait(false);
+            await EditAsync(live.Chat, live.Message, text, LiveButtons(live.Tab), cancellationToken).ConfigureAwait(false);
         }
         // While it works, its time moves on.
         if (live.Tab.Status is RemoteTabStatus.Working or RemoteTabStatus.NeedsInput or RemoteTabStatus.Starting && _live.ContainsKey(tabId))
@@ -245,7 +246,7 @@ public sealed partial class TelegramClient
         var status = tab.Status == RemoteTabStatus.Error ? RemoteMessages.Status(RemoteTabStatus.Error)
             : took is { } time ? $"Finished in {Formats.Duration(time)}"
             : "Finished";
-        await EditAsync(live.Chat, live.Message, $"{live.Heading}\n{Escape(status)}", null, cancellationToken).ConfigureAwait(false);
+        await EditAsync(live.Chat, live.Message, $"{live.Heading}\n{Format.Escape(status)}", null, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>A tab picked from <c>/tabs</c>: what it's doing, live, with its buttons; and its prompt, when one waits.</summary>
@@ -253,11 +254,11 @@ public sealed partial class TelegramClient
     {
         if (await FindTabAsync(tabId, cancellationToken).ConfigureAwait(false) is not { } tab)
         {
-            await SendAsync(chat, RemoteMessages.TabGone, silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await SendAsync(chat, Format.Escape(RemoteMessages.TabGone), silent: true, cancellationToken: cancellationToken).ConfigureAwait(false);
             return;
         }
         var heading = Header(tab);
-        var id = await SendAsync(chat, LiveHtml(heading, tab), CardButtons(tab), null, silent: true, tab.Id, cancellationToken).ConfigureAwait(false);
+        var id = await SendAsync(chat, LiveText(heading, tab), CardButtons(tab), null, silent: true, tab.Id, cancellationToken).ConfigureAwait(false);
         StartLive(chat, id, heading, tab);
         if (tab.Prompt is { } prompt && !_promptMessages.ContainsKey(PromptKey(tab.Id, prompt.Id)))
         {
@@ -265,13 +266,13 @@ public sealed partial class TelegramClient
         }
     }
 
-    private async Task EditAsync(long chat, long message, string html, IReadOnlyList<IReadOnlyList<TelegramButton>>? buttons, CancellationToken cancellationToken)
+    private async Task EditAsync(long chat, long message, string text, IReadOnlyList<IReadOnlyList<ChatButton>>? buttons, CancellationToken cancellationToken)
     {
         try
         {
-            await PacedAsync(token => _api.EditMessageTextAsync(chat, message, html, buttons, token), cancellationToken).ConfigureAwait(false);
+            await PacedAsync(token => DeliverEditAsync(chat, message, text, buttons, token), cancellationToken).ConfigureAwait(false);
         }
-        catch (TelegramApiException ex) when (ex.ErrorCode == 400)
+        catch (ChatApiException ex) when (ex.IsMessageGone)
         {
             // The message was deleted in the chat, or is too old to edit: nothing more to say there.
         }
