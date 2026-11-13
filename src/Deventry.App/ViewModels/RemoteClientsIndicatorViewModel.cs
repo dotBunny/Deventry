@@ -120,7 +120,7 @@ public sealed partial class RemoteClientsIndicatorViewModel : ObservableObject, 
         var state = _remote.StateOf(type.Kind);
         return state.Status switch
         {
-            RemoteClientStatus.Connected when _remote.PairingOf(type.Kind).Accounts.Count == 0 => "connected, but no phone is paired",
+            RemoteClientStatus.Connected when _remote.PairingOf(type.Kind).Accounts.Count == 0 => "connected, but no account is paired",
             RemoteClientStatus.Connected => _remote.LastSent(type.Kind) is { } sent ? $"connected, last sent {Time(sent)}" : "connected",
             RemoteClientStatus.Connecting => state.Reason is { } why ? $"connecting. {why}" : "connecting…",
             RemoteClientStatus.Failed => state.Reason is { } reason ? $"stopped. {reason}" : "stopped",

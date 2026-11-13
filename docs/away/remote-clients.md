@@ -17,7 +17,7 @@ Each way in is a *remote client*: a Telegram bot, or a Discord bot on your own D
 
 Settings has a group for them, **Remote clients**, at the end of its sidebar: **All clients** for what they all share, then a page for each: **Telegram** and **Discord**.
 
-{% include shot.html name="guide/away/remote-clients" alt="Settings on Remote clients → Telegram, before a bot is set up: The bot, with Use a Telegram bot off and a note in yellow that Telegram can read bot chats; Bot, with No bot yet and Set token…; and Paired with, with No phone is paired yet and Pair a phone… disabled. The sidebar's last group, Remote clients, has All clients, then Telegram and Discord, each marked Off." %}
+{% include shot.html name="guide/away/remote-clients" alt="Settings on Remote clients → Telegram, before a bot is set up: The bot, with Use a Telegram bot off and a note in yellow that Telegram can read bot chats; Bot, with No bot yet and Set token…; and Paired with, with No account is paired yet and Pair an account… disabled. The sidebar's last group, Remote clients, has All clients, then Telegram and Discord, each marked Off." %}
 
 ## Not the Claude app
 
@@ -49,9 +49,9 @@ You make the bot in Discord's Developer Portal, once, as an app that goes on you
 3. Under **Bot**, choose **Reset Token** and copy the token, three parts with dots between them.
 4. In Deventry, open Settings → Remote clients → **Discord**, turn on **Use a Discord bot**, choose **Set token…**, paste the token and choose **Save token**.
 
-Deventry keeps the token only in your computer's credential store, as it does Telegram's. Under **Bot**, Settings shows the bot's name and whether it's **Connected**.
+Deventry keeps the token only in your computer's credential store, as it does Telegram's. Under **Bot**, Settings shows the bot's name and whether it's **Connected**. Discord itself shows the bot offline even then: it shows someone's status only to people who share a server with them, and the bot is in none.
 
-{% include shot.html name="guide/away/remote-clients-discord" alt="Settings on Remote clients → Discord, before a bot is set up: The bot, with Use a Discord bot off and a note in yellow that Discord can read direct messages; Bot, with No bot yet, how to make one in the Developer Portal, and Set token…; and Paired with, with Pair a phone… disabled." %}
+{% include shot.html name="guide/away/remote-clients-discord" alt="Settings on Remote clients → Discord, before a bot is set up: The bot, with Use a Discord bot off and a note in yellow that Discord can read direct messages; Bot, with No bot yet, how to make one in the Developer Portal, and Set token…; and Paired with, with Pair an account… disabled." %}
 
 ### What the app needs
 
@@ -71,23 +71,23 @@ There's no server to set up here either: Deventry keeps a connection open to Dis
 
 If Settings says the app can't be added to a Discord account, tick **User Install** under **Installation**. If it says the app sends its commands to a web address, clear **Interactions Endpoint URL** under **General Information**. Then turn **Use a Discord bot** off and on again.
 
-## Pairing your phone
+## Pairing your account
 
 The bot answers only the accounts you pair with it. Anyone else who finds it gets no answer at all.
 
 In Telegram:
 
-1. In Settings → Remote clients → **Telegram**, choose **Pair a phone…**. Deventry shows a QR code, and a code like `7KQ2-M9XD`.
+1. In Settings → Remote clients → **Telegram**, choose **Pair an account…**. Deventry shows a QR code, and a code like `7KQ2-M9XD`.
 2. Scan the QR code with your phone's camera. It opens the bot in Telegram; tap **Start**. Or send the bot `/start` and the code yourself.
 3. The bot answers *Paired with Deventry on DESK.*, with your computer's name, and Settings lists your account under **Paired with**.
 
-A code works once, for five minutes, and five wrong codes end it: choose **Pair a phone…** again for a new one. To stop the bot answering an account, choose **Unpair…** beside it.
+A code works once, for five minutes, and five wrong codes end it: choose **Pair an account…** again for a new one. To stop the bot answering an account, choose **Unpair…** beside it.
 
 Only private chats with the bot count. Adding it to a group does nothing.
 
 In Discord:
 
-1. In Settings → Remote clients → **Discord**, choose **Pair a phone…**. Deventry shows a QR code, **Open the link**, and a code like `7KQ2-M9XD`.
+1. In Settings → Remote clients → **Discord**, choose **Pair an account…**. Deventry shows a QR code, **Open the link**, and a code like `7KQ2-M9XD`.
 2. Scan the QR code with your phone's camera, or choose **Open the link** on this computer, and choose **Add to My Apps**. The bot is on your Discord account now.
 3. In any chat in Discord, send `/pair` with the code. Only you see its answer.
 4. Discord doesn't let a bot write to you before you've written to it, so the answer asks you to: open the bot's profile from the answer, choose **Message**, and send it `/help`. The bot answers in its direct messages, which is where it writes to you from then on.
@@ -157,7 +157,7 @@ While a remote client is on, the header has an icon for it beside the [cup](keep
 - **Muted**: connected, and you're at the desk, so messages wait (or come silently, with **Always**). Also while messages are quiet.
 - **In the accent color**: connected, and you're away, so messages go to your phone.
 - **Dimmed**: a client is connecting, or trying again after a network problem.
-- **In the warning color**: a client has stopped and needs you, for example because Telegram or Discord didn't accept its token or another program uses the bot, or no phone is paired yet.
+- **In the warning color**: a client has stopped and needs you, for example because Telegram or Discord didn't accept its token or another program uses the bot, or no account is paired yet.
 
 Its arcs light up outward when a client sends you a message or gets one from you. With motion reduced, they only take the accent color for a moment.
 

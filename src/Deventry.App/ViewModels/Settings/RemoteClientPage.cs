@@ -31,7 +31,7 @@ public sealed class PairedAccountRow(RemoteAccount account, string pairedAt, Act
 /// <summary>
 /// One kind of remote client's page in Settings → Remote clients (DESIGN.md §18, "Remote clients"), drawn from what the
 /// kind declares (<see cref="IRemoteClientType"/>), so a kind needs no page or view of its own: its switch, what its
-/// service can read, its own account and secret, and the accounts paired with it with pairing a phone. Telegram's is
+/// service can read, its own account and secret, and the accounts paired with it with pairing an account. Telegram's is
 /// the first. What every client shares is on <see cref="AllClientsPage"/>. All of it this computer's: a client is run by
 /// one machine, and its secret is in this machine's credential store.
 /// </summary>
@@ -254,7 +254,7 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
         OnPropertyChanged(nameof(HasAccounts));
     }
 
-    /// <summary>A phone can be paired: the client has its secret. Its account's name makes the QR code; without it, the code is sent by hand.</summary>
+    /// <summary>An account can be paired: the client has its secret. Its account's name makes the QR code; without it, the code is sent by hand.</summary>
     public bool CanPair => HasSecret && IsCredentialStoreAvailable;
 
     public string CanPairTip => $"Set the {Type.SecretName} first";
@@ -299,7 +299,7 @@ public sealed partial class RemoteClientPage : SettingsPage, IDisposable
     [ObservableProperty]
     public partial string PairingTimeLeft { get; private set; } = "";
 
-    /// <summary><b>Pair a phone…</b>: a new code, its QR code, and the time it has left.</summary>
+    /// <summary><b>Pair an account…</b>: a new code, its QR code, and the time it has left.</summary>
     [RelayCommand]
     private void StartPairing()
     {

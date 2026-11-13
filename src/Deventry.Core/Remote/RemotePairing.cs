@@ -121,7 +121,7 @@ public sealed class RemotePairing
         }
     }
 
-    /// <summary><b>Pair a phone…</b>: a new code, replacing any before it.</summary>
+    /// <summary><b>Pair an account…</b>: a new code, replacing any before it.</summary>
     public PairingCode Start()
     {
         PairingCode code;

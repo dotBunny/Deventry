@@ -2,7 +2,7 @@ namespace Deventry.Core.Remote.Telegram;
 
 /// <summary>
 /// Telegram, as a kind of remote client (DESIGN.md §18, "Remote clients", "Telegram"): a bot the user makes with
-/// @BotFather, its token kept in the credential store, and a phone paired by opening the bot with <c>/start</c> and a
+/// @BotFather, its token kept in the credential store, and an account paired by opening the bot with <c>/start</c> and a
 /// code.
 /// </summary>
 public sealed class TelegramClientType : IRemoteClientType
