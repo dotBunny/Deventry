@@ -1,7 +1,7 @@
 ---
 title: Keeping the computer awake
 parent: Away from your desk
-nav_order: 4
+nav_order: 5
 summary: "Long tasks outlast the time before a computer goes to sleep."
 ---
 
@@ -29,7 +29,7 @@ Right-click the cup to choose between them. Choosing turns the setting on too. T
 
 The cup sits in the usage header, after the processes' total. It takes the accent color while the setting is on, and steams while sleep is being held off, for any reason. Its tooltip says what's happening and why, for example *Keeping this computer awake. The screen can still turn off.* and *While Claude has work to finish: 2 tabs working, 1 tab waiting for a usage limit to reset.*
 
-Tabs connected to the [Claude app](the-claude-app.md) also keep the computer awake while Settings → General → **Also while tabs are connected to the Claude app** is on, and the cup steams for that too. The tooltip names it.
+Tabs connected to the [Claude app](the-claude-app.md) also keep the computer awake while Settings → General → **Also while tabs are connected to the Claude app** is on, and so does the Telegram bot of [Remote clients](remote-clients.md) while it's on, as long as **Also while a remote client is on** is. The cup steams for those too, and the tooltip names them.
 
 ## When it can't
 
@@ -44,8 +44,10 @@ Settings → Advanced → Diagnostics shows whether the setting is on, what Deve
 | **Keep this computer awake** | Off | Settings → General, or the cup |
 | **Only while Claude has work to finish** / **Whenever Deventry is running** | **Only while Claude has work to finish** | Settings → General, or the cup's menu |
 | **Also while tabs are connected to the Claude app** | On | Settings → General |
+| **Also while a remote client is on** | On | Settings → General |
 
 ## See also
 
 - [The usage header](../usage/the-usage-header.md), where the cup lives.
 - [The Claude app](the-claude-app.md).
+- [Remote clients](remote-clients.md).

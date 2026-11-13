@@ -13,7 +13,7 @@ no tokens) four times:
 - as the demo is, after visiting every tab so each shows its model and any reviewed icon, for the shots that leave it
   alone: the new tab picker, the sidebar, a tab's info card, the command palette, a Tool calls card, the composer, the
   Changed files, Scratch pad, Media and Project tool windows, a Files tab, the Usage window, the Settings window on General,
-  Appearance, a search, Unreal Engine's page in Project tools, About and Accounts, and a tab's Tab settings;
+  Appearance, Remote clients' Telegram, a search, Unreal Engine's page in Project tools, About and Accounts, and a tab's Tab settings;
 - with a stand-in for the Unreal editor open on starfall (deventry-demo --stand-in-editor, run as UnrealEditor.exe),
   for its log under the tab and in the main area;
 - and last, for the shots that change it by sending prompts: a usage limit (LIMIT), a turn that changed files (EDIT_FILE),
@@ -180,7 +180,7 @@ if (Test-Wanted 'getting-started/sign-in') {
 # As the demo is.
 if (Test-Wanted 'getting-started/new-tab', 'tabs/sidebar', 'tabs/info-card', 'tabs/command-palette', 'conversation/tool-calls',
     'conversation/scratch-pad', 'conversation/media', 'composer/composer', 'changes/changed-files', 'project-tools/project-page', 'tabs/tool-windows', 'usage/usage-window',
-    'settings/settings-window', 'settings/appearance', 'settings/search', 'settings/project-tools', 'settings/about', 'accounts/settings-accounts',
+    'settings/settings-window', 'settings/appearance', 'settings/search', 'settings/project-tools', 'settings/about', 'accounts/settings-accounts', 'away/remote-clients',
     'tabs/tab-settings', 'project-files/files-tab', 'project-files/markdown-preview') {
     Use-Deventry @{} {
         Show-Tabs
@@ -255,6 +255,22 @@ if (Test-Wanted 'getting-started/new-tab', 'tabs/sidebar', 'tabs/info-card', 'ta
             $settings = Open-Settings
             Select-ListItem $settings 'General'
             Save-Window $settings $path
+            Close-Other $settings
+        }
+
+        # Remote clients → Telegram, before a bot is set up: the switch, what Telegram can read, the bot and pairing. The
+        # group is the sidebar's last: down to it.
+        Shot 'away/remote-clients' {
+            param($path)
+            $settings = Open-Settings
+            Send-ElementCommand 'scroll' (Find-ById $settings 'SidebarList') @{ lines = 40 } | Out-Null
+            Wait-Until { Find-ByType $settings 'ListItem' 'Telegram' } 'Telegram in the sidebar' 10
+            Select-ListItem $settings 'Telegram'
+            Save-Window $settings $path
+            # Settings opens where it was left: back on General, at the top, for the shots after.
+            Send-ElementCommand 'scroll' (Find-ById $settings 'SidebarList') @{ lines = -40 } | Out-Null
+            Wait-Until { Find-ByType $settings 'ListItem' 'General' } 'General in the sidebar' 10
+            Select-ListItem $settings 'General'
             Close-Other $settings
         }
 
