@@ -53,6 +53,20 @@ Deventry keeps the token only in your computer's credential store, as it does Te
 
 {% include shot.html name="guide/away/remote-clients-discord" alt="Settings on Remote clients → Discord, before a bot is set up: The bot, with Use a Discord bot off and a note in yellow that Discord can read direct messages; Bot, with No bot yet, how to make one in the Developer Portal, and Set token…; and Paired with, with Pair a phone… disabled." %}
 
+### What the app needs
+
+Nothing beyond going on your account. It's in no server, so it asks for no permissions, and Deventry asks Discord only for its direct messages. In the Developer Portal:
+
+| Where | Setting | Why |
+|---|---|---|
+| **Installation** → **Installation Contexts** | **User Install** on, **Guild Install** off | It goes on your account, in no server. |
+| **Installation** → **Default Install Settings** → **User Install** | The `applications.commands` scope, the only one there | It puts the bot's commands in your **/** menu. An install to an account takes no permissions. |
+| **Installation** → **Install Link** | Either | Deventry's QR code is a link of its own. |
+| **Bot** → **Privileged Gateway Intents** | All off | Deventry asks only for direct messages, which isn't a privileged intent, and Discord gives a direct message's text without **Message Content Intent**. |
+| **Bot** → **Public Bot** | Either | It's about who can add the bot to a server. Anyone who adds it to their own account gets no answer unless you've paired them. |
+| **Bot** → **Requires OAuth2 Code Grant** | Off | With it on, the link that adds the bot fails. |
+| **General Information** → **Interactions Endpoint URL** | Empty | With an address there, the bot's commands and buttons go to it instead of to Deventry. |
+
 There's no server to set up here either: Deventry keeps a connection open to Discord, as Discord's own bots do. Discord lets two programs use one bot, but only one can answer its buttons, so each computer needs an app of its own; if another Deventry or another program answers first, Settings says so.
 
 If Settings says the app can't be added to a Discord account, tick **User Install** under **Installation**. If it says the app sends its commands to a web address, clear **Interactions Endpoint URL** under **General Information**. Then turn **Use a Discord bot** off and on again.
