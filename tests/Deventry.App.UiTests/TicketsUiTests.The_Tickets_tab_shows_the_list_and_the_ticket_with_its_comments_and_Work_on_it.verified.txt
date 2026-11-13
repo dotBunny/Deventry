@@ -1,0 +1,25 @@
+﻿"Tickets"
+[button] Refresh
+[button] More ticket actions
+[field] "Filter tickets"
+[choice] "Open"
+[choice] "Newest"
+"2 shown"
+"#142 Grappling hook detaches on slopes"
+"bug · gameplay · 2 days ago · 2 comments"
+"#139 Save slots overwrite each other"
+"bug · 5 days ago"
+"#142 Grappling hook detaches on slopes"
+"● Open · bug · gameplay · sam opened 2 days ago"
+"Assigned to kim · Milestone: 0.4"
+[split button] Work on it
+  [button] Work on it
+  [button] (icon)
+[button] Open on GitHub
+[button] More for this ticket
+"The rope drops the player on slopes."
+"2 comments"
+"sam · 43 days ago"
+"Comment 1"
+"sam · 43 days ago"
+"Comment 2"

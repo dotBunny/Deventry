@@ -2,6 +2,7 @@
 "{root}/work"
 
 "Links"
+"Tickets"
 "Actions"
 "Solution"
 "Tools"

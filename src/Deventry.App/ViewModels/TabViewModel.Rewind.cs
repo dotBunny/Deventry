@@ -348,6 +348,8 @@ public sealed partial class TabViewModel
             WorktreeOf = State.WorktreeOf,
             NewWorktree = State.NewWorktree,
             ExtraFolders = [.. State.ExtraFolders],
+            // Still working on the same ticket (DESIGN.md §18, "Tickets", "Tabs remember their ticket").
+            Ticket = State.Ticket?.Copy(),
         };
     }
 }

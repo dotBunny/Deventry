@@ -143,8 +143,8 @@
               <DataTemplate DataType="vm:TicketDetailViewModel">
                 <StackPanel Spacing="10">
                   <SelectableTextBlock Classes="tickettitle" TextWrapping="Wrap">
+                    <!-- The line between the runs is the space between them -->
                     <Run Text="{Binding Key}" Foreground="{DynamicResource MutedTextBrush}" />
-                    <Run Text=" " />
                     <Run Text="{Binding Title}" />
                   </SelectableTextBlock>
                   <TextBlock Classes="muted small" Text="{Binding StateLine}" TextWrapping="Wrap" />
@@ -246,7 +246,7 @@
                             <StackPanel Spacing="4">
                               <TextBlock Classes="small">
                                 <Run Text="{Binding Author}" FontWeight="SemiBold" />
-                                <Run Text=" · " Foreground="{DynamicResource MutedTextBrush}" />
+                                <Run Text="·" Foreground="{DynamicResource MutedTextBrush}" />
                                 <Run Text="{Binding When}" Foreground="{DynamicResource MutedTextBrush}" />
                               </TextBlock>
                               <md:MarkdownRenderer MarkdownBuilder="{Binding Markdown}"

@@ -22,6 +22,7 @@
     <!-- The same scripted Claude Code, fake clock and fakes as the view model tests. -->
     <Compile Include="..\Deventry.App.Tests\Support\*.cs" LinkBase="Support" />
     <Compile Include="..\Deventry.Core.Tests\Support\FakeHttpHandler.cs" Link="Support\FakeHttpHandler.cs" />
+    <Compile Include="..\Deventry.Core.Tests\Support\FakeGitHub.cs" Link="Support\FakeGitHub.cs" />
     <Compile Include="..\Deventry.Core.Tests\Support\FakeLoginItems.cs" Link="Support\FakeLoginItems.cs" />
     <Compile Include="..\Deventry.Core.Tests\Support\FakeP4.cs" Link="Support\FakeP4.cs" />
     <!-- Claude's status page during a real incident (DESIGN.md §18, "Service status"). -->
