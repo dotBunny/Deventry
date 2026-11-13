@@ -793,8 +793,12 @@
       <StreamGeometry x:Key="IconSettingsAppearance">M6,3.6 A2.4,2.4 0 1 1 6,8.4 A2.4,2.4 0 1 1 6,3.6 M6,0.8 L6,1.8 M6,10.2 L6,11.2 M0.8,6 L1.8,6 M10.2,6 L11.2,6 M2.3,2.3 L3,3 M9,9 L9.7,9.7 M2.3,9.7 L3,9 M9,3 L9.7,2.3</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsConversation">M1.5,2 L10.5,2 L10.5,8 L5.2,8 L2.8,10.4 L2.8,8 L1.5,8 Z M3.8,4.4 L8.2,4.4 M3.8,6 L6.6,6</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsNotifications">M3,8.4 L3,5.6 A3,3 0 0 1 9,5.6 L9,8.4 L10.2,9.6 L1.8,9.6 Z M5,11 L7,11 M6,1.2 L6,2.6</StreamGeometry>
-      <!-- Remote clients (DESIGN.md §18): a phone for All clients, and a paper plane for Telegram, Deventry's own drawing. -->
-      <StreamGeometry x:Key="IconSettingsRemoteClients">M3.5,1 L8.5,1 L8.5,11 L3.5,11 Z M5.2,2.7 L6.8,2.7 M6,9.2 L6.1,9.2</StreamGeometry>
+      <!-- Remote clients (DESIGN.md §18): a broadcast glyph, a dot with two arcs on each side, for them all (All clients, and
+           the header's indicator, which lights its parts up in turn), and a paper plane for Telegram; Deventry's own drawings. -->
+      <StreamGeometry x:Key="IconSettingsRemoteClients">M4.9,6 A1.1,1.1 0 1 1 7.1,6 A1.1,1.1 0 1 1 4.9,6 M4.16,4.16 A2.6,2.6 0 0 0 4.16,7.84 M7.84,4.16 A2.6,2.6 0 0 1 7.84,7.84 M2.75,2.75 A4.6,4.6 0 0 0 2.75,9.25 M9.25,2.75 A4.6,4.6 0 0 1 9.25,9.25</StreamGeometry>
+      <StreamGeometry x:Key="IconRemoteDot">M4.9,6 A1.1,1.1 0 1 1 7.1,6 A1.1,1.1 0 1 1 4.9,6</StreamGeometry>
+      <StreamGeometry x:Key="IconRemoteInner">M4.16,4.16 A2.6,2.6 0 0 0 4.16,7.84 M7.84,4.16 A2.6,2.6 0 0 1 7.84,7.84</StreamGeometry>
+      <StreamGeometry x:Key="IconRemoteOuter">M2.75,2.75 A4.6,4.6 0 0 0 2.75,9.25 M9.25,2.75 A4.6,4.6 0 0 1 9.25,9.25</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsTelegram">M11,1.2 L1,5.4 L4.6,6.8 L11,1.2 L6.4,9.6 L4.6,6.8 M4.6,6.8 L4.6,10.6 L6.4,9.6</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsKeyboard">M1,3 L11,3 L11,9.5 L1,9.5 Z M3,5 L3.1,5 M5,5 L5.1,5 M7,5 L7.1,5 M9,5 L9.1,5 M3.6,7.4 L8.4,7.4</StreamGeometry>
       <StreamGeometry x:Key="IconSettingsTabs">M1.5,4.2 L10.5,4.2 L10.5,10.5 L1.5,10.5 Z M1.5,4.2 L1.5,2 L5.6,2 L5.6,4.2 M6.6,4.2 L6.6,2.6 L10.5,2.6 L10.5,4.2</StreamGeometry>

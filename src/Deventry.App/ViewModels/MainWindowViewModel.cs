@@ -23,6 +23,9 @@ public sealed partial class MainWindowViewModel(AppServices services, string? in
     /// <summary>Claude's service status: the header's dot and the banner (DESIGN.md §18, "Service status").</summary>
     public ServiceStatusViewModel ServiceStatus { get; } = new(services);
 
+    /// <summary>The header's remote clients icon, beside the cup (DESIGN.md §18, "Remote clients").</summary>
+    public RemoteClientsIndicatorViewModel RemoteClients { get; } = new(services);
+
     /// <summary>The header's cup: whether the computer is kept awake, and the switch for it (DESIGN.md §9, "Keeping the computer awake").</summary>
     public KeepAwakeService KeepAwake { get; } = services.KeepAwake;
 
@@ -605,6 +608,7 @@ public sealed partial class MainWindowViewModel(AppServices services, string? in
         await services.RemoteClients.CloseAsync();
         services.Notifications.Activated -= OnNotificationActivated;
         ServiceStatus.Dispose();
+        RemoteClients.Dispose();
         Usage?.Dispose();
         Spend?.Dispose();
         Updates?.Dispose();

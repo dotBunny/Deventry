@@ -84,6 +84,9 @@ public sealed partial class TelegramClient : IRemoteClient
     /// <summary>Raised on the poll's thread when <c>getMe</c> says who the bot is: Settings shows it, and the App keeps it.</summary>
     public event Action<string>? Identified;
 
+    /// <summary>Raised on the work loop as it sends a message or a file, or takes one from a paired account.</summary>
+    public event Action<RemoteActivity>? Activity;
+
     /// <summary>The web address the bot sends its updates to, which keeps it from being polled; null when it has none.</summary>
     public string? Webhook { get; private set; }
 
@@ -346,23 +349,15 @@ public sealed partial class TelegramClient : IRemoteClient
     /// </summary>
     private async Task WaitAfterAsync(TelegramApiException ex, int failures, CancellationToken cancellationToken)
     {
-        TimeSpan wait;
-        if (ex.IsTooManyRequests)
-        {
-            wait = ex.RetryAfter ?? Backoff(failures);
-        }
-        else if (ex.IsConflict)
-        {
-            SetState(new RemoteClientState(RemoteClientStatus.Connecting, AnotherProgram));
-            wait = ConflictRetry;
-        }
-        else
-        {
-            SetState(new RemoteClientState(RemoteClientStatus.Connecting, ex.Message));
-            wait = Backoff(failures);
-        }
+        var (wait, reason) = ex.IsTooManyRequests ? (ex.RetryAfter ?? Backoff(failures), null)
+            : ex.IsConflict ? (ConflictRetry, AnotherProgram)
+            : (Backoff(failures), ex.Message);
+        reason ??= $"Telegram asked Deventry to wait {Formats.Duration(wait)}.";
         _logger.LogInformation("Telegram: {Error} Trying again in {Wait}.", ex.Message, Formats.Duration(wait));
-        await Task.Delay(wait, _time, cancellationToken).ConfigureAwait(false);
+        // The wait starts before the state says so: whoever reads the state can count on it from then on.
+        var waiting = Task.Delay(wait, _time, cancellationToken);
+        SetState(new RemoteClientState(RemoteClientStatus.Connecting, reason));
+        await waiting.ConfigureAwait(false);
     }
 
     // ---- The work loop ----------------------------------------------------------------------------------------------

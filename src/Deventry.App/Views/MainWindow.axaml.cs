@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Deventry.Platform.Shell.Windows;
 using Deventry.App.Services;
@@ -245,4 +246,18 @@ public partial class MainWindow : Window
         _usageWindow.Show(this);
         return Task.CompletedTask;
     }
+
+    /// <summary>A right-click on the remote clients' icon opens its menu, as a click does (DESIGN.md §18, "The header's indicator").</summary>
+    private void OnRemoteClientsContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (sender is Button { Flyout: { } menu } icon)
+        {
+            menu.ShowAt(icon);
+            e.Handled = true;
+        }
+    }
+
+    /// <summary>An entry of the remote clients' menu was picked: the menu closes, as a menu does, once its command has run.</summary>
+    private void OnRemoteClientsEntryClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) =>
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => RemoteClientsIndicator.Flyout?.Hide());
 }

@@ -88,7 +88,7 @@ The bot's commands are in Telegram's **/** menu.
 | `/to` | Picks the tab your plain messages go to. |
 | `/stop` | Stops Claude in a tab, asking which when several are working. |
 | `/usage` | Your plan's usage and when it resets, and your accounts' spend today. |
-| `/quiet` | No messages for an hour; `/quiet 30` for 30 minutes, `/quiet off` to end it. Answers to what you do from your phone still come, silently. |
+| `/quiet` | No messages for an hour; `/quiet 30` for 30 minutes, `/quiet off` to end it. Answers to what you do from your phone still come, silently. It's the same as the header's **Quiet for an hour**. |
 | `/new` | Opens a tab in a favorite or recent folder, when **Open new tabs** is on. |
 | `/help` | What the bot can do. |
 
@@ -106,6 +106,25 @@ When you go away, the prompts already waiting are sent then, so walking off with
 Choose **Always** to have every message come, silently while you're at the desk, so the chat keeps a record and your phone buzzes only when you're away.
 
 A tab you sent a message to from your phone always answers, away or not.
+
+## The icon in the header
+
+While a remote client is on, the header has an icon for it beside the [cup](keeping-the-computer-awake.md): a dot with two arcs on each side. It's one icon however many clients are on, and it shows the state that most needs you:
+
+- **Muted**: connected, and you're at the desk, so messages wait (or come silently, with **Always**). Also while messages are quiet.
+- **In the accent color**: connected, and you're away, so messages go to your phone.
+- **Dimmed**: a client is connecting, or trying again after a network problem.
+- **In the warning color**: a client has stopped and needs you, for example because Telegram didn't accept its token or another program uses the bot, or no phone is paired yet.
+
+Its arcs light up outward when a client sends you a message or gets one from you. With motion reduced, they only take the accent color for a moment.
+
+Point at it to see each client and what it's doing, such as *Telegram (@deventry_bot): connected, last sent 14:09*, and whether you count as away. Click it, or right-click it, for its menu:
+
+- Each client that's on, with its state and **Telegram settings…**.
+- **Quiet for an hour**, which holds messages from every client as `/quiet` does; while they're quiet, **Resume messages** ends it.
+- **Remote clients settings…**, which opens **All clients**.
+
+A click never turns a client off: do that on its page in Settings.
 
 ## What remote clients can do
 
@@ -149,4 +168,5 @@ All this computer's: none of them sync.
 
 - [The Claude app](the-claude-app.md), Claude Code's own way to one tab from your phone.
 - [Notifications](notifications.md), the ones on this computer.
+- [Keeping the computer awake](keeping-the-computer-awake.md), the cup beside the icon.
 - [Permission cards](../permissions/permission-cards.md), the cards the bot's buttons answer.
