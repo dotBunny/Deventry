@@ -44,6 +44,8 @@ Under the header are the lines the change replaced, in the removed color.
 
 `F3` and `F4`, the keys for the conversation's previous and next message, go to the previous and next change in a file and open its peek.
 
+To put back all of Claude's changes to a file at once, **Revert Claude's changes** at the end of the bar puts the whole file back as it was before Claude first changed it, in the editor, after asking ([Saving](saving.md#the-bars-save-and-revert)).
+
 ## Edit, Inline changes and Side by side
 
 For a file with changes, the bar under the file tabs switches between three views:

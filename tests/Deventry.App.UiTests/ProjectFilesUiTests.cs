@@ -248,9 +248,67 @@ public sealed class ProjectFilesUiTests
 
         Assert.DoesNotContain(window.GetVisualDescendants().OfType<CodeEditor>(), e => e.IsEffectivelyVisible);
         var shown = UiText.Describe(View(window));
-        Assert.Contains("[button] Revert", shown, StringComparison.Ordinal);
+        // The change's own, in the diff, besides the bar's.
+        Assert.Contains("[button] Revert", UiText.Describe(window.GetVisualDescendants().OfType<DiffLines>().Single(d => d.IsEffectivelyVisible)), StringComparison.Ordinal);
         Assert.Contains("[toggle] Whole file", shown, StringComparison.Ordinal);
         Assert.Contains("[toggle on] Inline changes", shown, StringComparison.Ordinal);
+        window.Close();
+    }
+
+    /// <summary>
+    /// The bar's <b>Revert Claude's changes</b>, <b>Revert</b> and <b>Save</b> (DESIGN.md §18, "Project files", "Saving"):
+    /// at its end, the last two dimmed until the file's edited and Save in the accent then; Revert asks under the bar
+    /// before the edits go; and in a narrow pane they take a line of their own under the rest, still at the end.
+    /// </summary>
+    [AvaloniaFact]
+    public async Task Save_and_Revert_sit_at_the_bars_end_and_Revert_asks_under_it_first()
+    {
+        await using var h = new TabTestHarness(dispatcher: new AvaloniaUiDispatcher());
+        // Wide enough for the bar's one line: headless text is wider than Inter.
+        var (_, files, player, window) = await ShowAsync(h, width: 2400);
+        var file = files.Showing!;
+        Button Named(string name) => View(window).GetVisualDescendants().OfType<Button>().Single(b => b.Name == name);
+        Point Middle(Control c) => c.TranslatePoint(new Point(c.Bounds.Width / 2, c.Bounds.Height / 2), window)!.Value;
+        void Click(Control c)
+        {
+            window.MouseDown(Middle(c), MouseButton.Left);
+            window.MouseUp(Middle(c), MouseButton.Left);
+            UiText.Settle(window);
+        }
+        var bar = View(window).GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("modebar") && b.IsEffectivelyVisible);
+        var (save, revert, claude) = (Named("SaveButton"), Named("RevertButton"), Named("RevertClaudeChangesButton"));
+        double Right(Control c) => c.TranslatePoint(new Point(c.Bounds.Width, 0), window)!.Value.X;
+        double Top(Control c) => c.TranslatePoint(default, window)!.Value.Y;
+
+        Assert.Equal(Right(bar) - bar.Padding.Right, Right(save), 1);
+        Assert.True(Right(claude) < Right(revert) && Right(revert) < Right(save));
+        Assert.True(claude.IsEffectivelyEnabled);
+        Assert.False(save.IsEffectivelyEnabled || revert.IsEffectivelyEnabled);
+        Assert.DoesNotContain("accent", save.Classes);
+        // On the bar's one line, centered on it with the rest.
+        Assert.Equal(Middle(Named("ReviewedButton")).Y, Middle(save).Y, 1);
+
+        Editor(window).Document.Insert(0, "// ");
+        UiText.Settle(window);
+        Assert.True(save.IsEffectivelyEnabled && revert.IsEffectivelyEnabled);
+        Assert.Contains("accent", save.Classes);
+
+        Click(revert);
+        var question = View(window).GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("filebanner") && b.IsEffectivelyVisible);
+        Assert.Contains("\"Discard your edits to Player.cpp?\"", UiText.Describe(question), StringComparison.Ordinal);
+        Assert.True(Top(question) > Top(bar));
+        Click(Named("ConfirmRevertButton"));
+        await UiText.SettleUntilAsync(window, () => !file.IsModified, "the file read again");
+
+        Assert.Equal(File.ReadAllText(player), Editor(window).Document.Text);
+        Assert.False(question.IsEffectivelyVisible);
+        Assert.DoesNotContain("accent", save.Classes);
+
+        // Narrow, they go under the rest of the bar, still at its end.
+        window.Width = 1400;
+        UiText.Settle(window);
+        Assert.True(Top(save) > Top(Named("ReviewedButton")) + 10);
+        Assert.Equal(Right(bar) - bar.Padding.Right, Right(save), 1);
         window.Close();
     }
 

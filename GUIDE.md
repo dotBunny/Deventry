@@ -199,7 +199,7 @@ One page, out of the sidebar and linked from both footers and the privacy chapte
 | File tabs | Preview and kept tabs, **Pin**, the **Close…** commands, moving between files, a file in a window of its own (**Open in a window**, the row's button, dragging a tab out, **Put back**). | [Project files](DESIGN.md#project-files) |
 | Editing | The editor, **Wrap long lines**, languages and colors, the chip (line endings, indentation, encoding), files that open read-only or not at all. | [Project files](DESIGN.md#project-files) |
 | Markdown files | **Edit**, **Preview** and **Edit and preview**, what the preview shows, scrolling together, finding in it, links and images in it, files too large to preview. | [Markdown preview](DESIGN.md#markdown-preview) |
-| Saving | Saving and **Save all**, unsaved edits kept on disk, the questions on closing, a file that changes on disk and its banners. | [Project files](DESIGN.md#project-files) |
+| Saving | Saving and **Save all**, the bar's **Save**, **Revert** and **Revert Claude's changes**, unsaved edits kept on disk, the questions on closing, a file that changes on disk and its banners. | [Project files](DESIGN.md#project-files) |
 | Claude's changes in the editor | The marks in the explorer and the gutter, the peek and **Revert**, `F3` and `F4`, the mode bar, **Reviewed**, **Against git HEAD**. | [Project files](DESIGN.md#project-files) |
 | Opening files from the conversation | Which files open where, at the line named, in which Files tab, and **Show a file clicked in a conversation**. | [Project files](DESIGN.md#project-files), [Files named in Claude's replies](DESIGN.md#files-named-in-claudes-replies) |
 

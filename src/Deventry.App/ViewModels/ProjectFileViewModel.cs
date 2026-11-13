@@ -101,7 +101,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsText), nameof(HasProblem), nameof(ProblemText), nameof(CanOpenInViewer), nameof(IsMarkdown), nameof(ShowsModeBar),
-        nameof(ShowsModes), nameof(ShowsEditor), nameof(ShowsPreview))]
+        nameof(ShowsModes), nameof(ShowsEditor), nameof(ShowsPreview), nameof(ShowsSaveButtons), nameof(ShowsRevertClaudeChanges))]
     public partial bool IsLoaded { get; private set; }
 
     public bool IsText => IsLoaded && Document is not null;
@@ -128,7 +128,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
 
     /// <summary>Why it opens read-only (not valid text, too long a line, not allowed to write it), or null.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsReadOnly))]
+    [NotifyPropertyChangedFor(nameof(IsReadOnly), nameof(ShowsSaveButtons), nameof(ShowsRevertClaudeChanges))]
     public partial string? ReadOnlyReason { get; private set; }
 
     public bool IsReadOnly => ReadOnlyReason is not null;
@@ -188,6 +188,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
         IsLoaded = true;
         OnPropertyChanged(nameof(Document));
         OnPropertyChanged(nameof(IsModified));
+        OnPropertyChanged(nameof(CanSave));
         _owner.OnFileLoaded(this);
         RefreshMarkers();
         UpdatePreview();
@@ -286,6 +287,12 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
     private void OnModifiedChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(IsModified));
+        OnPropertyChanged(nameof(CanSave));
+        // Saved, or typed back as it was: there are no edits left for Revert's question to throw away.
+        if (!IsModified && _revertAsked == RevertAsked.Edits)
+        {
+            AskToRevert(RevertAsked.None);
+        }
         _owner.OnFileModifiedChanged(this);
     }
 
@@ -464,7 +471,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
 
     // ---- Saving (DESIGN.md §18, "Project files", "Saving") -----------------------------------------------------------
 
-    /// <summary>What went wrong with the last save, or null.</summary>
+    /// <summary>What went wrong with the last save, or with reading the file again for <b>Revert</b>, or null.</summary>
     [ObservableProperty]
     public partial string? SaveError { get; private set; }
 
@@ -547,6 +554,8 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
         OnPropertyChanged(nameof(IsOutsideProject));
         OnPropertyChanged(nameof(Tip));
         OnPropertyChanged(nameof(BannerText));
+        OnPropertyChanged(nameof(SaveTip));
+        OnPropertyChanged(nameof(RevertQuestion));
     }
 
     /// <summary>Throws away the unsaved edits' copy: <b>Don't save</b>.</summary>
@@ -555,6 +564,162 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
         _backupWait.Cancel();
         var path = Path;
         _ = Task.Run(() => _services.EditorBackups.Delete(path));
+    }
+
+    // ---- The bar's Save and Revert (DESIGN.md §18, "Project files", "Saving") ----------------------------------------
+
+    /// <summary>The bar has Save and Revert: a text file that can be edited.</summary>
+    public bool ShowsSaveButtons => IsText && !IsReadOnly;
+
+    /// <summary><b>Save</b> has something to do: edits to save, or a file gone from disk to write back.</summary>
+    public bool CanSave => IsModified || Banner == FileBanner.Deleted;
+
+    /// <summary><b>Save</b>'s tip, with its key as the OS writes it.</summary>
+    public string SaveTip => $"Save {Name} ({new Core.Settings.KeyChord(Core.Settings.ChordModifiers.Primary, "S").Display(Shortcuts.IsMac)})";
+
+    /// <summary><b>Save</b> on the bar, as <c>Ctrl/Cmd+S</c> does.</summary>
+    [RelayCommand]
+    private async Task SaveFileAsync()
+    {
+        CancelRevert();
+        await SaveAsync();
+    }
+
+    /// <summary>
+    /// <b>Revert Claude's changes</b> is on the bar: Claude changed the file, and what it held before is known. A file
+    /// Claude created has no "before" to go back to.
+    /// </summary>
+    public bool ShowsRevertClaudeChanges => ShowsSaveButtons && Change is { BeforeKnown: true, IsNew: false, Before: not null };
+
+    /// <summary>The text isn't what it was before Claude's first change, so there's something to put back.</summary>
+    [ObservableProperty]
+    public partial bool CanRevertClaudeChanges { get; private set; }
+
+    /// <summary>Whether the text is what Claude's "before" was: <paramref name="text"/>, or the editor's when it's not given.</summary>
+    private void UpdateCanRevertClaudeChanges(string? text = null) =>
+        CanRevertClaudeChanges = Change is { BeforeKnown: true, IsNew: false, Before: { } before } && (text ?? Document?.Text) is { } now
+            && !string.Equals(before, now, StringComparison.Ordinal);
+
+    /// <summary>Which of the bar's reverts is asking first, in place.</summary>
+    private enum RevertAsked
+    {
+        None,
+        Edits,
+        ClaudeChanges,
+    }
+
+    private RevertAsked _revertAsked;
+
+    private void AskToRevert(RevertAsked asked)
+    {
+        _revertAsked = asked;
+        OnPropertyChanged(nameof(IsAskingToRevert));
+        OnPropertyChanged(nameof(RevertQuestion));
+    }
+
+    /// <summary>One of the bar's reverts is asking first, over the editor.</summary>
+    public bool IsAskingToRevert => _revertAsked != RevertAsked.None;
+
+    public string RevertQuestion => _revertAsked switch
+    {
+        RevertAsked.Edits => $"Discard your edits to {Name}?",
+        RevertAsked.ClaudeChanges => $"Put {Name} back as it was before Claude changed it? Nothing is written until you save.",
+        _ => "",
+    };
+
+    /// <summary><b>Revert</b> on the bar: asks first whether to throw away the unsaved edits.</summary>
+    [RelayCommand]
+    private void AskRevertEdits()
+    {
+        if (IsModified && !IsReadOnly)
+        {
+            AskToRevert(RevertAsked.Edits);
+        }
+    }
+
+    /// <summary><b>Revert Claude's changes</b> on the bar: asks first whether to put the whole file back.</summary>
+    [RelayCommand]
+    private void AskRevertClaudeChanges()
+    {
+        if (ShowsRevertClaudeChanges && CanRevertClaudeChanges)
+        {
+            AskToRevert(RevertAsked.ClaudeChanges);
+        }
+    }
+
+    /// <summary>The question's <b>Revert</b>: does what it asked.</summary>
+    [RelayCommand]
+    private async Task ConfirmRevertAsync()
+    {
+        var asked = _revertAsked;
+        AskToRevert(RevertAsked.None);
+        switch (asked)
+        {
+            case RevertAsked.Edits:
+                await RevertEditsAsync();
+                break;
+            case RevertAsked.ClaudeChanges:
+                RevertClaudeChanges();
+                break;
+        }
+    }
+
+    /// <summary>The question's <b>Cancel</b>.</summary>
+    [RelayCommand]
+    private void CancelRevert()
+    {
+        if (IsAskingToRevert)
+        {
+            AskToRevert(RevertAsked.None);
+        }
+    }
+
+    /// <summary>
+    /// The unsaved edits go, and the file is read from disk again, as one step Undo takes back. A file that's gone gets
+    /// its banner instead, keeping the text.
+    /// </summary>
+    private async Task RevertEditsAsync()
+    {
+        if (Document is not { } document || IsReadOnly)
+        {
+            return;
+        }
+        var path = Path;
+        var (onDisk, exists) = await Task.Run(() => (TextFile.ReadTextOrNull(path), File.Exists(path)));
+        if (onDisk is null)
+        {
+            if (exists)
+            {
+                SaveError = $"Couldn't read {Name} again: another program may have it open, or Deventry isn't allowed to.";
+            }
+            else
+            {
+                _diskText = null;
+                Banner = FileBanner.Deleted;
+            }
+            return;
+        }
+        SaveError = null;
+        Reload(document, onDisk);
+        DiscardBackup();
+    }
+
+    /// <summary>
+    /// The whole file goes back to what it held before Claude's first change, in the editor's text, as one step Undo
+    /// takes back, as the peek's <b>Revert</b> does for one change. Nothing is written until it's saved.
+    /// </summary>
+    private void RevertClaudeChanges()
+    {
+        if (Document is not { } document || IsReadOnly || Change is not { BeforeKnown: true, IsNew: false, Before: { } before })
+        {
+            return;
+        }
+        if (!string.Equals(document.Text, before, StringComparison.Ordinal))
+        {
+            document.ReplaceAll(before);
+        }
+        CanRevertClaudeChanges = false;
+        Peek = null;
     }
 
     // ---- Perforce (DESIGN.md §18, "Perforce in the Files tab") -----------------------------------------------------
@@ -647,7 +812,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
     // ---- Changes on disk (DESIGN.md §18, "Project files", "When a file changes on disk") -----------------------------
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasBanner), nameof(BannerText), nameof(IsChangedBanner), nameof(IsDeletedBanner))]
+    [NotifyPropertyChangedFor(nameof(HasBanner), nameof(BannerText), nameof(IsChangedBanner), nameof(IsDeletedBanner), nameof(CanSave))]
     public partial FileBanner Banner { get; private set; }
 
     public bool HasBanner => Banner != FileBanner.None;
@@ -749,7 +914,7 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
     /// <summary>Who changed the file and when, from the project's open tabs; null when none of them did.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Tip), nameof(BannerText), nameof(PeekHeader), nameof(CanReview), nameof(CanShowChange), nameof(ShowChangeTip),
-        nameof(ShowsDiffModes), nameof(ShowsModeBar), nameof(ShowsModes))]
+        nameof(ShowsDiffModes), nameof(ShowsModeBar), nameof(ShowsModes), nameof(ShowsRevertClaudeChanges))]
     public partial ProjectFileChange? Change { get; private set; }
 
     /// <summary>What the file is compared with: before Claude's first change, or at HEAD.</summary>
@@ -775,6 +940,11 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
             {
                 BuildDiff();
             }
+        }
+        else
+        {
+            // Against git HEAD, Claude's "before" can come or go while HEAD stays.
+            UpdateCanRevertClaudeChanges();
         }
     }
 
@@ -822,9 +992,11 @@ public sealed partial class ProjectFileViewModel : ViewModelBase, IMarkdownHost,
             Markers = ChangeMarkers.None;
             IsTooLongToCompare = false;
             Peek = null;
+            UpdateCanRevertClaudeChanges();
             return;
         }
         var text = document.Text;
+        UpdateCanRevertClaudeChanges(text);
         var before = _before;
         ChangeMarkers? markers;
         try

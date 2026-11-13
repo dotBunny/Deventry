@@ -3,6 +3,7 @@
              xmlns:vm="using:Deventry.App.ViewModels"
              xmlns:views="using:Deventry.App.Views"
              xmlns:editor="using:Deventry.App.Views.Editor"
+             xmlns:controls="using:Deventry.App.Controls"
              xmlns:pf="using:Deventry.Core.ProjectFiles"
              x:Class="Deventry.App.Views.ProjectFileView"
              x:DataType="vm:ProjectFileViewModel">
@@ -35,47 +36,71 @@
       <TextBlock Classes="muted small" Text="{Binding ReadOnlyReason}" TextWrapping="Wrap" />
     </Border>
     <!-- Claude's changes: the editor, or them inline or side by side, and Reviewed ("Claude's changes"); for a Markdown
-         file, its preview too ("Markdown preview"); and while the editor shows, its Wrap lines ("The editor"). A narrow
-         pane wraps Whole file, Wrap lines and Reviewed onto a second line. -->
+         file, its preview too ("Markdown preview"); while the editor shows, its Wrap lines ("The editor"); and at its end,
+         Save and Revert ("Saving"). A narrow pane wraps Whole file, Wrap lines and Reviewed onto a second line, and puts
+         Save and Revert on a line of their own under the rest. -->
     <Border DockPanel.Dock="Top" Classes="modebar" IsVisible="{Binding ShowsModeBar}">
-      <WrapPanel ItemSpacing="8" LineSpacing="4">
-        <!-- The modes, one choice in two parts: Edit, with Preview and Edit and preview for a Markdown file; then Inline
-             changes and Side by side while it has changes. For any other file the two parts join into one outline, and
-             with no changes there's no choice to show. -->
-        <StackPanel Classes="modegroups" Classes.joined="{Binding !IsMarkdown}" Orientation="Horizontal" IsVisible="{Binding ShowsModes}">
-          <Border Classes="modes first">
-            <StackPanel Orientation="Horizontal">
-              <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Edit" IsChecked="{Binding IsEditMode}" />
-              <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Preview" IsChecked="{Binding IsPreviewMode}"
-                           IsVisible="{Binding IsMarkdown}" />
-              <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Edit and preview" IsChecked="{Binding IsEditAndPreviewMode}"
-                           IsVisible="{Binding IsMarkdown}" />
-            </StackPanel>
-          </Border>
-          <Border Classes="modes second" IsVisible="{Binding ShowsDiffModes}">
-            <StackPanel Orientation="Horizontal">
-              <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Inline changes" IsChecked="{Binding IsInlineMode}" />
-              <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Side by side" IsChecked="{Binding IsSideBySideMode}" />
-            </StackPanel>
-          </Border>
-        </StackPanel>
-        <ToggleButton Content="Whole file" IsVisible="{Binding IsDiffMode}"
-                      IsChecked="{Binding Diff.ShowWholeFile, FallbackValue=False}" ToolTip.Tip="The whole file, not just its changes" />
-        <ToggleButton Content="Wrap lines" IsVisible="{Binding IsDiffMode}"
-                      IsChecked="{Binding Diff.WordWrap, FallbackValue=False}" ToolTip.Tip="Wrap long lines at the pane's width, rather than scrolling sideways" />
-        <!-- The editor's, the file's own (Alt+Z), where the diff's is in its modes -->
-        <ToggleButton x:Name="EditorWrapButton" Content="Wrap lines" IsVisible="{Binding ShowsEditor}"
-                      IsChecked="{Binding WordWrap}" ToolTip.Tip="{x:Static vm:ProjectFileViewModel.WordWrapTip}" />
-        <ToggleButton x:Name="ReviewedButton" IsVisible="{Binding CanReview}" IsChecked="{Binding IsReviewed, Mode=OneWay}"
-                      Command="{Binding ToggleReviewedCommand}"
-                      ToolTip.Tip="Mark this file as reviewed in every tab of the project that changed it. It stays reviewed until Claude changes it again.">
-          <StackPanel Orientation="Horizontal" Spacing="5">
-            <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource OkTextBrush}" StrokeThickness="1.5" Width="10" Height="10" Stretch="Uniform"
-                  VerticalAlignment="Center" IsVisible="{Binding IsReviewed}" />
-            <TextBlock Text="Reviewed" VerticalAlignment="Center" />
+      <controls:ControlBarPanel>
+        <WrapPanel ItemSpacing="8" LineSpacing="4">
+          <!-- The modes, one choice in two parts: Edit, with Preview and Edit and preview for a Markdown file; then Inline
+               changes and Side by side while it has changes. For any other file the two parts join into one outline, and
+               with no changes there's no choice to show. -->
+          <StackPanel Classes="modegroups" Classes.joined="{Binding !IsMarkdown}" Orientation="Horizontal" IsVisible="{Binding ShowsModes}">
+            <Border Classes="modes first">
+              <StackPanel Orientation="Horizontal">
+                <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Edit" IsChecked="{Binding IsEditMode}" />
+                <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Preview" IsChecked="{Binding IsPreviewMode}"
+                             IsVisible="{Binding IsMarkdown}" />
+                <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Edit and preview" IsChecked="{Binding IsEditAndPreviewMode}"
+                             IsVisible="{Binding IsMarkdown}" />
+              </StackPanel>
+            </Border>
+            <Border Classes="modes second" IsVisible="{Binding ShowsDiffModes}">
+              <StackPanel Orientation="Horizontal">
+                <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Inline changes" IsChecked="{Binding IsInlineMode}" />
+                <RadioButton Theme="{StaticResource {x:Type ToggleButton}}" GroupName="{Binding Path}" Content="Side by side" IsChecked="{Binding IsSideBySideMode}" />
+              </StackPanel>
+            </Border>
           </StackPanel>
-        </ToggleButton>
-      </WrapPanel>
+          <ToggleButton Content="Whole file" IsVisible="{Binding IsDiffMode}"
+                        IsChecked="{Binding Diff.ShowWholeFile, FallbackValue=False}" ToolTip.Tip="The whole file, not just its changes" />
+          <ToggleButton Content="Wrap lines" IsVisible="{Binding IsDiffMode}"
+                        IsChecked="{Binding Diff.WordWrap, FallbackValue=False}" ToolTip.Tip="Wrap long lines at the pane's width, rather than scrolling sideways" />
+          <!-- The editor's, the file's own (Alt+Z), where the diff's is in its modes -->
+          <ToggleButton x:Name="EditorWrapButton" Content="Wrap lines" IsVisible="{Binding ShowsEditor}"
+                        IsChecked="{Binding WordWrap}" ToolTip.Tip="{x:Static vm:ProjectFileViewModel.WordWrapTip}" />
+          <ToggleButton x:Name="ReviewedButton" IsVisible="{Binding CanReview}" IsChecked="{Binding IsReviewed, Mode=OneWay}"
+                        Command="{Binding ToggleReviewedCommand}"
+                        ToolTip.Tip="Mark this file as reviewed in every tab of the project that changed it. It stays reviewed until Claude changes it again.">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Path Data="{StaticResource IconCheck}" Stroke="{DynamicResource OkTextBrush}" StrokeThickness="1.5" Width="10" Height="10" Stretch="Uniform"
+                    VerticalAlignment="Center" IsVisible="{Binding IsReviewed}" />
+              <TextBlock Text="Reviewed" VerticalAlignment="Center" />
+            </StackPanel>
+          </ToggleButton>
+        </WrapPanel>
+        <!-- Always there for a file that can be edited, dimmed with nothing to do, so the bar doesn't change while typing;
+             Save is in the accent while there's something to save. Both reverts ask first, under the bar. -->
+        <StackPanel Classes="savebuttons" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0" IsVisible="{Binding ShowsSaveButtons}">
+          <Button x:Name="RevertClaudeChangesButton" Content="Revert Claude's changes" Command="{Binding AskRevertClaudeChangesCommand}"
+                  IsVisible="{Binding ShowsRevertClaudeChanges}" IsEnabled="{Binding CanRevertClaudeChanges}"
+                  ToolTip.Tip="Put the whole file back as it was before Claude changed it, in the editor. Nothing is written until it's saved." />
+          <Button x:Name="RevertButton" Content="Revert" Command="{Binding AskRevertEditsCommand}" IsEnabled="{Binding IsModified}"
+                  ToolTip.Tip="Discard your unsaved edits, and read the file from disk again" />
+          <Button x:Name="SaveButton" Content="Save" Command="{Binding SaveFileCommand}" IsEnabled="{Binding CanSave}" Classes.accent="{Binding CanSave}"
+                  ToolTip.Tip="{Binding SaveTip}" />
+        </StackPanel>
+      </controls:ControlBarPanel>
+    </Border>
+    <!-- Revert and Revert Claude's changes ask first, in place ("Saving") -->
+    <Border DockPanel.Dock="Top" Classes="filebanner" IsVisible="{Binding IsAskingToRevert}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" Margin="12,0,0,0">
+          <Button x:Name="ConfirmRevertButton" Classes="accent" Content="Revert" Command="{Binding ConfirmRevertCommand}" />
+          <Button Content="Cancel" Command="{Binding CancelRevertCommand}" />
+        </StackPanel>
+        <TextBlock Text="{Binding RevertQuestion}" TextWrapping="Wrap" VerticalAlignment="Center" />
+      </DockPanel>
     </Border>
     <!-- A link in the preview to a file that isn't there ("Markdown preview", "Links") -->
     <Border DockPanel.Dock="Top" Classes="filenote" IsVisible="{Binding LinkProblem, Converter={x:Static ObjectConverters.IsNotNull}}">

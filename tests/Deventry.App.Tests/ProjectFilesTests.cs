@@ -727,6 +727,90 @@ public class ProjectFilesTests
         Assert.False(file.HasBanner);
     }
 
+    [Fact]
+    public async Task The_bars_Save_saves_and_has_nothing_to_do_until_the_file_is_edited()
+    {
+        await using var h = new TabTestHarness();
+        var path = Write(Path.Combine(h.WorkFolder, "a.txt"), "a\n");
+        // Not valid UTF-8, so it opens read-only, with nothing to save.
+        var latin = Path.Combine(h.WorkFolder, "latin.txt");
+        await File.WriteAllBytesAsync(latin, [(byte)'c', (byte)'a', (byte)'f', 0xE9, (byte)'\n'], Token);
+        var (_, files) = await OpenFilesAsync(h);
+        var file = await files.OpenFileAsync(path, preview: false);
+
+        Assert.True(file is { ShowsSaveButtons: true, CanSave: false, ShowsRevertClaudeChanges: false });
+        Assert.StartsWith("Save a.txt (", file.SaveTip, StringComparison.Ordinal);
+
+        Text(file).Insert(0, "x");
+        Assert.True(file.CanSave);
+        file.AskRevertEditsCommand.Execute(null);
+        await file.SaveFileCommand.ExecuteAsync(null);
+
+        Assert.Equal("xa\n", await File.ReadAllTextAsync(path, Token));
+        Assert.False(file.CanSave);
+        // Saved, there's nothing left for Revert's question to throw away.
+        Assert.False(file.IsAskingToRevert);
+        Text(file).Insert(0, "y");
+        file.AskRevertEditsCommand.Execute(null);
+        await files.SaveCommand.ExecuteAsync(null);
+        Assert.False(file.IsAskingToRevert);
+        Assert.Equal(0, files.UnsavedCount);
+        var readOnly = await files.OpenFileAsync(latin, preview: false);
+        Assert.True(readOnly.IsReadOnly);
+        Assert.False(readOnly.ShowsSaveButtons);
+    }
+
+    [Fact]
+    public async Task The_bars_Revert_asks_first_then_reads_the_file_from_disk_again_and_Undo_brings_the_edits_back()
+    {
+        await using var h = new TabTestHarness();
+        var path = Write(Path.Combine(h.WorkFolder, "a.txt"), "a\n");
+        var (_, files) = await OpenFilesAsync(h);
+        var file = await files.OpenFileAsync(path, preview: false);
+        Text(file).Insert(0, "mine ");
+        file.FlushBackup();
+
+        file.AskRevertEditsCommand.Execute(null);
+
+        Assert.True(file.IsAskingToRevert);
+        Assert.Equal("Discard your edits to a.txt?", file.RevertQuestion);
+        file.CancelRevertCommand.Execute(null);
+        Assert.False(file.IsAskingToRevert);
+        Assert.Equal("mine a\n", file.Document!.Text);
+
+        file.AskRevertEditsCommand.Execute(null);
+        await file.ConfirmRevertCommand.ExecuteAsync(null);
+
+        Assert.False(file.IsAskingToRevert);
+        Assert.Equal("a\n", file.Document.Text);
+        Assert.False(file.IsModified);
+        Assert.Equal(0, files.UnsavedCount);
+        await TabTestHarness.Eventually(() => h.Services.EditorBackups.Load(path) is null, "the unsaved copy to go");
+
+        file.Document.Undo();
+        Assert.Equal("mine a\n", file.Document.Text);
+        Assert.True(file.IsModified);
+        Assert.Equal("a\n", await File.ReadAllTextAsync(path, Token));
+    }
+
+    [Fact]
+    public async Task The_bars_Revert_on_a_file_gone_from_disk_keeps_the_text_and_says_so()
+    {
+        await using var h = new TabTestHarness();
+        var path = Write(Path.Combine(h.WorkFolder, "a.txt"), "a\n");
+        var (_, files) = await OpenFilesAsync(h);
+        var file = await files.OpenFileAsync(path, preview: false);
+        Text(file).Insert(0, "mine ");
+        File.Delete(path);
+
+        file.AskRevertEditsCommand.Execute(null);
+        await file.ConfirmRevertCommand.ExecuteAsync(null);
+
+        Assert.Equal("mine a\n", file.Document!.Text);
+        Assert.True(file.IsDeletedBanner);
+        Assert.True(file.CanSave);
+    }
+
     // ---- Claude's changes --------------------------------------------------------------------------------------------
 
     [Fact]
@@ -804,6 +888,67 @@ public class ProjectFilesTests
         h.Time.Advance(ProjectFilesViewModel.ChangesDelay);
 
         await TabTestHarness.Eventually(() => !file.IsReviewed, "the tick to go");
+    }
+
+    [Fact]
+    public async Task Revert_Claudes_changes_asks_first_then_puts_the_file_back_in_the_editor_unsaved()
+    {
+        await using var h = new TabTestHarness();
+        var path = Write(Path.Combine(h.WorkFolder, "a.txt"), "b\nkeep\n");
+        var (tab, files) = await OpenFilesAsync(h);
+        var file = await files.OpenFileAsync(path, preview: false);
+        Assert.False(file.ShowsRevertClaudeChanges);
+        EmitEdit(h, "e1", path, before: "a\nkeep\n");
+        await TabTestHarness.Eventually(() => tab.ChangedFiles.HasClaudeChange(path), "the change recorded");
+        h.Time.Advance(ProjectFilesViewModel.ChangesDelay);
+        await TabTestHarness.Eventually(() => file is { ShowsRevertClaudeChanges: true, CanRevertClaudeChanges: true }, "Revert Claude's changes");
+
+        file.AskRevertClaudeChangesCommand.Execute(null);
+
+        Assert.Equal("Put a.txt back as it was before Claude changed it? Nothing is written until you save.", file.RevertQuestion);
+        await file.ConfirmRevertCommand.ExecuteAsync(null);
+
+        Assert.Equal("a\nkeep\n", file.Document!.Text);
+        Assert.True(file.IsModified);
+        Assert.False(file.CanRevertClaudeChanges);
+        Assert.Equal("b\nkeep\n", await File.ReadAllTextAsync(path, Token));
+        // Undo takes it back, and there's something to put back again once typing stops.
+        file.Document.Undo();
+        h.Time.Advance(ProjectFileViewModel.MarkersDelay);
+        await TabTestHarness.Eventually(() => file.CanRevertClaudeChanges, "something to revert again");
+    }
+
+    [Fact]
+    public async Task A_file_Claude_created_has_no_Revert_Claudes_changes()
+    {
+        await using var h = new TabTestHarness();
+        var path = Write(Path.Combine(h.WorkFolder, "new.txt"), "new\n");
+        var (tab, files) = await OpenFilesAsync(h);
+        var file = await files.OpenFileAsync(path, preview: false);
+        h.Transport.Emit(new JsonObject
+        {
+            ["type"] = "assistant",
+            ["message"] = new JsonObject
+            {
+                ["content"] = new JsonArray(new JsonObject
+                {
+                    ["type"] = "tool_use", ["id"] = "w1", ["name"] = "Write",
+                    ["input"] = new JsonObject { ["file_path"] = path, ["content"] = "new\n" },
+                }),
+            },
+        });
+        h.Transport.Emit(new JsonObject
+        {
+            ["type"] = "user",
+            ["message"] = new JsonObject { ["content"] = new JsonArray(new JsonObject { ["type"] = "tool_result", ["tool_use_id"] = "w1", ["content"] = "File created" }) },
+            ["tool_use_result"] = new JsonObject { ["type"] = "create", ["filePath"] = path, ["content"] = "new\n", ["originalFile"] = null },
+        });
+        await TabTestHarness.Eventually(() => tab.ChangedFiles.HasClaudeChange(path), "the change recorded");
+        h.Time.Advance(ProjectFilesViewModel.ChangesDelay);
+        await TabTestHarness.Eventually(() => file.Change is { IsNew: true }, "the change in the Files tab");
+
+        Assert.False(file.ShowsRevertClaudeChanges);
+        Assert.True(file.ShowsSaveButtons);
     }
 
     [Fact]

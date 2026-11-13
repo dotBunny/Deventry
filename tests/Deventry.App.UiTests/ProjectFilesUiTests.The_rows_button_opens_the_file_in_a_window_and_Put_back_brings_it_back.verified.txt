@@ -7,6 +7,9 @@
 [toggle] Side by side
 [toggle] Wrap lines
 [toggle] Reviewed
+[button] Revert Claude's changes
+[button] Revert
+[button] Save
 [editor, 11 lines, caret 1:1] "#include "Player.h"⏎⏎void APlayer::Dash()⏎{⏎    if (!HasAuthority())⏎    {⏎        return;⏎    }⏎    Spend(DashCost);⏎}⏎"
 "Ln 1, Col 1"
 "·"

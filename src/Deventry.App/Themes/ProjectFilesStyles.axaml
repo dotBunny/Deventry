@@ -373,6 +373,28 @@
     <Setter Property="Foreground" Value="{Binding $parent[UserControl].Foreground}" />
     <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
   </Style>
+  <!-- Save and Revert, at the bar's end: as small as its toggles and outlined like them, Save filled in the accent while
+       there's something to save -->
+  <Style Selector="Border.modebar StackPanel.savebuttons > Button">
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="10,2" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.modebar StackPanel.savebuttons > Button:not(.accent)">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+  <Style Selector="Border.modebar StackPanel.savebuttons > Button:not(.accent):pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+  </Style>
+  <Style Selector="Border.modebar StackPanel.savebuttons > Button:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+  </Style>
 
   <!-- The chip, at the editor's bottom right, over the text; it fades while the cursor's line is under it. -->
   <Style Selector="Border.chip">
