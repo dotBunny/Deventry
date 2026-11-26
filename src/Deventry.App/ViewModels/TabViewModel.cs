@@ -2568,7 +2568,7 @@ public sealed partial class TabViewModel : ViewModelBase, IShellTab, IAsyncDispo
                 // The header's plan usage is the Default account's (DESIGN.md §4, "Accounts").
                 if (Account is null)
                 {
-                    _services.Usage?.OnRateLimitEvent(rateLimit.Message);
+                    _services.Usage?.OnRateLimitEvent(rateLimit.Message, _modelId);
                 }
                 _autoContinue.RateLimit(rateLimit.Message.Info);
                 // Usage credits began paying, and the tab doesn't use them (DESIGN.md §6, "Tabs that don't use usage credits").

@@ -155,6 +155,33 @@ public sealed class UsagePollerTests : IAsyncDisposable
     }
 
     [Fact]
+    public void Without_get_usage_a_model_s_limit_comes_from_its_rate_limit_events_and_stays_between_polls()
+    {
+        _source.Respond = _ => Task.FromResult(new JsonObject { ["rate_limits_available"] = false });
+        _poller.Start();
+        Assert.False(_poller.ModelLimitsAvailable);
+
+        var info = UsageFixtures.RateLimitInfo(session: 0.2);
+        info["unifiedWindows"]!["seven_day_overage_included"] = new JsonObject { ["utilization"] = 0.4, ["resetsAt"] = 1790766000 };
+        _poller.NotifyRateLimitEvent(info, "claude-fable-5-2");
+
+        Assert.True(_poller.ModelLimitsAvailable);
+        var fable = Assert.Single(_poller.Current!.WeeklyModels);
+        Assert.Equal(("Fable", 40d), (fable.Label, fable.Percent));
+
+        _time.Advance(TimeSpan.FromMinutes(5));
+        _poller.NotifyRateLimitEvent(UsageFixtures.RateLimitInfo(session: 0.3), "claude-opus-5-5");
+
+        Assert.True(_poller.ModelLimitsAvailable);
+        Assert.Equal("Fable", Assert.Single(_poller.Current!.WeeklyModels).Label);
+
+        // Fable no longer reports, as when it's withdrawn: its reading goes once its week is over.
+        _time.Advance(UsageFixtures.WeekResetsAt - _time.GetUtcNow() + TimeSpan.FromMinutes(1));
+        Assert.Empty(_poller.Current!.WeeklyModels);
+        Assert.False(_poller.ModelLimitsAvailable);
+    }
+
+    [Fact]
     public void A_stale_get_usage_answer_does_not_move_the_meters_back()
     {
         _poller.Start();

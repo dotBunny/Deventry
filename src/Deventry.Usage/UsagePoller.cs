@@ -42,6 +42,7 @@ public sealed class UsagePoller : IDisposable, IAsyncDisposable
     private DateTimeOffset? _due;
     private TaskCompletionSource _pollDone = CompletedSource();
     private bool _modelLimitsAvailable = true;
+    private readonly HashSet<string> _modelsFromEvents = new(StringComparer.OrdinalIgnoreCase);
     private bool _useUsageCommandFallback;
 
     /// <param name="getUsage">Sends <c>get_usage</c> (for example through the utility session) and returns the response.</param>
@@ -83,7 +84,7 @@ public sealed class UsagePoller : IDisposable, IAsyncDisposable
         {
             lock (_lock)
             {
-                return _modelLimitsAvailable;
+                return _modelLimitsAvailable || _modelsFromEvents.Count > 0;
             }
         }
     }
@@ -173,10 +174,14 @@ public sealed class UsagePoller : IDisposable, IAsyncDisposable
     /// A <c>rate_limit_event</c> from any tab: its <c>rate_limit_info</c>. Updates the session and weekly readings at
     /// once and keeps the model-specific ones.
     /// </summary>
-    public void NotifyRateLimitEvent(JsonObject rateLimitInfo)
+    public void NotifyRateLimitEvent(JsonObject rateLimitInfo, string? model = null)
     {
-        if (UsageParser.FromRateLimitEvent(rateLimitInfo, _time.GetUtcNow()) is { } update)
+        if (UsageParser.FromRateLimitEvent(rateLimitInfo, _time.GetUtcNow(), model) is { } update)
         {
+            lock (_lock)
+            {
+                _modelsFromEvents.UnionWith(update.WeeklyModels.Select(l => l.Label));
+            }
             Publish(current => UsageParser.Merge(current, update));
         }
     }
@@ -302,19 +307,27 @@ public sealed class UsagePoller : IDisposable, IAsyncDisposable
             lock (_lock)
             {
                 _modelLimitsAvailable = true;
+                _modelsFromEvents.Clear();
             }
             Publish(current => UsageParser.Merge(current, snapshot));
             return;
         }
 
+        HashSet<string> fromEvents;
+        var now = _time.GetUtcNow();
         lock (_lock)
         {
             _modelLimitsAvailable = false;
+            // A model no longer used, or withdrawn, stops reporting: its reading goes once its week is over.
+            var ended = _current?.WeeklyModels.Where(l => l.ResetsAt is { } resets && resets <= now).Select(l => l.Label) ?? [];
+            _modelsFromEvents.ExceptWith(ended);
+            fromEvents = [.. _modelsFromEvents];
         }
-        // Model readings from an earlier poll would go stale: drop them rather than show old numbers. A restored
-        // sample is only what the header shows until Claude Code reports, so it isn't published again.
-        Publish(current => current is { Source: not UsageSource.Stored, WeeklyModels.Count: > 0 }
-            ? current with { Limits = [.. current.Limits.Where(l => l.Kind != LimitKind.WeeklyModel)] }
+        // Model readings from an earlier poll would go stale: drop them rather than show old numbers, but keep the ones
+        // rate_limit_events report. A restored sample is only what the header shows until Claude Code reports, so it
+        // isn't published again.
+        Publish(current => current is { Source: not UsageSource.Stored } && current.WeeklyModels.Any(l => !fromEvents.Contains(l.Label))
+            ? current with { Limits = [.. current.Limits.Where(l => l.Kind != LimitKind.WeeklyModel || fromEvents.Contains(l.Label))] }
             : null);
     }
 

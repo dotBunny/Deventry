@@ -158,6 +158,34 @@ public sealed class UsageParserTests
     }
 
     [Fact]
+    public void Rate_limit_event_reads_the_model_s_own_weekly_window_as_that_model_s()
+    {
+        // What a request to Fable carried when signed in with CLAUDE_CODE_OAUTH_TOKEN, and get_usage had no limits.
+        var info = Parse("""
+            {"status":"rejected","rateLimitType":"seven_day_overage_included","resetsAt":1790766000,"unifiedWindows":{
+              "five_hour":{"utilization":0.01,"resetsAt":1790648400,"status":"allowed"},
+              "seven_day":{"utilization":0.68,"resetsAt":1790766000,"status":"allowed"},
+              "seven_day_overage_included":{"utilization":1,"resetsAt":1790766000,"status":"rejected"}}}
+            """);
+
+        var snapshot = UsageParser.FromRateLimitEvent(info, Now, "claude-fable-5-2[1m]")!;
+
+        var fable = Assert.Single(snapshot.WeeklyModels);
+        Assert.Equal(("Fable", 100d, UsageFixtures.WeekResetsAt), (fable.Label, fable.Percent, fable.ResetsAt));
+        Assert.Equal(68, snapshot.WeeklyAll!.Percent);
+        Assert.Empty(UsageParser.FromRateLimitEvent(info, Now)!.WeeklyModels);
+    }
+
+    [Theory]
+    [InlineData("fable", "Fable")]
+    [InlineData("claude-opus-5-5", "Opus")]
+    [InlineData("claude-3-5-sonnet-20241022", "Sonnet")]
+    [InlineData("claude-lyric-6-0", "Lyric")]
+    [InlineData("default", null)]
+    [InlineData(null, null)]
+    public void Model_family_name(string? model, string? expected) => Assert.Equal(expected, UsageParser.ModelFamilyName(model));
+
+    [Fact]
     public void Rate_limit_event_saying_usage_credits_pay_counts_without_a_window()
     {
         var info = Parse("""{"status":"rejected","overageStatus":"allowed","isUsingOverage":true,"rateLimitType":"seven_day_opus","resetsAt":1790766000}""");

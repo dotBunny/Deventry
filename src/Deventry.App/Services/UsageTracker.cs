@@ -668,8 +668,11 @@ public sealed class UsageTracker : IAsyncDisposable
     private (string Key, string Name) ProjectOf(string folder) =>
         _projects.GetOrAdd(folder, f => (ProjectKey.For(f).Key, Formats.FolderName(GitWorktrees.MainCheckoutOf(f) ?? f)));
 
-    /// <summary>A <c>rate_limit_event</c> from any tab updates the header at once, between polls.</summary>
-    public void OnRateLimitEvent(RateLimitEventMessage message) => _poller.NotifyRateLimitEvent(message.Info);
+    /// <summary>
+    /// A <c>rate_limit_event</c> from any tab updates the header at once, between polls. <paramref name="model"/> is the
+    /// model the tab runs, whose own weekly limit the event may carry.
+    /// </summary>
+    public void OnRateLimitEvent(RateLimitEventMessage message, string? model = null) => _poller.NotifyRateLimitEvent(message.Info, model);
 
     private void OnPolled(UsageSnapshot snapshot)
     {

@@ -1907,7 +1907,7 @@ items:
     usedIn: src/Deventry.Usage/UsageParser.cs
     docs: https://code.claude.com/docs/en/agent-sdk/typescript
     test: UsageParserTests
-    fallback: rate_limit_info.unifiedWindows.five_hour / seven_day (utilization 0-1, resetsAt epoch seconds). Without it, use the documented top-level utilization and resetsAt for the window named by rateLimitType.
+    fallback: rate_limit_info.unifiedWindows.five_hour / seven_day (utilization 0-1, resetsAt epoch seconds). Without it, use the documented top-level utilization and resetsAt for the window named by rateLimitType. A request to a model with its own weekly limit also carries a third seven_day_* window (seven_day_overage_included for Fable in 2.1.328), read as the tab's model's limit; without it, the model meters come from get_usage only.
   - id: "rateLimitType"
     kind: field
     status: undocumented

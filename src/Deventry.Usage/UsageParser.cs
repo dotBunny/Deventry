@@ -68,7 +68,12 @@ public static partial class UsageParser
     /// grace window (<c>rateLimitGraceActive</c>) or with credits in use (<c>overageInUse</c>), both undocumented, doesn't
     /// say they stopped (<see cref="CreditsReport.StillUsedUp"/>).
     /// </summary>
-    public static UsageSnapshot? FromRateLimitEvent(JsonObject rateLimitInfo, DateTimeOffset now)
+    /// <remarks>
+    /// A request to a model with its own weekly limit also carries that limit as another <c>seven_day_*</c> window,
+    /// read as <paramref name="model"/>'s: the only place it shows when <c>get_usage</c> has none, as when signed in
+    /// with <c>CLAUDE_CODE_OAUTH_TOKEN</c>.
+    /// </remarks>
+    public static UsageSnapshot? FromRateLimitEvent(JsonObject rateLimitInfo, DateTimeOffset now, string? model = null)
     {
         try
         {
@@ -77,6 +82,11 @@ public static partial class UsageParser
             {
                 AddWindow(limits, windows.GetObject("five_hour"), LimitKind.Session, SessionLabel);
                 AddWindow(limits, windows.GetObject("seven_day"), LimitKind.WeeklyAll, WeeklyLabel);
+                if (ModelFamilyName(model) is { } family
+                    && windows.FirstOrDefault(w => w.Key.StartsWith("seven_day_", StringComparison.Ordinal)).Value is JsonObject scoped)
+                {
+                    AddWindow(limits, scoped, LimitKind.WeeklyModel, family);
+                }
             }
             if (limits.Count == 0)
             {
@@ -225,7 +235,8 @@ public static partial class UsageParser
         if (update.Source == UsageSource.RateLimitEvent)
         {
             var replaced = update.Limits.Select(l => l.Kind).ToHashSet();
-            foreach (var other in previous.Limits.Where(l => l.Kind == LimitKind.WeeklyModel || !replaced.Contains(l.Kind)))
+            var models = update.WeeklyModels.Select(l => l.Label).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var other in previous.Limits.Where(l => l.Kind == LimitKind.WeeklyModel ? !models.Contains(l.Label) : !replaced.Contains(l.Kind)))
             {
                 limits.Add(Kept(other, previous.AsOf));
                 keptAny = true;
@@ -237,6 +248,20 @@ public static partial class UsageParser
             ? previous.CreditsReport
             : update.CreditsReport ?? previous.CreditsReport;
         return credits == merged.Credits && report == merged.CreditsReport ? merged : merged with { Credits = credits, CreditsReport = report };
+    }
+
+    /// <summary>"Fable" for <c>fable</c>, <c>claude-fable-5-2</c> or <c>claude-fable-5-2[1m]</c>; null for <c>default</c>.</summary>
+    public static string? ModelFamilyName(string? model)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            return null;
+        }
+        var segments = model.Split('[')[0].ToLowerInvariant().Split('-', '.', '/', ':', '@', '_');
+        var family = segments.FirstOrDefault(s => s is "fable" or "opus" or "sonnet" or "haiku")
+            // A family that came later: the first word after "claude".
+            ?? segments.SkipWhile(s => s != "claude").Skip(1).FirstOrDefault(s => s.Length > 0 && !s.All(char.IsAsciiDigit));
+        return family is null ? null : char.ToUpperInvariant(family[0]) + family[1..];
     }
 
     /// <summary>Whether <paramref name="update"/> is older than <paramref name="current"/>, which was reported at <paramref name="reportedAt"/>.</summary>
